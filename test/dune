@@ -1,0 +1,5 @@
+(test
+  (name test_spinal_lexer)
+  (modules test_spinal_lexer)
+  (libraries spinal ounit2)
+)

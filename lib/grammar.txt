@@ -1,0 +1,40 @@
+++Phase 1: 
+    - Lexer + Parser
+    - Einsum interpreter
+    - Einsum VM
+    - int, float, bool, ndarrays
+    - Bare bones UI
+
+++Phase 2:
+    - External Data
+    - Custom types
+    - LSP + TreeSitter 
+    - Version control   ??
+    - Sync engine       ??
+    - Logic prog engine ??
+    - Unification       ??
+    - Type Checker
+
+++Phase 3:
+    - Remote exec       ??
+    - Const prog        ??
+    - Accounts + Data   ??
+
+
+program     -> declaration
+declaration -> '(' formulae ')'
+formulae    -> einsum ',' parameters
+
+einsum      -> quoted | function
+quoted      -> '"' function '"'
+function    -> input '->' output
+input       -> dimension (',' dimension)*
+output      -> dimension
+dimension   -> alpha
+
+parameters  -> range (, range)*
+range       -> index '..' index
+index       -> (alpha+) (numeric+)
+
+alpha       -> a..zA..Z
+numeric     -> 0..9
