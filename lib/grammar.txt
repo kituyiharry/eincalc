@@ -20,6 +20,7 @@
     - Const prog        ??
     - Accounts + Data   ??
 
+sample: ("i -> ", D1..D10) // sums along the axis
 
 program     -> declaration
 declaration -> '(' formulae ')'
@@ -36,5 +37,5 @@ parameters  -> range (, range)*
 range       -> index '..' index
 index       -> (alpha+) (numeric+)
 
-alpha       -> a..zA..Z
-numeric     -> 0..9
+alpha       -> a..zA..Z+
+numeric     -> 0..9+

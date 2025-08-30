@@ -1,19 +1,18 @@
-(**
-   Copyright (C) Spinal 2025. All Rights Reserved.
-   For internal use only. Do not redistribute.
+(*
+ *
+ *   Copyright (C) Spinal 2025. All Rights Reserved.
+ *   For internal use only. Do not redistribute.
+ *
+ *   Copyright laws and international treaties protect this app. Unauthorized 
+ *   redistribution of this app without express, written permission from our legal 
+ *   department may entail severe civil or criminal penalties.
+ *
+ *   Token Types used to represent Steinmetz formulae
+ *)
 
-   Copyright laws and international treaties protect this app. Unauthorized 
-   redistribution of this app without express, written permission from our legal 
-   department may entail severe civil or criminal penalties.
-
-
-
-   Token Types used to represent Steinmetz formulae
-
-*)
 type ttype =
-    | TNumeral of int     (* 0..9+ *)
-    | TAlphaNum of string  (* a..zA..z+ *)
+    | TNumeral  of int    (* 0..9+ *)
+    | TAlphaNum of string (* a..zA..z+ *)
     | TArrow              (* -> *)
     | TRange              (* .. *)
     | TComma              (* , *)
