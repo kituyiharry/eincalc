@@ -91,6 +91,18 @@ let tests = "Parser unit tests" >::: [
         ]
         ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i,i -> , D10, F11, A0..A100)")
     );
+    "simple summation with static arrays" >:: (fun _ -> 
+        assert_equal ({ 
+            Parser.inp=[ 
+                Parser.Shape [('i', 0);];
+            ];
+            out=None;
+        },
+        [
+            Parser.Static [1;2;3;4;5];
+        ]
+        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , [1,2,3,4,5])")
+    );
 ]
 
 let _ = 

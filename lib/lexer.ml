@@ -39,10 +39,12 @@ let isAlphaNum c =
 
 let scan_token (line, colm, sstr) index rest =
     match sstr with
-    | '('  -> Ok ((mktok line colm TLeftParen),  index, rest)
-    | ')'  -> Ok ((mktok line colm TRightParen), index, rest)
-    | ','  -> Ok ((mktok line colm TComma),      index, rest)
-    | '"'  -> Ok ((mktok line colm TQuote),      index, rest)
+    | '('  -> Ok ((mktok line colm TLeftParen),   index, rest)
+    | ')'  -> Ok ((mktok line colm TRightParen),  index, rest)
+    | ','  -> Ok ((mktok line colm TComma),       index, rest)
+    | '"'  -> Ok ((mktok line colm TQuote),       index, rest)
+    | '['  -> Ok ((mktok line colm TLeftBracket), index, rest)
+    | ']'  -> Ok ((mktok line colm TRightBracket),index, rest)
     | '.'  -> 
         (match rest with
             |  ('.') :: rest' -> 

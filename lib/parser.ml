@@ -18,11 +18,12 @@ type lit     =
 and  cell    = string * int      (* Rows are strings, Columns are numbers *)
 and  dimnsn  = lit               (* literal and its index *)
 and  crange  = 
-    | Range  of cell * cell       (* spreadsheet cell *)
+    | Range  of cell * cell      (* spreadsheet cell *)
     | Scalar of cell
+    | Static of int list         (* static array information information *)
 and  params  = crange list       (* function parameters *)
 and  einsum  = { 
-        inp: dimnsn list         (* input  - at least one - likely in reverse order. the number should correspond to the number of inputs *)
+        inp: dimnsn list         (* input  - at least one - likely in reverse order. should correspond to the number of params *)
     ;   out: dimnsn option       (* output - can be empty *)
 }
 and  formula = einsum * params   (* formula specification *)
@@ -61,14 +62,16 @@ type prattrule = {
 
 let ruleidx tok = 
     match tok with 
-    | TNumeral  _ ->  0 
-    | TAlphaNum _ ->  1 
-    | TArrow      ->  2 
-    | TRange      ->  3 
-    | TComma      ->  4 
-    | TQuote      ->  5 
-    | TLeftParen  ->  6 
-    | TRightParen ->  7 
+    | TNumeral  _   ->  0 
+    | TAlphaNum _   ->  1 
+    | TArrow        ->  2 
+    | TRange        ->  3 
+    | TComma        ->  4 
+    | TQuote        ->  5 
+    | TLeftParen    ->  6 
+    | TRightParen   ->  7 
+    | TLeftBracket  ->  8 
+    | TRightBracket ->  9 
 ;;
 
 let rules = [|
@@ -87,6 +90,10 @@ let rules = [|
         (* TLeftParen          *)
     ;   { prefix=None; infix=None; prec=PrecNone }
         (* TRightParen         *)
+    ;   { prefix=None; infix=None; prec=PrecNone }
+        (* TLeftBracket         *)
+    ;   { prefix=None; infix=None; prec=PrecNone }
+        (* TRightBracket        *)
     ;   { prefix=None; infix=None; prec=PrecNone }
 |];;
 
@@ -215,6 +222,31 @@ let add_param ((p, r)) start  =
     ({ p with prog=(fst ein, (Scalar (start) :: (snd ein))) :: (List.tl p.prog) }, r)
 ;;
 
+let add_static ((p, r)) numerals = 
+    let ein = List.hd p.prog in
+    ({ p with prog=(fst ein, (Static (List.rev numerals) :: (snd ein))) :: (List.tl p.prog) }, r)
+;;
+
+let parse_static_array state = 
+    let rec collect state numerals =  
+        match (fst state).curr with
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TNumeral value ->  
+                    collect (advance state) (value :: numerals)
+                | TComma -> 
+                    collect (advance state) (numerals)
+                | TLeftBracket -> 
+                    Error "Only 1 dimensional arrays supported for now"
+                | TRightBracket -> 
+                    Ok (state, numerals)
+                | _ ->
+                    Error "Unexpected token in static array - only numerals supported"
+            ) 
+        | _ -> Error "Unexpected close - need static array"
+    in collect state []
+;;
+
 let parse_ein_params state = 
     match (fst state).curr with
     | Some { tokn; _ } -> 
@@ -247,11 +279,21 @@ let parse_ein_params state =
                         Error "Invalid range value"
                     )
                 )
+            | TLeftBracket -> 
+                (>>==) (parse_static_array (advance state)) (fun (state', numerals) ->
+                    (* check for Right bracket *)
+                    if check TRightBracket (fst state') then
+                        Ok (advance (add_static state' numerals))
+                    else
+                        Error "Unclosed static array declaration"
+                )
             | _   ->  
+                (* ?? *)
                 Ok state
         )
     | _ -> Error "Missing einsum parameters"
 ;;
+
 
 (* let the call order reflect how it written for einsum parameters *)
 let call_order (prt, _rem) = 

@@ -19,4 +19,6 @@ type ttype =
     | TQuote              (* '"' *)
     | TLeftParen          (* ( *)
     | TRightParen         (* ) *)
+    | TLeftBracket        (* [ *)
+    | TRightBracket       (* ] *)
 [@@deriving show, eq];;
