@@ -17,10 +17,12 @@ type lit     =
     | Shape of (char * int) list 
 and  cell    = string * int      (* Rows are strings, Columns are numbers *)
 and  dimnsn  = lit               (* literal and its index *)
-and  crange  = cell * cell       (* spreadsheet cell *)
+and  crange  = 
+    | Range  of cell * cell       (* spreadsheet cell *)
+    | Scalar of cell
 and  params  = crange list       (* function parameters *)
 and  einsum  = { 
-        inp: dimnsn list         (* input  - at least one *)
+        inp: dimnsn list         (* input  - at least one - likely in reverse order. the number should correspond to the number of inputs *)
     ;   out: dimnsn option       (* output - can be empty *)
 }
 and  formula = einsum * params   (* formula specification *)
@@ -36,7 +38,7 @@ type prattstate = {
         curr: lexeme  option
     ;   prev: lexeme  option
     ;   prog: program
-};;
+} [@@deriving show];;
 
 let prattempty = {
     curr = None; prev = None; prog = []
@@ -119,10 +121,12 @@ let advance (state, rem) =
 
 (* --- *)
 
+(* valid strings are non empty ascii sequences *)
 let validate word = 
     String.length word > 0 && String.is_valid_utf_8 word
 ;;
 
+(* NB: inputs will be in reverse order of declaration! *)
 let parse_ein_inp ein word = 
     { ein with 
         inp=(Shape (List.of_seq @@ Seq.mapi (fun i c -> (c, i)) (String.to_seq word)) :: ein.inp) 
@@ -136,6 +140,11 @@ let parse_ein_out ein word =
         { ein with out=None }
 ;;
 
+(* ensure the order of inputs are symmetric to the declaration *)
+let reorder ein = 
+    { ein with inp=List.rev ein.inp; } 
+;;
+
 let parse_einsum pratt = 
     let rec _parse ein state = 
         (match (fst state).curr with
@@ -147,54 +156,137 @@ let parse_einsum pratt =
                             if check TComma prt then
                                 _parse (parse_ein_inp ein v) (advance state') 
                             else 
-                                Ok ({ prt with prog=(((parse_ein_inp ein v), []) :: prt.prog) }, rem')
-                        ) else (Error "Input indices invalid - please use at least one ascii chars"))
+                                Ok (({ prt with prog=(((reorder @@ parse_ein_inp ein v), []) :: prt.prog) }, rem'))
+                        ) else (Error (Format.sprintf "Input indices invalid - please use at least one ascii chars at %s" (show_prattstate @@ fst state))))
                     | _ -> 
-                        Error "Unimplemented"
+                        Error (Format.sprintf "Unimplemented at %s" (show_prattstate (fst state)))
                 )
             |  _          -> 
-                Error "Unimplemented"
-
+                Error (Format.sprintf "Unfinished einsum expression at %s" (show_prattstate (fst state)))
         )
     in
-    (>>==) (_parse einempty pratt) (fun (prt, rem) -> 
-        if check TArrow prt then 
-            let (prt', rem') = advance (prt, rem) in 
-            (match (prt').curr with 
+    (>>==) (_parse einempty pratt) (fun current -> 
+        (* output of the einsum - NOT the parameters! *)
+        (if check TArrow (fst current) then (
+            let next = advance current in 
+            (match (fst next).curr with 
                 | Some ({ tokn; _ }) -> 
                     (match tokn with
                         | TAlphaNum v -> 
                             (* Grab the last einsum and update the output *)
-                            let ein' = List.hd prt'.prog in
+                            let ein' = List.hd (fst next).prog in
                             let upd  = parse_ein_out (fst ein') v in
-                            Ok (advance ({ prt' with prog=(upd, snd ein') :: (List.tl prt'.prog) }, rem'))
+                            Ok (advance ({ (fst next) with prog=(upd, snd ein') :: (List.tl (fst next).prog) }, (snd next)))
                         | _ -> 
-                            Ok (prt', rem')
+                            (* it was not a token - likely something closing like a Comma or RightParen *)
+                            (* not what we expected - we just leave as is -  *)
+                            Ok (next)
                     )
                 | _ -> 
-                    Ok (prt', rem')
+                    Error "Unexpected einsum result"
             )
-        else 
-            Ok (prt, rem) 
+        ) else (
+            (* arrow can be optional *)
+            Ok (current) 
+        ))
     )
 ;;
 
-let parse_formulae (prt, rem) = 
-    (parse_einsum (prt, rem))
+let as_cell w = 
+    match Seq.find_index (fun c ->  Lexer.isDigit c) @@ String.to_seq w  with 
+    | Some idx -> 
+        let row = String.sub w 0 idx in
+        let col = String.sub w idx (String.length w - idx) in
+        ( match int_of_string_opt col with 
+            | Some col'->  Ok (row, col')
+            | None     ->  Error (Format.sprintf "Invalid row value - should be a number: %s" col)
+        ) 
+    | None -> 
+        Error "Row index not found??"
 ;;
 
-let parse lstream = 
-    let rec _parse_lxms (state,  lxms) = 
-        (if check TLeftParen state
-            then
-                ((>>==) (parse_formulae @@ advance (state, lxms)) (fun state' -> 
-                    (if check TRightParen (fst state') then
-                        _parse_lxms (advance state')
-                        else
-                        Error "Unclosed einsum formulae"
+let add_params ((p, r)) start close  = 
+    let ein = List.hd p.prog in
+    ({ p with prog=(fst ein, (Range (start, close) :: (snd ein))) :: (List.tl p.prog) }, r)
+;;
+
+let add_param ((p, r)) start  = 
+    let ein = List.hd p.prog in
+    ({ p with prog=(fst ein, (Scalar (start) :: (snd ein))) :: (List.tl p.prog) }, r)
+;;
+
+let parse_ein_params state = 
+    match (fst state).curr with
+    | Some { tokn; _ } -> 
+        (match tokn with
+            | TAlphaNum _start ->  
+                (if validate _start then
+                    let next = advance state in
+                    (if check TRange (fst next) then (
+                        let next' = advance next in 
+                        match (fst next').curr with 
+                            | Some { tokn;_ } ->  
+                                (match tokn with
+                                    | TAlphaNum _end ->  
+                                        (>>==) (as_cell _start) (fun scell -> 
+                                            (>>==) (as_cell _end) (fun ecell -> 
+                                                Ok (advance @@ add_params next' scell ecell)
+                                            )
+                                        )
+                                    | _ -> 
+                                        Error "Expected range end"
+                                )
+                            | _            -> 
+                                Error "Unclosed range"
+                    ) else 
+                            (* no range token  - maybe single cell*)
+                            (>>==) (as_cell _start) (fun y -> 
+                                Ok (add_param next y)
+                            )
+                    ) else (
+                        Error "Invalid range value"
                     )
-                )) 
-            else (Ok (state, lxms))
+                )
+            | _   ->  
+                Ok state
+        )
+    | _ -> Error "Missing einsum parameters"
+;;
+
+(* let the call order reflect how it written for einsum parameters *)
+let call_order (prt, _rem) = 
+    let (e, p) = List.hd prt.prog in
+    ({ prt with prog=((e, (List.rev p)) :: (List.tl prt.prog)) }, _rem)
+;;
+
+let parse_formulae state = 
+    let rec _extract state =
+        (if check TComma (fst state) 
+            then ((>>==) (parse_ein_params (advance state)) (_extract)) 
+            else (Ok (call_order state))
+        );
+    in (>>==) (parse_einsum state) (_extract)
+    (*in (parse_einsum state)*)
+;;
+
+(* TODO: make errors some easily parseable and serializable type showing expected and current states *)
+let parse lstream = 
+    let rec _parse_lxms current = 
+        (if check TLeftParen (fst current)
+            then
+                let next = advance current in 
+                (if check TRightParen (fst next) then 
+                    Error (Format.sprintf "expected einsum expression at %s" (show_prattstate (fst next)))
+                else
+                    ((>>==) (parse_formulae next) (fun state' -> 
+                        (if check TRightParen (fst state') then
+                            _parse_lxms (advance state')
+                        else
+                            Error (Format.sprintf "Unclosed einsum formulae: %s" (show_prattstate (fst state')))
+                        )
+                    )) 
+                )
+            else (Ok current)
         )
     in
     _parse_lxms @@ advance (prattempty, lstream)

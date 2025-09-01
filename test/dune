@@ -3,3 +3,9 @@
   (modules test_spinal_lexer)
   (libraries spinal ounit2)
 )
+
+(test
+  (name test_spinal_parser)
+  (modules test_spinal_parser)
+  (libraries spinal ounit2)
+)
