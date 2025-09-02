@@ -22,11 +22,14 @@ and  motion  =
     | South of int (* _ *)
     | East  of int (* > *)
     | West  of int (* < *)
+and referral = 
+    | Self  (* the current cell *)
 and  crange  = 
     | Range    of cell * cell    (* spreadsheet cell *)
     | Scalar   of cell
     | Static   of int list       (* static array information information *)
     | Relative of motion * crange(* Relative cell - Up ^, Down _, Left <, Right, > *)
+    | Refer    of referral       (* a way to refer to the current cell *) 
 and  params  = crange list       (* function parameters *)
 and  einsum  = { 
         inp: dimnsn list         (* input  - at least one - likely in reverse order. should correspond to the number of params *)
@@ -316,6 +319,19 @@ let compass tokn motn =
         failwith "invalid token in compass"
 ;;
 
+let parse_reference state = 
+    match (fst state).curr with
+    | Some { tokn;_ } -> 
+        (match tokn with 
+            | TAlphaNum "self" -> 
+                Ok (advance state, Refer Self)
+            | _ -> 
+                Error "Unhandled reference"
+        )
+    | _ -> 
+        Error "Unfinished reference"
+;;
+
 let rec parse_relative dir state' = 
     (match (fst state').curr with
         | Some { tokn; _ } -> 
@@ -325,18 +341,11 @@ let rec parse_relative dir state' =
                     (>>==) (parse_ein_params (advance state')) (fun (final, range) ->
                         Ok (final, Relative ((compass dir motn), range))
                     )
-                | TAlphaNum _x -> 
+                | _ -> 
                     let motn = 1 in
                     (>>==) (parse_ein_params state') (fun (final, range) ->
                         Ok (final, Relative ((compass dir motn), range))
                     )
-                | TLeftAngle | TRightAngle | TCaret | TUnderscore -> 
-                    let motn = 1 in
-                    (>>==) (parse_relative tokn (advance state')) (fun (final, range) ->
-                        Ok (final, Relative ((compass dir motn), range))
-                    )
-                | _ -> 
-                    Error "Expected optional motion with cell spec"
             )
         | _ -> 
             Error "Expected optional motion with cell spec but no tokens left"
@@ -349,13 +358,15 @@ and parse_ein_params state =
             | TAlphaNum _start ->  
                 (if validate _start then
                     let next = advance state in
-                    (>>==) (parse_param_data _start next) (Result.ok)
+                    (parse_param_data _start next)
                     else (Error "Invalid range value")
                 )
             | TLeftBracket -> 
-                (>>==) (parse_static_array (advance state)) (Result.ok)
+                (parse_static_array (advance state))
             | TLeftAngle | TRightAngle | TUnderscore | TCaret -> 
-                parse_relative tokn (advance state)
+                (parse_relative tokn (advance state))
+            | TAt -> 
+                (parse_reference (advance state))
             | _   ->  
                 (* ?? -- should be unreachable *)
                 Error "Trailing Comma!"

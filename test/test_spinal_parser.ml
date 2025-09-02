@@ -111,6 +111,19 @@ let tests = "Parser unit tests" >::: [
             ]
         ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , <>D3)")
     );
+    "simple summation with reference" >:: (fun _ -> 
+        assert_equal ({ 
+            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            out=None;
+        },
+            [
+                Parser.Refer (Self);
+            ]
+        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , @self)")
+    );
+    "simple summation with unknown reference" >:: (fun _ -> 
+        assert_equal true (Result.is_error @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , @unknown)")
+    );
 ]
 
 let _ = 
