@@ -76,6 +76,20 @@ let tests = "Lexer unit tests" >::: [
             (Lexer.mktok 0 14 (Tokens.TRightParen));
         ]) (Lexer.run 0 "(i -> , D2..D8)") ~printer:(res_prnt (list_prnt))
     );
+    "Full unquoted sample einsum summation call with relative parameters" >:: (fun _ -> 
+        assert_equal (Ok [ 
+            (Lexer.mktok 0 0  (Tokens.TLeftParen));
+            (Lexer.mktok 0 1  (Tokens.TAlphaNum "i"));
+            (Lexer.mktok 0 3  (Tokens.TArrow));
+            (Lexer.mktok 0 6  (Tokens.TComma));
+            (Lexer.mktok 0 8  (Tokens.TLeftAngle));
+            (Lexer.mktok 0 9  (Tokens.TNumeral 4));
+            (Lexer.mktok 0 10  (Tokens.TAlphaNum "D2"));
+            (Lexer.mktok 0 12 (Tokens.TRange));
+            (Lexer.mktok 0 14 (Tokens.TAlphaNum "D8"));
+            (Lexer.mktok 0 16 (Tokens.TRightParen));
+        ]) (Lexer.run 0 "(i -> , <4D2..D8)") ~printer:(res_prnt (list_prnt))
+    );
 ]
 
 let _ = 

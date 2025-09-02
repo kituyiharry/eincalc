@@ -21,4 +21,8 @@ type ttype =
     | TRightParen         (* ) *)
     | TLeftBracket        (* [ *)
     | TRightBracket       (* ] *)
+    | TLeftAngle          (* < *) 
+    | TRightAngle         (* > *) 
+    | TUnderscore         (* _ *)
+    | TCaret              (* ^ *)
 [@@deriving show, eq];;

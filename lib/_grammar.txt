@@ -34,7 +34,10 @@ output      -> dimension
 dimension   -> alpha
 
 parameters  -> range (, range)*
-range       -> index '..' index
+range       -> 
+    | index '..' index
+    | index 
+    | '<' (numeric) range
 index       -> (alpha+) (numeric+)
 
 alpha       -> a..zA..Z+

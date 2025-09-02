@@ -45,6 +45,10 @@ let scan_token (line, colm, sstr) index rest =
     | '"'  -> Ok ((mktok line colm TQuote),       index, rest)
     | '['  -> Ok ((mktok line colm TLeftBracket), index, rest)
     | ']'  -> Ok ((mktok line colm TRightBracket),index, rest)
+    | '<'  -> Ok ((mktok line colm TLeftAngle),   index, rest)
+    | '>'  -> Ok ((mktok line colm TRightAngle),  index, rest)
+    | '^'  -> Ok ((mktok line colm TCaret),       index, rest)
+    | '_'  -> Ok ((mktok line colm TUnderscore),  index, rest)
     | '.'  -> 
         (match rest with
             |  ('.') :: rest' -> 
