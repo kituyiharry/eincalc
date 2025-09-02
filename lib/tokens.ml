@@ -25,4 +25,5 @@ type ttype =
     | TRightAngle         (* > *) 
     | TUnderscore         (* _ *)
     | TCaret              (* ^ *)
+    | TAt                 (* @ *)
 [@@deriving show, eq];;

@@ -41,10 +41,7 @@ let tests = "Parser unit tests" >::: [
         }, [ (Parser.Scalar ("D", 10)) ]) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> i, D10)")
     );
     "simple identity einsum with params trailing comma" >:: (fun _ -> 
-        assert_equal ({ 
-            Parser.inp=[ Parser.Shape [('i', 0);]; ];
-            out=Some(Parser.Shape [('i', 0);]);
-        }, [ (Parser.Scalar ("D", 10)) ]) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> i, D10, )")
+        assert_equal (true) (Result.is_error @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> i, D10, )")
     );
     "simple summation einsum with ranged params" >:: (fun _ -> 
         assert_equal ({ 
@@ -98,6 +95,21 @@ let tests = "Parser unit tests" >::: [
             Parser.Relative (Parser.West 1, Parser.Scalar ("D", 3));
         ]
         ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , <D3)")
+    );
+    "simple summation with multiple relative indexing" >:: (fun _ -> 
+        assert_equal ({ 
+            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            out=None;
+        },
+            [
+                (* TODO: Shrink this to West 3 if necessary *)
+                Parser.Relative (
+                    (Parser.West 1), (Parser.Relative (
+                        (Parser.East 1), (Parser.Scalar ("D", 3))
+                    ))
+                );
+            ]
+        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , <>D3)")
     );
 ]
 

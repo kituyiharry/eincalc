@@ -82,6 +82,7 @@ let ruleidx tok =
     | TRightAngle   ->  11 
     | TUnderscore   ->  12
     | TCaret        ->  13
+    | TAt           ->  14
 ;;
 
 let rules = [|
@@ -112,6 +113,10 @@ let rules = [|
         (* TUnderscore        *)
     ;   { prefix=None; infix=None; prec=PrecNone }
         (* TCaret        *)
+    ;   { prefix=None; infix=None; prec=PrecNone }
+        (* TUnderscore        *)
+    ;   { prefix=None; infix=None; prec=PrecNone }
+        (* TAt        *)
     ;   { prefix=None; infix=None; prec=PrecNone }
 |];;
 
@@ -245,21 +250,9 @@ let add_static ((p, r)) numerals =
     ({ p with prog=(fst ein, (Static (List.rev numerals) :: (snd ein))) :: (List.tl p.prog) }, r)
 ;;
 
-let add_range ((p, r)) dir num rangeinf = 
+let add_crange (((p, r)), rangeinf) = 
     let ein = List.hd p.prog in
-    match dir with
-    | TLeftAngle  ->
-        ({ p with prog=(fst ein, (Relative ((West num), rangeinf)  :: (snd ein))) :: (List.tl p.prog) }, r)
-    | TRightAngle ->
-        ({ p with prog=(fst ein, (Relative ((East num), rangeinf)  :: (snd ein))) :: (List.tl p.prog) }, r)
-    | TCaret      ->
-        ({ p with prog=(fst ein, (Relative ((North num), rangeinf) :: (snd ein))) :: (List.tl p.prog) }, r)
-    | TUnderscore ->
-        ({ p with prog=(fst ein, (Relative ((South num), rangeinf) :: (snd ein))) :: (List.tl p.prog) }, r)
-    | _ -> 
-        (* should be unreachable!! *)
-        Format.printf "Unreachable range detected!";
-        (p, r)
+    ({ p with prog=(fst ein, (rangeinf :: (snd ein))) :: (List.tl p.prog) }, r)
 ;;
 
 (* return consumed state + extracted numerals forming the array *)
@@ -275,7 +268,7 @@ let parse_static_array state =
                 | TLeftBracket -> 
                     Error "Only 1 dimensional arrays supported for now"
                 | TRightBracket -> 
-                    Ok (state, numerals)
+                    Ok ((advance state), Static (List.rev numerals))
                 | _ ->
                     Error "Unexpected token in static array - only numerals supported"
             ) 
@@ -309,86 +302,63 @@ let parse_param_data _start next =
     )
 ;;
 
-let parse_relative _angle _state = 
-    (*let dist = 1 in*)
-    match (fst _state).curr with
-    | Some { tokn; _ } -> 
-        (match tokn with
-        | TNumeral  _n -> 
-            Error "Not implemented"
-        | TAlphaNum _a -> 
-            Error "Not implemented"
-        | _ -> 
-            Error "Not implemented"
-        )
-    | None   -> 
-        Error "Unexpected end of Relative cell expression"
+let compass tokn motn = 
+    match tokn with 
+    | TLeftAngle  ->
+        (West motn)
+    | TRightAngle ->
+        (East motn)
+    | TCaret      ->
+        (North motn)
+    | TUnderscore -> 
+        (South motn)
+    | _ -> 
+        failwith "invalid token in compass"
 ;;
 
-let parse_ein_params state = 
+let rec parse_relative dir state' = 
+    (match (fst state').curr with
+        | Some { tokn; _ } -> 
+            (match tokn with 
+                | TNumeral  _a -> 
+                    let motn = _a in
+                    (>>==) (parse_ein_params (advance state')) (fun (final, range) ->
+                        Ok (final, Relative ((compass dir motn), range))
+                    )
+                | TAlphaNum _x -> 
+                    let motn = 1 in
+                    (>>==) (parse_ein_params state') (fun (final, range) ->
+                        Ok (final, Relative ((compass dir motn), range))
+                    )
+                | TLeftAngle | TRightAngle | TCaret | TUnderscore -> 
+                    let motn = 1 in
+                    (>>==) (parse_relative tokn (advance state')) (fun (final, range) ->
+                        Ok (final, Relative ((compass dir motn), range))
+                    )
+                | _ -> 
+                    Error "Expected optional motion with cell spec"
+            )
+        | _ -> 
+            Error "Expected optional motion with cell spec but no tokens left"
+    )
+
+and parse_ein_params state = 
     match (fst state).curr with
     | Some { tokn; _ } -> 
         (match tokn with
             | TAlphaNum _start ->  
                 (if validate _start then
                     let next = advance state in
-                    (>>==) (parse_param_data _start next) (fun (state', range) -> 
-                        (match range with
-                            | Scalar x ->    Ok (add_param state' x)
-                            | Range (y,z) -> Ok (add_params state' y z)
-                            | _ -> Error "Unreachable case in ein params!"
-                        )
-                    )
+                    (>>==) (parse_param_data _start next) (Result.ok)
                     else (Error "Invalid range value")
                 )
             | TLeftBracket -> 
-                (>>==) (parse_static_array (advance state)) (fun (state', numerals) ->
-                    (* check for Right bracket *)
-                    if check TRightBracket (fst state') then
-                        Ok (advance (add_static state' numerals))
-                    else
-                        Error "Unclosed static array declaration"
-                )
+                (>>==) (parse_static_array (advance state)) (Result.ok)
             | TLeftAngle | TRightAngle | TUnderscore | TCaret -> 
-                let dir = tokn in
-                let state' = advance state in
-                (match (fst state').curr with
-                    | Some { tokn; _ } -> 
-                        (match tokn with 
-                        | TNumeral  _a -> 
-                            let motn = _a in
-                            let next = advance state' in
-                            (
-                                match (fst next).curr with
-                                |  Some { tokn; _ } ->
-                                    (match tokn with 
-                                    | TAlphaNum _x -> 
-                                        (>>==) (parse_param_data _x (advance next)) 
-                                            (fun (final, range) ->
-                                                Ok (add_range final dir motn range)
-                                            )
-                                    | _ -> 
-                                        Error "Expected optional motion with cell spec"
-                                    )
-                                |  _ -> 
-                                    Error "Expected optional motion with cell spec"
-                            )
-                        | TAlphaNum _x -> 
-                            let motn = 1 in
-                            (>>==) (parse_param_data _x (advance state')) 
-                                (fun (final, range) ->
-                                    Ok (add_range final dir motn range)
-                                )
-                        | _ -> 
-                            Error "Expected optional motion with cell spec"
-                        )
-                    | _ -> 
-                        Error "Expected optional motion with cell spec"
-                )
-                (*parse_relative tokn (advance state)*)
+                parse_relative tokn (advance state)
             | _   ->  
-                (* ?? *)
-                Ok state
+                (* ?? -- should be unreachable *)
+                Error "Trailing Comma!"
         )
     | _ -> Error "Missing einsum parameters"
 ;;
@@ -403,7 +373,7 @@ let call_order (prt, _rem) =
 let parse_formulae state = 
     let rec _extract state =
         (if check TComma (fst state) 
-            then ((>>==) (parse_ein_params (advance state)) (_extract)) 
+            then ((>>==) (parse_ein_params (advance state)) (Fun.compose _extract add_crange)) 
             else (Ok (call_order state))
         );
     in (>>==) (parse_einsum state) (_extract)
