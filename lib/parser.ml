@@ -15,19 +15,23 @@ let (>>==) = Result.bind;;
 
 type lit     = 
     | Shape of (char * int) list 
+    (* TODO: make lit *)
+and referral = 
+    | Self  (* the current cell *)
 and  cell    = string * int      (* Rows are strings, Columns are numbers *)
+    (* TODO *)
+    (* R1C1 *)
+    (* reference e.g @self, @head *)
 and  dimnsn  = lit               (* literal and its index *)
 and  motion  =  
     | North of int (* ^ *)
     | South of int (* _ *)
     | East  of int (* > *)
     | West  of int (* < *)
-and referral = 
-    | Self  (* the current cell *)
 and  crange  = 
     | Range    of cell * cell    (* spreadsheet cell *)
     | Scalar   of cell
-    | Static   of int list       (* static array information information *)
+    | Static   of float list       (* static array information information *)
     | Relative of motion * crange(* Relative cell - Up ^, Down _, Left <, Right, > *)
     | Refer    of referral       (* a way to refer to the current cell *) 
 and  params  = crange list       (* function parameters *)
@@ -86,6 +90,7 @@ let ruleidx tok =
     | TUnderscore   ->  12
     | TCaret        ->  13
     | TAt           ->  14
+    | TFloat   _    ->  15
 ;;
 
 let rules = [|
@@ -120,6 +125,8 @@ let rules = [|
         (* TUnderscore        *)
     ;   { prefix=None; infix=None; prec=PrecNone }
         (* TAt        *)
+    ;   { prefix=None; infix=None; prec=PrecNone }
+        (* TFloat        *)
     ;   { prefix=None; infix=None; prec=PrecNone }
 |];;
 
@@ -264,8 +271,10 @@ let parse_static_array state =
         match (fst state).curr with
         | Some { tokn; _ } -> 
             (match tokn with
-                | TNumeral value ->  
+                | TFloat value ->  
                     collect (advance state) (value :: numerals)
+                | TNumeral value ->  
+                    collect (advance state) ((float_of_int value) :: numerals)
                 | TComma -> 
                     collect (advance state) (numerals)
                 | TLeftBracket -> 
@@ -273,7 +282,7 @@ let parse_static_array state =
                 | TRightBracket -> 
                     Ok ((advance state), Static (List.rev numerals))
                 | _ ->
-                    Error "Unexpected token in static array - only numerals supported"
+                    Error "Unexpected token in static array - only floats supported"
             ) 
         | _ -> Error "Unexpected close - need static array"
     in collect state []
@@ -394,21 +403,19 @@ let parse_formulae state =
 (* TODO: make errors some easily parseable and serializable type showing expected and current states *)
 let parse lstream = 
     let rec _parse_lxms current = 
-        (if check TLeftParen (fst current)
-            then
-                let next = advance current in 
-                (if check TRightParen (fst next) then 
-                    Error (Format.sprintf "expected einsum expression at %s" (show_prattstate (fst next)))
+        (if check TLeftParen (fst current) then
+            let next = advance current in 
+            (if check TRightParen (fst next) then 
+                Error (Format.sprintf "expected einsum expression at %s" (show_prattstate (fst next)))
                 else
                     ((>>==) (parse_formulae next) (fun state' -> 
                         (if check TRightParen (fst state') then
                             _parse_lxms (advance state')
-                        else
-                            Error (Format.sprintf "Unclosed einsum formulae: %s" (show_prattstate (fst state')))
+                            else
+                                Error (Format.sprintf "Unclosed einsum formulae: %s" (show_prattstate (fst state')))
                         )
                     )) 
-                )
-            else (Ok current)
+            ) else (Ok current)
         )
     in
     _parse_lxms @@ advance (prattempty, lstream)

@@ -12,6 +12,7 @@
 
 type ttype =
     | TNumeral  of int    (* 0..9+ *)
+    | TFloat    of float
     | TAlphaNum of string (* a..zA..z+ *)
     | TArrow              (* -> *)
     | TRange              (* .. *)

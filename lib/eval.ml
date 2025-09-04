@@ -8,8 +8,9 @@
  *
  *)
 
-(*open Parser;;*)
+open Parser;;
 
-(*let  eval program = *)
-    (*Error "Not implemented"*)
-(*;;*)
+let eval (_pr: program) = 
+    (*let ({ inp; out }, args) = List.hd pr in*)
+    Error "Not implemented"
+;;

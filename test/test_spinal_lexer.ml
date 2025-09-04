@@ -55,6 +55,17 @@ let tests = "Lexer unit tests" >::: [
             (Lexer.mktok 0 6 (Tokens.TRightBracket));
         ]) (Lexer.run 0 "[1,2,3]") ~printer:(res_prnt (list_prnt))
     );
+    "Static float arrays" >:: (fun _ ->
+        assert_equal (Ok [ 
+            (Lexer.mktok 0 0 (Tokens.TLeftBracket));
+            (Lexer.mktok 0 1 (Tokens.TFloat 1.));
+            (Lexer.mktok 0 2 (Tokens.TComma));
+            (Lexer.mktok 0 3 (Tokens.TFloat 2.));
+            (Lexer.mktok 0 4 (Tokens.TComma));
+            (Lexer.mktok 0 5 (Tokens.TFloat 3.5));
+            (Lexer.mktok 0 7 (Tokens.TRightBracket));
+        ]) (Lexer.run 0 "[1.,2.,3.5]") ~printer:(res_prnt (list_prnt))
+    );
     "Sample einsum function expression" >:: (fun _ -> 
         assert_equal (Ok [ 
             (Lexer.mktok 0 0  (Tokens.TAlphaNum "abc"));

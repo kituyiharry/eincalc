@@ -68,7 +68,7 @@ let scan_token (line, colm, sstr) index rest =
         let () = Buffer.add_char dbuf chr in
         let drp = ref 0 in
         if isDigit chr then 
-            let _ = List.take_while (fun c -> 
+            let rem = List.drop_while (fun c -> 
                 let isd = isDigit c in 
                 if isd then (
                     incr drp;
@@ -76,8 +76,29 @@ let scan_token (line, colm, sstr) index rest =
                 );
                 isd
             ) rest in
-            let alp = Buffer.contents dbuf |> int_of_string in
-            Ok ((mktok line colm (TNumeral alp)), index + !drp, (List.drop !drp rest))
+            (match rem with
+                | []  -> 
+                    let alp = Buffer.contents dbuf |> int_of_string in
+                    Ok ((mktok line colm (TNumeral alp)), index + !drp, rem)
+                | hd :: rest -> (
+                    if hd == '.' then ( 
+                        Buffer.add_char dbuf hd;
+                        let rem = List.drop_while (fun c -> 
+                            let isd = isDigit c in 
+                            if isd then (
+                                incr drp;
+                                Buffer.add_char dbuf c 
+                            );
+                            isd
+                        ) rest in 
+                        let alp = Buffer.contents dbuf |> float_of_string in
+                        Ok ((mktok line colm (TFloat alp)), index + !drp, rem)
+                    ) else (
+                        let alp = Buffer.contents dbuf |> int_of_string in
+                        Ok ((mktok line colm (TNumeral alp)), index + !drp, rem)
+                    )
+                ) 
+            ) 
         else if isAlphaNum chr then
             let _ = List.take_while (fun c -> 
                 let isd = isAlphaNum c in 
@@ -116,5 +137,17 @@ let run line pstring =
     |> (function 
             | Ok l -> Ok (List.rev l) 
             | e    -> e
+    )
+;;
+
+(* run on a single line *)
+let runall pstring = 
+    String.split_on_char '\n' pstring
+    |> List.mapi (run)
+    |> (fun res -> 
+        if List.exists (Result.is_error) res then
+            List.find (Result.is_error) res
+        else
+            Ok (List.concat @@ List.map (Result.get_ok) res)
     )
 ;;

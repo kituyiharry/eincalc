@@ -83,7 +83,7 @@ let tests = "Parser unit tests" >::: [
             Parser.inp=[ Parser.Shape [('i', 0);]; ];
             out=None;
         },
-        [ Parser.Static [1;2;3;4;5]; ]
+        [ Parser.Static [1.;2.;3.;4.;5.]; ]
         ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , [1,2,3,4,5])")
     );
     "simple summation with relative indexing" >:: (fun _ -> 
