@@ -1,3 +1,16 @@
+(*
+ *   Copyright (C) Spinal 2025. All Rights Reserved.
+ *   For internal use only. Do not redistribute.
+ *
+ *   Copyright laws and international treaties protect this app. Unauthorized 
+ *   redistribution of this app without express, written permission from our legal 
+ *   department may entail severe civil or criminal penalties.
+ *
+ *)
+let handle_transform_formulae form = 
+    Genfunc.transform (List.hd form)
+;;
+
 let handle_parse_exp (lex: Lexer.lexeme list) = 
     (
         Parser.parse lex 
@@ -5,9 +18,11 @@ let handle_parse_exp (lex: Lexer.lexeme list) =
             | Ok ({ Parser.prog; _ }, _l) -> (
                 let lem = List.length _l in
                 if lem > 0 then
-                    Format.printf "Tree: %s with rem %d\n" (Parser.show_program prog) lem
+                    let _ = Format.printf "Tree: %s with rem %d\n" (Parser.show_program prog) lem
+                    in handle_transform_formulae prog
                 else
-                    Format.printf "Tree: %s\n" (Parser.show_program prog)
+                    let _ = Format.printf "Tree: %s\n" (Parser.show_program prog) 
+                    in handle_transform_formulae prog
             )
             | Error s   -> Format.printf "Parse Error: %s" s
         )
@@ -15,8 +30,6 @@ let handle_parse_exp (lex: Lexer.lexeme list) =
 ;;
 
 let handle_scan_exp (_exp: string) = 
-    (*let ret = ref true in*)
-    let _ = Format.printf "Expr: %s\n" _exp in
     (
         Lexer.runall _exp
         |> (function 

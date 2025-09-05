@@ -28,10 +28,14 @@ and  motion  =
     | South of int (* _ *)
     | East  of int (* > *)
     | West  of int (* < *)
+and 'a ndarray = 
+    | Raw     of 'a list
+    | Collect of 'a ndarray list
 and  crange  = 
     | Range    of cell * cell    (* spreadsheet cell *)
     | Scalar   of cell
-    | Static   of float list       (* static array information information *)
+    | Static   of float list     (* static array information information *)
+    | NdArray  of float ndarray
     | Relative of motion * crange(* Relative cell - Up ^, Down _, Left <, Right, > *)
     | Refer    of referral       (* a way to refer to the current cell *) 
 and  params  = crange list       (* function parameters *)
@@ -267,25 +271,56 @@ let add_crange (((p, r)), rangeinf) =
 
 (* return consumed state + extracted numerals forming the array *)
 let parse_static_array state = 
-    let rec collect state numerals =  
-        match (fst state).curr with
-        | Some { tokn; _ } -> 
-            (match tokn with
-                | TFloat value ->  
-                    collect (advance state) (value :: numerals)
-                | TNumeral value ->  
-                    collect (advance state) ((float_of_int value) :: numerals)
-                | TComma -> 
-                    collect (advance state) (numerals)
-                | TLeftBracket -> 
-                    Error "Only 1 dimensional arrays supported for now"
-                | TRightBracket -> 
-                    Ok ((advance state), Static (List.rev numerals))
-                | _ ->
-                    Error "Unexpected token in static array - only floats supported"
-            ) 
-        | _ -> Error "Unexpected close - need static array"
-    in collect state []
+    let rec stack state' rows = 
+        ( 
+            (* collect an entire row first *)
+            (>>==) (collect state' []) (fun (after, toadd) -> 
+                (
+                    (* check for more rows *)
+                    if check TComma (fst after) then
+                        let next = advance after in
+                        (
+                            (* check if we are starting a new row *)
+                            if check TLeftBracket (fst next) then
+                                stack (advance next) (toadd :: rows)
+                            (* check if it was just a trailing comma *)
+                            else if check TRightBracket (fst next) then
+                                Ok (advance next, (toadd :: rows))
+                            (* weird state  *)
+                            else 
+                                Error (Format.sprintf "Unexpected token in stack: %s!" (show_prattstate (fst next)))
+                        )
+                    else if check TRightBracket (fst after) then 
+                        Ok (advance after, ((toadd :: rows)))
+                    else
+                        Ok (after, (toadd :: rows))
+                )
+            )
+        )
+    and collect state' numerals =  
+        (
+            match (fst state').curr with
+            | Some { tokn; _ } -> 
+                (match tokn with
+                    | TFloat value ->  
+                        collect (advance state') (value :: numerals)
+                    | TNumeral value ->  
+                        collect (advance state') ((float_of_int value) :: numerals)
+                    | TComma -> 
+                        collect (advance state') (numerals)
+                    | TLeftBracket -> 
+                        (* collect remaining rows *)
+                        (>>==) (stack (advance state') []) (fun (fin, blk) -> 
+                            Ok (fin, Collect (List.rev blk))
+                        )
+                    | TRightBracket -> 
+                        Ok ((advance state'), (Raw (List.rev numerals)))
+                    | _ ->
+                        Error "Unexpected token in static array - only floats supported"
+                ) 
+            | _ -> Error "Unexpected close - need static array"
+        )
+    in (collect state [])
 ;;
 
 let parse_param_data _start next = 
@@ -371,7 +406,9 @@ and parse_ein_params state =
                     else (Error "Invalid range value")
                 )
             | TLeftBracket -> 
-                (parse_static_array (advance state))
+                (>>==) (parse_static_array (advance state)) (fun (x,y) ->  
+                    Ok (x, NdArray y)
+                )
             | TLeftAngle | TRightAngle | TUnderscore | TCaret -> 
                 (parse_relative tokn (advance state))
             | TAt -> 

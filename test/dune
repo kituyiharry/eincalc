@@ -9,3 +9,9 @@
   (modules test_spinal_parser)
   (libraries spinal ounit2)
 )
+
+(test
+  (name test_spinal_eval)
+  (modules test_spinal_eval)
+  (libraries spinal ounit2)
+)

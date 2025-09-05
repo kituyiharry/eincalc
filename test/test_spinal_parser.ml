@@ -83,8 +83,21 @@ let tests = "Parser unit tests" >::: [
             Parser.inp=[ Parser.Shape [('i', 0);]; ];
             out=None;
         },
-        [ Parser.Static [1.;2.;3.;4.;5.]; ]
+        [ Parser.NdArray (Parser.Raw [1.;2.;3.;4.;5.]); ]
         ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , [1,2,3,4,5])")
+    );
+    "simple summation with ndim arrays" >:: (fun _ -> 
+        assert_equal ({ 
+            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            out=None;
+        },
+        [ Parser.NdArray (
+                Parser.Collect [
+                    Parser.Raw [1.;2.;3.;4.;5.];
+                    Parser.Raw [1.;2.;3.;4.;5.];
+                ]
+            ); ]
+        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , [[1,2,3,4,5],[1,2,3,4,5]])")
     );
     "simple summation with relative indexing" >:: (fun _ -> 
         assert_equal ({ 

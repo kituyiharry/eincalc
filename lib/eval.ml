@@ -36,7 +36,7 @@ type vm = {
 
 (* consume instructions and return the number of places to jump *)
 let rec consume { oprtns; cursor } apply = 
-    if cursor > Array.length oprtns then 
+    if cursor >= Array.length oprtns then 
         ()
     else
         consume { oprtns; cursor=(cursor + (apply oprtns.(cursor))) } apply
