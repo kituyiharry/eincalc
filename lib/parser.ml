@@ -19,9 +19,6 @@ type lit     =
 and referral = 
     | Self  (* the current cell *)
 and  cell    = string * int      (* Rows are strings, Columns are numbers *)
-    (* TODO *)
-    (* R1C1 *)
-    (* reference e.g @self, @head *)
 and  dimnsn  = lit               (* literal and its index *)
 and  motion  =  
     | North of int (* ^ *)
@@ -187,6 +184,26 @@ let parse_ein_out ein word =
 (* ensure the order of inputs are symmetric to the declaration *)
 let reorder ein = 
     { ein with inp=List.rev ein.inp; } 
+;;
+
+type ndshape = 
+    | Row of int 
+    | Col of (int * ndshape)
+;;
+
+let shaper (ndarr) = 
+    let rec count c ndarr =
+        match ndarr with 
+        | Raw _l -> c + 1
+        | Collect l -> (List.fold_left (count) c l)
+    in 
+        match ndarr with 
+        | NdArray nd -> count 0 nd
+        | _ -> failwith "Expected ndarray"
+;;
+
+let arglist pr = 
+    snd (List.hd pr.prog)
 ;;
 
 let parse_einsum pratt = 

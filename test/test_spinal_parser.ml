@@ -99,6 +99,121 @@ let tests = "Parser unit tests" >::: [
             ); ]
         ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , [[1,2,3,4,5],[1,2,3,4,5]])")
     );
+    "simple summation with bigger ndim arrays" >:: (fun _ -> 
+        assert_equal ({ 
+            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            out=None;
+        },
+        [ 
+            Parser.NdArray (
+                Parser.Collect [
+                    Parser.Collect [
+                        Parser.Raw [1.;2.;3.;4.;5.];
+                        Parser.Raw [5.;4.;3.;2.;1.];
+                        Parser.Raw [0.;0.;0.;0.;0.];
+                    ];
+                    Parser.Collect [
+                        Parser.Raw [1.;2.;3.;4.;5.];
+                        Parser.Raw [5.;4.;3.;2.;1.];
+                        Parser.Raw [0.;0.;0.;0.;0.];
+                    ];
+                ]
+            ); 
+        ]
+        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.runall "
+                (i -> , 
+                    [
+                        [
+                            [1,2,3,4,5],
+                            [5,4,3,2,1],
+                            [0,0,0,0,0],
+                        ],
+                        [
+                            [1,2,3,4,5],
+                            [5,4,3,2,1],
+                            [0,0,0,0,0],
+                        ],
+                    ]
+                )
+            ")  
+    );
+    "simple summation with non-homogenous ndim arrays" >:: (fun _ -> 
+        assert_equal ({ 
+            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            out=None;
+        },
+        [ 
+            Parser.NdArray (
+                Parser.Collect [
+                    Parser.Collect [
+                        Parser.Raw [1.;2.;3.;4.;5.];
+                        Parser.Raw [5.;4.;3.;];
+                        Parser.Raw [0.;0.;0.;0.;0.];
+                    ];
+                    Parser.Collect [
+                        Parser.Raw [1.;2.;3.;4.;5.];
+                        Parser.Raw [1.];
+                        Parser.Raw [0.;0.;0.;0.;0.];
+                    ];
+                ]
+            ); 
+        ]
+        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.runall "
+                (i -> , 
+                    [
+                        [
+                            [1,2,3,4,5],
+                            [5,4,3],
+                            [0,0,0,0,0],
+                        ],
+                        [
+                            [1,2,3,4,5],
+                            [1],
+                            [0,0,0,0,0],
+                        ],
+                    ]
+                )
+            ")  
+    );
+    "simple summation with ndim arrays and trailing commas" >:: (fun _ -> 
+        assert_equal ({ 
+            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            out=None;
+        },
+        [ 
+            Parser.NdArray (
+                Parser.Collect [
+                    Parser.Collect [
+                        Parser.Raw [1.;2.;3.;4.;5.];
+                        Parser.Raw [0.;0.;0.;0.;0.];
+                    ];
+                    Parser.Collect [
+                        Parser.Raw [1.;2.;3.;4.;5.];
+                        Parser.Raw [0.;0.;0.;0.;0.];
+                    ];
+                ]
+            ); 
+        ]
+        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.runall "
+                (i -> , 
+                    [
+                        [
+                            [1,2,3,4,5,],
+                            [0,0,0,0,0,],
+                        ],
+                        [
+                            [1,2,3,4,5,],
+                            [0,0,0,0,0,],
+                        ],
+                    ]
+                )
+            ")  
+    );
+    "simple summation with malformed ndim arrays and commas" >:: (fun _ -> 
+        assert_equal true (Result.is_error @@ Parser.parse @@ Result.get_ok @@ Lexer.runall "
+            (i -> , [ ,2,3,4,5,, [0,0,0,0,0,], ], [ [1,2,3,4,5,], [0,0,0,0,0,], ], ])
+        ") 
+    );
     "simple summation with relative indexing" >:: (fun _ -> 
         assert_equal ({ 
             Parser.inp=[ Parser.Shape [('i', 0);]; ];

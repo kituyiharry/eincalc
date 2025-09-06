@@ -17,3 +17,4 @@ let transform (e: formula)  =
         Format.printf "Inp: %s and argument: %s" (show_lit y) (show_crange x)
     )
 ;;
+
