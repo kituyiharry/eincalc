@@ -35,8 +35,8 @@ dimension   -> alpha
 
 parameters  -> range (, range)*
 range       -> 
-    | index '..' index
-    | index 
+    | '@' index '..' index
+    | '@' index 
     | '<' (numeric) range
 index       -> (alpha+) (numeric+)
 

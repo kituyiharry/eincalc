@@ -38,16 +38,19 @@ let tests = "Parser unit tests" >::: [
         assert_equal ({ 
             Parser.inp=[ Parser.Shape [('i', 0);]; ];
             out=Some(Parser.Shape [('i', 0);]);
-        }, [ (Parser.Scalar ("D", 10)) ]) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> i, D10)")
+        }, [ (Parser.Scalar ("D", 10)) ]) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> i, @D10)")
     );
     "simple identity einsum with params trailing comma" >:: (fun _ -> 
-        assert_equal (true) (Result.is_error @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> i, D10, )")
+        assert_equal ({ 
+            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            out=Some(Parser.Shape [('i', 0);]);
+        }, [ (Parser.Scalar ("D", 10)); Parser.Void ]) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> i, @D10, )")
     );
     "simple summation einsum with ranged params" >:: (fun _ -> 
         assert_equal ({ 
             Parser.inp=[ Parser.Shape [('i', 0);]; ];
             out=None;
-        }, [ Parser.Range (("D", 10),("E",11)) ]) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i ->  , D10..E11)")
+        }, [ Parser.Range (("D", 10),("E",11)) ]) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i ->  , @D10..E11)")
     );
     "simple summation einsum with multiple ranged params" >:: (fun _ -> 
         assert_equal ({ 
@@ -61,7 +64,7 @@ let tests = "Parser unit tests" >::: [
             Parser.Range (("D", 10),("E",11)); 
             Parser.Range (("E",10), ("F",11)); 
         ]
-        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i,i -> , D10..E11, E10..F11)")
+        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i,i -> , @D10..E11, @E10..F11)")
     );
     "simple summation einsum with multiple mixed ranged params" >:: (fun _ -> 
         assert_equal ({ 
@@ -76,7 +79,7 @@ let tests = "Parser unit tests" >::: [
             Parser.Scalar ("F",11); 
             Parser.Range  (("A",0), ("A", 100)); 
         ]
-        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i,i -> , D10, F11, A0..A100)")
+        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i,i -> , @D10, @F11, @A0..A100)")
     );
     "simple summation with static arrays" >:: (fun _ -> 
         assert_equal ({ 
@@ -237,7 +240,7 @@ let tests = "Parser unit tests" >::: [
                     ))
                 );
             ]
-        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , <>D3)")
+        ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , <>@D3)")
     );
     "simple summation with reference" >:: (fun _ -> 
         assert_equal ({ 

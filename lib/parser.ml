@@ -377,6 +377,12 @@ let parse_reference state =
         (match tokn with 
             | TAlphaNum "self" -> 
                 Ok (advance state, Refer Self)
+            | TAlphaNum _start -> 
+                (if validate _start then
+                    let next = advance state in
+                    (parse_param_data _start next)
+                    else (Error "Invalid range value")
+                )
             | _ -> 
                 Error "Unhandled reference"
         )
@@ -423,9 +429,11 @@ and parse_ein_params state =
                 Ok (state, Void)
             | TAt -> 
                 (parse_reference (advance state))
-            | _   ->  
+            | TComma   ->  
                 (* NB: Trailing commas will add a Void *)
                 Ok (state, Void)
+            | _ -> 
+                Error "Bad token"
         )
     | _ -> Error "Missing einsum parameters"
 ;;
@@ -443,7 +451,8 @@ let parse_formulae state =
             then ((>>==) (parse_ein_params (advance state)) (Fun.compose _extract add_crange)) 
             (* a right paren shows the end of parameter sequence - dont advance in this case *)
             else if not @@ check TRightParen (fst state)
-            then ((>>==) (parse_ein_params (state)) (Fun.compose _extract add_crange)) 
+            then 
+                ((>>==) (parse_ein_params (state)) (Fun.compose _extract add_crange)) 
             else (Ok (call_order state))
         );
     in (>>==) (parse_einsum state) (_extract)
