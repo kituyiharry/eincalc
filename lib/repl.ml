@@ -8,7 +8,7 @@
  *
  *)
 let handle_transform_formulae form = 
-    Genfunc.transform (List.hd form)
+    Genfunc.transform form
 ;;
 
 let handle_parse_exp (lex: Lexer.lexeme list) = 

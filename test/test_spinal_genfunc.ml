@@ -2,7 +2,7 @@ open OUnit;;
 open Spinal;;
 
 let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
-   List.hd @@ snd @@ List.hd @@ (fst @@ Result.get_ok res).prog
+   List.hd @@ snd @@ (fst @@ Result.get_ok res).prog
 ;; 
 
 let lexparse x = 
@@ -15,13 +15,13 @@ let as_shape x =
 
 let tests = "Genfunc unit tests" >::: [
     "empty params are 0 shaped"   >:: (fun _ -> 
-        assert_equal ([0]) (Result.get_ok @@ as_shape @@ fetch_first @@ lexparse "(i -> , [])")
+        assert_equal ([0])    (Result.get_ok @@ as_shape @@ fetch_first @@ lexparse "(i -> , [])")
     );
     "empty by 1"   >:: (fun _ -> 
         assert_equal ([1; 0]) (Result.get_ok @@ as_shape @@ fetch_first @@ lexparse "(i -> , [[]])")
     );
     "x shaped"   >:: (fun _ -> 
-        assert_equal ([3]) (Result.get_ok @@ as_shape @@ fetch_first @@ lexparse "(i -> ,[1,2,3])")
+        assert_equal ([3])    (Result.get_ok @@ as_shape @@ fetch_first @@ lexparse "(i -> ,[1,2,3])")
     );
     "x by x shaped"   >:: (fun _ -> 
         assert_equal ([2; 3]) (Result.get_ok @@ as_shape @@ fetch_first @@ lexparse "(i -> , [[1,2,3],[4,5,6]])")

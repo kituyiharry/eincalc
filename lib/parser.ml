@@ -41,7 +41,7 @@ and  einsum  = {
     ;   out: dimnsn option       (* output - can be empty *)
 }
 and  formula = einsum * params   (* formula specification *)
-and  program = formula list
+and  program = formula
 [@@deriving show];;
 
 type precedence = 
@@ -56,7 +56,7 @@ type prattstate = {
 } [@@deriving show];;
 
 let prattempty = {
-    curr = None; prev = None; prog = []
+    curr = None; prev = None; prog = ({ inp=[];out=None }, [])
 };;
 
 let einempty = { 
@@ -194,7 +194,7 @@ let reorder ein =
 ;;
 
 let arglist pr = 
-    snd (List.hd pr.prog)
+    snd pr.prog
 ;;
 
 let parse_einsum pratt = 
@@ -208,7 +208,7 @@ let parse_einsum pratt =
                             if check TComma prt then
                                 _parse (parse_ein_inp ein v) (advance state') 
                             else 
-                                Ok (({ prt with prog=(((reorder @@ parse_ein_inp ein v), []) :: prt.prog) }, rem'))
+                                Ok (({ prt with prog=(((reorder @@ parse_ein_inp ein v), [])) }, rem'))
                         ) else (Error (Format.sprintf "Input indices invalid - please use at least one ascii chars at %s" (show_prattstate @@ fst state))))
                     | _ -> 
                         Error (Format.sprintf "Unimplemented at %s" (show_prattstate (fst state)))
@@ -226,9 +226,9 @@ let parse_einsum pratt =
                     (match tokn with
                         | TAlphaNum v -> 
                             (* Grab the last einsum and update the output *)
-                            let ein' = List.hd (fst next).prog in
+                            let ein' = (fst next).prog in
                             let upd  = parse_ein_out (fst ein') v in
-                            Ok (advance ({ (fst next) with prog=(upd, snd ein') :: (List.tl (fst next).prog) }, (snd next)))
+                            Ok (advance ({ (fst next) with prog=(upd, snd ein') }, (snd next)))
                         | _ -> 
                             (* it was not a token - likely something closing like a Comma or RightParen *)
                             (* not what we expected - we just leave as is -  *)
@@ -258,23 +258,18 @@ let as_cell w =
 ;;
 
 let add_params ((p, r)) start close  = 
-    let ein = List.hd p.prog in
-    ({ p with prog=(fst ein, (Range (start, close) :: (snd ein))) :: (List.tl p.prog) }, r)
+    let ein = p.prog in
+    ({ p with prog=(fst ein, (Range (start, close) :: (snd ein))) }, r)
 ;;
 
 let add_param ((p, r)) start  = 
-    let ein = List.hd p.prog in
-    ({ p with prog=(fst ein, (Scalar (start) :: (snd ein))) :: (List.tl p.prog) }, r)
-;;
-
-let add_static ((p, r)) numerals = 
-    let ein = List.hd p.prog in
-    ({ p with prog=(fst ein, (Static (List.rev numerals) :: (snd ein))) :: (List.tl p.prog) }, r)
+    let ein = p.prog in
+    ({ p with prog=(fst ein, (Scalar (start) :: (snd ein)))  }, r)
 ;;
 
 let add_crange (((p, r)), rangeinf) = 
-    let ein = List.hd p.prog in
-    ({ p with prog=(fst ein, (rangeinf :: (snd ein))) :: (List.tl p.prog) }, r)
+    let ein = p.prog in
+    ({ p with prog=(fst ein, (rangeinf :: (snd ein))) }, r)
 ;;
 
 (* return consumed state + extracted numerals forming the array *)
@@ -434,8 +429,8 @@ and parse_ein_params state =
 
 (* let the call order reflect how it written for einsum parameters *)
 let call_order (prt, _rem) = 
-    let (e, p) = List.hd prt.prog in
-    ({ prt with prog=((e, (List.rev p)) :: (List.tl prt.prog)) }, _rem)
+    let (e, p) = prt.prog in
+    ({ prt with prog=((e, (List.rev p))) }, _rem)
 ;;
 
 let parse_formulae state = 

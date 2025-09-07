@@ -2,11 +2,11 @@ open OUnit;;
 open Spinal;;
 
 let fetch_program (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
-   fst @@ List.hd @@ (fst @@ Result.get_ok res).prog
+   fst @@ (fst @@ Result.get_ok res).prog
 ;;
 
 let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
-   List.hd @@ (fst @@ Result.get_ok res).prog
+   (fst @@ Result.get_ok res).prog
 ;;
 
 let tests = "Parser unit tests" >::: [
