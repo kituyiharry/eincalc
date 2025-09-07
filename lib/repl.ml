@@ -15,8 +15,8 @@ let handle_parse_exp (lex: Lexer.lexeme list) =
     (
         Parser.parse lex 
         |> (function 
-            | Ok ({ Parser.prog; _ }, _l) -> (
-                let lem = List.length _l in
+            | Ok ({ Parser.prog; _ }, _lefttoks) -> (
+                let lem = List.length _lefttoks in
                 if lem > 0 then
                     let _ = Format.printf "Tree: %s with rem %d\n" (Parser.show_program prog) lem
                     in handle_transform_formulae prog

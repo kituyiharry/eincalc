@@ -67,7 +67,9 @@ let transform (e: formula)  =
     List.to_seq inp 
     |> Seq.zip (List.to_seq args)
     |> Seq.iter (fun (x, y) ->
-        Format.printf "Inp: %s and argument: %s" (show_lit y) (show_ndshape (metashape x))
+        match x with 
+        | NdArray _ ->  Format.printf "Inp: %s and argument: %s\n" (show_lit y) (show_ndshape (metashape x))
+        | _ -> Format.printf "Inp: %s and argument: %s\n" (show_lit y) (show_crange x)
     )
 ;;
 

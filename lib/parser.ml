@@ -35,6 +35,7 @@ and  crange  =
     | NdArray  of float ndarray
     | Relative of motion * crange(* Relative cell - Up ^, Down _, Left <, Right, > *)
     | Refer    of referral       (* a way to refer to the current cell *) 
+    | Void
 and  params  = crange list       (* function parameters *)
 and  einsum  = { 
         inp: dimnsn list         (* input  - at least one - likely in reverse order. should correspond to the number of params *)
@@ -211,7 +212,8 @@ let parse_einsum pratt =
                                 Ok (({ prt with prog=(((reorder @@ parse_ein_inp ein v), [])) }, rem'))
                         ) else (Error (Format.sprintf "Input indices invalid - please use at least one ascii chars at %s" (show_prattstate @@ fst state))))
                     | _ -> 
-                        Error (Format.sprintf "Unimplemented at %s" (show_prattstate (fst state)))
+                        Ok state
+                        (*Error (Format.sprintf "Unimplemented at %s" (show_prattstate (fst state)))*)
                 )
             | _ -> 
                 Error (Format.sprintf "Unfinished einsum expression at %s" (show_prattstate (fst state)))
@@ -417,11 +419,13 @@ and parse_ein_params state =
                 )
             | TLeftAngle | TRightAngle | TUnderscore | TCaret -> 
                 (parse_relative tokn (advance state))
+            | TRightParen ->
+                Ok (state, Void)
             | TAt -> 
                 (parse_reference (advance state))
             | _   ->  
-                (* ?? -- should be unreachable *)
-                Error "Trailing Comma!"
+                (* NB: Trailing commas will add a Void *)
+                Ok (state, Void)
         )
     | _ -> Error "Missing einsum parameters"
 ;;
@@ -437,10 +441,12 @@ let parse_formulae state =
     let rec _extract state =
         (if check TComma (fst state) 
             then ((>>==) (parse_ein_params (advance state)) (Fun.compose _extract add_crange)) 
+            (* a right paren shows the end of parameter sequence - dont advance in this case *)
+            else if not @@ check TRightParen (fst state)
+            then ((>>==) (parse_ein_params (state)) (Fun.compose _extract add_crange)) 
             else (Ok (call_order state))
         );
     in (>>==) (parse_einsum state) (_extract)
-    (*in (parse_einsum state)*)
 ;;
 
 (* TODO: make errors some easily parseable and serializable type showing expected and current states *)
