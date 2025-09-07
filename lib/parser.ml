@@ -212,7 +212,8 @@ let parse_einsum pratt =
                                 Ok (({ prt with prog=(((reorder @@ parse_ein_inp ein v), [])) }, rem'))
                         ) else (Error (Format.sprintf "Input indices invalid - please use at least one ascii chars at %s" (show_prattstate @@ fst state))))
                     | _ -> 
-                        Ok state
+                        let prt', rem' = state in
+                        Ok (({ prt' with prog=(((reorder ein), (snd prt'.prog))) }, rem'))
                         (*Error (Format.sprintf "Unimplemented at %s" (show_prattstate (fst state)))*)
                 )
             | _ -> 
@@ -448,7 +449,8 @@ let call_order (prt, _rem) =
 let parse_formulae state = 
     let rec _extract state =
         (if check TComma (fst state) 
-            then ((>>==) (parse_ein_params (advance state)) (Fun.compose _extract add_crange)) 
+            then 
+                ((>>==) (parse_ein_params (advance state)) (Fun.compose _extract add_crange)) 
             (* a right paren shows the end of parameter sequence - dont advance in this case *)
             else if not @@ check TRightParen (fst state)
             then 
