@@ -83,7 +83,7 @@ let tests = "Parser unit tests" >::: [
             Parser.inp=[ Parser.Shape [('i', 0);]; ];
             out=None;
         },
-        [ Parser.NdArray (Parser.Raw [1.;2.;3.;4.;5.]); ]
+        [ Parser.NdArray (Parser.Itemize [1.;2.;3.;4.;5.]); ]
         ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , [1,2,3,4,5])")
     );
     "simple summation with ndim arrays" >:: (fun _ -> 
@@ -93,8 +93,8 @@ let tests = "Parser unit tests" >::: [
         },
         [ Parser.NdArray (
                 Parser.Collect [
-                    Parser.Raw [1.;2.;3.;4.;5.];
-                    Parser.Raw [1.;2.;3.;4.;5.];
+                    Parser.Itemize [1.;2.;3.;4.;5.];
+                    Parser.Itemize [1.;2.;3.;4.;5.];
                 ]
             ); ]
         ) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> , [[1,2,3,4,5],[1,2,3,4,5]])")
@@ -108,14 +108,14 @@ let tests = "Parser unit tests" >::: [
             Parser.NdArray (
                 Parser.Collect [
                     Parser.Collect [
-                        Parser.Raw [1.;2.;3.;4.;5.];
-                        Parser.Raw [5.;4.;3.;2.;1.];
-                        Parser.Raw [0.;0.;0.;0.;0.];
+                        Parser.Itemize [1.;2.;3.;4.;5.];
+                        Parser.Itemize [5.;4.;3.;2.;1.];
+                        Parser.Itemize [0.;0.;0.;0.;0.];
                     ];
                     Parser.Collect [
-                        Parser.Raw [1.;2.;3.;4.;5.];
-                        Parser.Raw [5.;4.;3.;2.;1.];
-                        Parser.Raw [0.;0.;0.;0.;0.];
+                        Parser.Itemize [1.;2.;3.;4.;5.];
+                        Parser.Itemize [5.;4.;3.;2.;1.];
+                        Parser.Itemize [0.;0.;0.;0.;0.];
                     ];
                 ]
             ); 
@@ -146,14 +146,14 @@ let tests = "Parser unit tests" >::: [
             Parser.NdArray (
                 Parser.Collect [
                     Parser.Collect [
-                        Parser.Raw [1.;2.;3.;4.;5.];
-                        Parser.Raw [5.;4.;3.;];
-                        Parser.Raw [0.;0.;0.;0.;0.];
+                        Parser.Itemize [1.;2.;3.;4.;5.];
+                        Parser.Itemize [5.;4.;3.;];
+                        Parser.Itemize [0.;0.;0.;0.;0.];
                     ];
                     Parser.Collect [
-                        Parser.Raw [1.;2.;3.;4.;5.];
-                        Parser.Raw [1.];
-                        Parser.Raw [0.;0.;0.;0.;0.];
+                        Parser.Itemize [1.;2.;3.;4.;5.];
+                        Parser.Itemize [1.];
+                        Parser.Itemize [0.;0.;0.;0.;0.];
                     ];
                 ]
             ); 
@@ -184,12 +184,12 @@ let tests = "Parser unit tests" >::: [
             Parser.NdArray (
                 Parser.Collect [
                     Parser.Collect [
-                        Parser.Raw [1.;2.;3.;4.;5.];
-                        Parser.Raw [0.;0.;0.;0.;0.];
+                        Parser.Itemize [1.;2.;3.;4.;5.];
+                        Parser.Itemize [0.;0.;0.;0.;0.];
                     ];
                     Parser.Collect [
-                        Parser.Raw [1.;2.;3.;4.;5.];
-                        Parser.Raw [0.;0.;0.;0.;0.];
+                        Parser.Itemize [1.;2.;3.;4.;5.];
+                        Parser.Itemize [0.;0.;0.;0.;0.];
                     ];
                 ]
             ); 

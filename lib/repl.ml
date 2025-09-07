@@ -43,7 +43,7 @@ let handle_scan_exp (_exp: string) =
 let handle_input (data: Buffer.t) = 
     let l = Buffer.length data in
     (if l > 0 then
-        let o = Buffer.contents data |> String.trim  in
+        let o = Buffer.to_bytes data |> Bytes.trim |> Bytes.to_string in
         (match String.get o 0 with 
             | '!' -> (
                 (match String.get o 1 with 

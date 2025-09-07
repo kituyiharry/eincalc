@@ -26,8 +26,8 @@ and  motion  =
     | East  of int (* > *)
     | West  of int (* < *)
 and 'a ndarray = 
-    | Raw     of 'a list
-    | Collect of 'a ndarray list
+    | Itemize of 'a list          (* The columns *)
+    | Collect of 'a ndarray list  (* The rows    *)
 and  crange  = 
     | Range    of cell * cell    (* spreadsheet cell *)
     | Scalar   of cell
@@ -145,6 +145,13 @@ let checktag tokn ({curr; _}) =
 ;;
 
 (* check current token without advancing state *)
+let past tokn ({prev; _}) = 
+    match prev with
+    | None -> false 
+    | Some { tokn=tok; _ } -> (equal_ttype tok tokn)
+;;
+
+(* check current token without advancing state *)
 let check tokn ({curr; _}) = 
     match curr with
     | None -> false 
@@ -186,22 +193,6 @@ let reorder ein =
     { ein with inp=List.rev ein.inp; } 
 ;;
 
-type ndshape = 
-    | Row of int 
-    | Col of (int * ndshape)
-;;
-
-let shaper (ndarr) = 
-    let rec count c ndarr =
-        match ndarr with 
-        | Raw _l -> c + 1
-        | Collect l -> (List.fold_left (count) c l)
-    in 
-        match ndarr with 
-        | NdArray nd -> count 0 nd
-        | _ -> failwith "Expected ndarray"
-;;
-
 let arglist pr = 
     snd (List.hd pr.prog)
 ;;
@@ -209,7 +200,7 @@ let arglist pr =
 let parse_einsum pratt = 
     let rec _parse ein state = 
         (match (fst state).curr with
-            |  Some ({ tokn; _ }) -> 
+            | Some ({ tokn; _ }) -> 
                 (match tokn with 
                     | TAlphaNum v -> 
                         (if validate v then (
@@ -222,7 +213,7 @@ let parse_einsum pratt =
                     | _ -> 
                         Error (Format.sprintf "Unimplemented at %s" (show_prattstate (fst state)))
                 )
-            |  _          -> 
+            | _ -> 
                 Error (Format.sprintf "Unfinished einsum expression at %s" (show_prattstate (fst state)))
         )
     in
@@ -324,14 +315,17 @@ let parse_static_array state =
                     | TNumeral value ->  
                         collect (advance state') ((float_of_int value) :: numerals)
                     | TComma -> 
-                        collect (advance state') (numerals)
+                        (if past TComma (fst state') then
+                            Error "Missing value between commas!"
+                        else
+                            collect (advance state') (numerals))
                     | TLeftBracket -> 
                         (* collect remaining rows *)
                         (>>==) (stack (advance state') []) (fun (fin, blk) -> 
                             Ok (fin, Collect (List.rev blk))
                         )
                     | TRightBracket -> 
-                        Ok ((advance state'), (Raw (List.rev numerals)))
+                        Ok ((advance state'), (Itemize (List.rev numerals)))
                     | _ ->
                         Error "Unexpected token in static array - only floats supported"
                 ) 

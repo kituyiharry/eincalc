@@ -15,3 +15,9 @@
   (modules test_spinal_eval)
   (libraries spinal ounit2)
 )
+
+(test
+  (name test_spinal_genfunc)
+  (modules test_spinal_genfunc)
+  (libraries spinal ounit2)
+)
