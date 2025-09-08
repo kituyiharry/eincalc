@@ -26,8 +26,8 @@ let tests = "Genfunc unit tests" >::: [
     "x by x shaped"   >:: (fun _ -> 
         assert_equal ([2; 3]) (Result.get_ok @@ as_shape @@ fetch_first @@ lexparse "(i -> , [[1,2,3],[4,5,6]])")
     );
-    "x by x shaped" >:: (fun _ -> 
-        assert_equal ([3; 3]) (Result.get_ok @@ as_shape @@ fetch_first @@ lexparse "(i -> , 
+    "x by x shaped multi" >:: (fun _ -> 
+        assert_equal ([3; 3; 3]) (Result.get_ok @@ as_shape @@ fetch_first @@ lexparse "(i -> , 
             [[[ 0,  1,  2],
               [ 3,  4,  5],
               [ 6,  7,  8]],
@@ -41,6 +41,10 @@ let tests = "Genfunc unit tests" >::: [
     );
     "Non homogenous should fail"   >:: (fun _ -> 
         assert_equal true (Result.is_error @@ as_shape @@ fetch_first @@ lexparse "(i -> , [[1,2],[]])")
+    );
+    "Non homogenous mult dim"   >:: (fun _ -> 
+        assert_equal true (Result.is_error @@ as_shape @@ fetch_first @@
+            lexparse "(i -> , [[[1,2,3]],[[]]])")
     );
 ]
 

@@ -39,7 +39,6 @@ let homogenous (matshape) =
         | Row (c, n) -> (
             match n with 
             | [] -> Ok (c :: 0 :: shpl) 
-            | hd :: [] -> (>>==) (check hd shpl) (fun x -> (Ok (c :: x)))
             (* check inner shapes against the first one - halt at first non-conforming one *)
             | hd :: rest -> (
                 (>>==) ((>>==) (check hd []) (fun x -> 
@@ -47,15 +46,16 @@ let homogenous (matshape) =
                        same number of columns *)
                     List.fold_left (fun acc g -> 
                         ((>>==) (acc) (fun a ->
-                            ((>>==) (check g []) (fun h ->
-                                if (List.hd h) == a then 
+                            ((>>==) (check g shpl) (fun h ->
+                                (* maybe i don't need to check the whole list ?? *)
+                                if (List.equal (Int.equal) h a) then 
                                     Ok (a) 
                                 else
                                     Error "Not homogenous"
                             ))
                         ))
-                    ) (Ok (List.hd x)) rest
-                )) (fun x' -> Ok (c :: x' :: shpl))
+                    ) (Ok (x)) rest
+                )) (fun x' -> Ok (c :: (x' @ shpl)))
             )
         )
     in
