@@ -46,7 +46,7 @@ let homogenous (matshape) =
                        same number of columns *)
                     List.fold_left (fun acc g -> 
                         ((>>==) (acc) (fun a ->
-                            ((>>==) (check g shpl) (fun h ->
+                            ((>>==) (check g []) (fun h ->
                                 (* maybe i don't need to check the whole list ?? *)
                                 if (List.equal (Int.equal) h a) then 
                                     Ok (a) 
@@ -78,10 +78,7 @@ let transform (e: formula)  =
         match x with 
         | NdArray _ ->  
             let b = (metashape x) in
-            let s = (match (shape b) with
-                | Ok x    -> x 
-                | Error y -> y
-            ) in
+            let s = (Result.value ~default:"??" (shape b)) in
             Format.printf "\nInp: %s and Arg(%s): %s" (show_lit y) s (show_ndshape b)
         | _ -> 
             Format.printf "\nInp: %s and argument: %s" (show_lit y) (show_crange x)
