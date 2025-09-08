@@ -20,7 +20,7 @@
     - Const prog        ??
     - Accounts + Data   ??
 
-sample: ("i -> ", D1..D10) // sums along the axis
+sample: ("i -> ", @D1..D10) // sums along the axis
 
 program     -> declaration
 declaration -> '(' formulae ')'

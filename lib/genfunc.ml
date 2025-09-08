@@ -22,13 +22,10 @@ let metashape (ndarr) =
         | Collect l -> (
             let c, d = (List.fold_left (fun (c, acc) ndarr' -> 
                 (c + 1, (count ndarr') :: acc)
-            ) (0,[]) l) 
-            in 
+            ) (0,[]) l) in 
             Row (c, d)
         )
-    in match ndarr with 
-    | NdArray nd -> count nd
-    | _ -> failwith "Expected ndarray"
+    in count ndarr
 ;;
 
 (* check if ndarray is homogenous *)
@@ -62,26 +59,56 @@ let homogenous (matshape) =
     check matshape []
 ;;
 
-let shape m = 
-    (>>==) (homogenous m) (fun x -> 
-        List.map (string_of_int) x
-        |> String.concat " x "
-        |> Result.ok
-    )
+let string_of_shape x = 
+    List.map (string_of_int) x
+    |> String.concat " x "
+;;
+
+let correspondence ((({ inp; _ }, par): formula)) = 
+    if List.length inp ==  List.length par then 
+        Result.ok @@ (
+            List.combine inp par
+            |> List.map (fun (i, p) ->
+                match (i, p) with
+                | (Shape l, NdArray n) -> 
+                    (>>==) (homogenous (metashape n)) (fun g ->
+                        if List.length l == List.length g then
+                            (* label, index, count *)
+                            Ok ((List.combine l g, string_of_shape g))
+                        else
+                            Error "subscript mismatch"
+                    )
+                | _ -> Error "expected a shape with ndarray"
+            )
+        )
+    else
+        Error "Inputs don't correspond to outputs"
+;;
+
+let describe (lst: ((char * int) * int) list) = 
+    let buf = Buffer.create (256) in
+    let _ = List.iter (fun ((l, i), s) -> 
+        Buffer.add_string buf (Format.sprintf "\t* Label:%c at %d with size: %d\n" l i s)
+    ) lst in 
+    Buffer.contents buf
+;;
+
+let debug_print (l) =
+    let _ = Format.printf "\t------------------------------\n" in
+    let _ = List.iter (fun x -> 
+        (match x with
+            | Ok   (l, i) -> 
+                let _ = Format.printf "\t| Mat: %s\n\t------------------------------\n\t|\n%s\t|" i (describe l)
+                in
+                Format.printf "\n\t------------------------------\n" 
+            | Error v -> Format.printf "Error: %s" v
+        )
+    ) l in ()
 ;;
 
 let transform (e: formula)  = 
-    let ({ Parser.inp; _ }, args) = e in
-    List.to_seq inp 
-    |> Seq.zip (List.to_seq args)
-    |> Seq.iter (fun (x, y) ->
-        match x with 
-        | NdArray _ ->  
-            let b = (metashape x) in
-            let s = (Result.value ~default:"??" (shape b)) in
-            Format.printf "\nInp: %s and Arg(%s): %s" (show_lit y) s (show_ndshape b)
-        | _ -> 
-            Format.printf "\nInp: %s and argument: %s" (show_lit y) (show_crange x)
-    )
+    match (correspondence e) with 
+    | Ok l    -> debug_print l
+    | Error v -> Format.printf "%s" v
 ;;
 
