@@ -62,14 +62,29 @@ let homogenous (matshape) =
     check matshape []
 ;;
 
+let shape m = 
+    (>>==) (homogenous m) (fun x -> 
+        List.map (string_of_int) x
+        |> String.concat " x "
+        |> Result.ok
+    )
+;;
+
 let transform (e: formula)  = 
     let ({ Parser.inp; _ }, args) = e in
     List.to_seq inp 
     |> Seq.zip (List.to_seq args)
     |> Seq.iter (fun (x, y) ->
         match x with 
-        | NdArray _ ->  Format.printf "Inp: %s and argument: %s\n" (show_lit y) (show_ndshape (metashape x))
-        | _ -> Format.printf "Inp: %s and argument: %s\n" (show_lit y) (show_crange x)
+        | NdArray _ ->  
+            let b = (metashape x) in
+            let s = (match (shape b) with
+                | Ok x    -> x 
+                | Error y -> y
+            ) in
+            Format.printf "\nInp: %s and Arg(%s): %s" (show_lit y) s (show_ndshape b)
+        | _ -> 
+            Format.printf "\nInp: %s and argument: %s" (show_lit y) (show_crange x)
     )
 ;;
 
