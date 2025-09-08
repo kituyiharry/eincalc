@@ -66,7 +66,7 @@ let string_of_shape x =
 
 let correspondence ((({ inp; _ }, par): formula)) = 
     if List.length inp ==  List.length par then 
-        Result.ok @@ (
+        let ins = (
             List.combine inp par
             |> List.map (fun (i, p) ->
                 match (i, p) with
@@ -80,7 +80,14 @@ let correspondence ((({ inp; _ }, par): formula)) =
                     )
                 | _ -> Error "expected a shape with ndarray"
             )
-        )
+        ) in 
+        if List.exists (Result.is_error) ins then
+            List.filter (Result.is_error) ins 
+            |> List.map (Result.get_error)
+            |> String.concat ", and " 
+            |> Result.error
+        else
+            Ok (ins)
     else
         Error "Inputs don't correspond to outputs"
 ;;

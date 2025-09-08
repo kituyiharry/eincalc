@@ -5,12 +5,18 @@ let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) =
    List.hd @@ snd @@ (fst @@ Result.get_ok res).prog
 ;; 
 
+let fetch_form (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
+  (fst @@ Result.get_ok res).prog
+;; 
+
 let lexparse x = 
     Parser.parse @@ Result.get_ok @@ Lexer.runall x 
 ;;
 
 let as_shape x = 
-    Genfunc.homogenous @@ Genfunc.metashape x
+    match x with
+    | Parser.NdArray x -> Genfunc.homogenous @@ Genfunc.metashape x
+    | _  -> Error "??"
 ;;
 
 let tests = "Genfunc unit tests" >::: [
@@ -45,6 +51,12 @@ let tests = "Genfunc unit tests" >::: [
     "Non homogenous mult dim"   >:: (fun _ -> 
         assert_equal true (Result.is_error @@ as_shape @@ fetch_first @@
             lexparse "(i -> , [[[1,2,3]],[[]]])")
+    );
+    "Input to parameter correspondence"  >:: (fun _ -> 
+        assert_equal true (Result.is_error @@ Genfunc.correspondence @@ fetch_form @@ lexparse "(i -> , [[1,2,3]])")
+    );
+    "Input to parameter correspondence without shape check"  >:: (fun _ -> 
+        assert_equal true (Result.is_ok @@ Genfunc.correspondence @@ fetch_form @@ lexparse "(ij,jk -> , [[1,2,3]], [[]])")
     );
 ]
 
