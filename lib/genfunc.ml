@@ -108,7 +108,7 @@ let parammatch ((({ inp; _ }, par): formula)) =
                                 ;   chset=(!chs)
                             })
                         else
-                            Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" (pidx+1) l' g')
+                            Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" l' (pidx+1) g')
                     )
                 | _ -> Error "only shape with ndarray handled"
             )
@@ -162,7 +162,9 @@ let repeatcheck (g: eincomp list) =
         |> List.concat
         |> dupexist (fun x y -> 
             x.label = y.label && not (Int.equal x.dimen y.dimen)
-        ) (fun x y -> Format.sprintf "Repetition of %c with unequal dimensions (%d != %d) for params: %d and %d respectively" x.label x.dimen y.dimen x.param y.param)
+        ) (fun x y ->
+                Format.sprintf "Repetition of %c with unequal dimensions (%d != %d) for params: %d and %d respectively"
+                    x.label x.dimen y.dimen x.param y.param)
     ) (fun _clst -> Ok g)
 ;;
 
@@ -179,9 +181,10 @@ let connect g l =
     |> repeatcheck
 ;;
 
-(* Dimension check *)
+(* Dimension checks *)
 let correspondence (({out; _}, _) as g) = 
     (>>==) (parammatch g) (fun g' -> 
+        (* verify output against the input *)
         match out with
         | None  -> 
             Ok g'
