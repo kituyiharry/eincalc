@@ -52,12 +52,18 @@ let tests = "Genfunc unit tests" >::: [
         assert_equal true (Result.is_error @@ as_shape @@ fetch_first @@
             lexparse "(i -> , [[[1,2,3]],[[]]])")
     );
-    "Input to parameter correspondence"  >:: (fun _ -> 
-        assert_equal true (Result.is_error @@ Genfunc.correspondence @@ fetch_form @@ lexparse "(i -> , [[1,2,3]])")
+    "Input to parameter parammatch"  >:: (fun _ -> 
+        assert_equal true (Result.is_error @@ Genfunc.parammatch @@ fetch_form @@ lexparse "(i -> , [[1,2,3]])")
     );
-    "Input to parameter correspondence without shape check"  >:: (fun _ -> 
-        assert_equal true (Result.is_ok @@ Genfunc.correspondence @@ fetch_form @@ lexparse "(ij,jk -> , [[1,2,3]], [[]])")
+    "Input to parameter parammatch without shape check"  >:: (fun _ -> 
+        assert_equal true (Result.is_ok @@ Genfunc.parammatch @@ fetch_form @@ lexparse "(ij,jk -> , [[1,2,3]], [[]])")
     );
+    "Output not reflected in input check" >:: (fun _ ->
+        assert_equal true (Result.is_error @@ Genfunc.correspond @@ fetch_form @@ lexparse "(ij,jk -> qtv, [[1,2,3]], [[]])")
+    );
+    "Output has no duplication" >:: (fun _ ->
+        assert_equal true (Result.is_error @@ Genfunc.correspond @@ fetch_form @@ lexparse "(ij,jk -> ii, [[1,2,3]], [[]])")
+    )
 ]
 
 let _ = 

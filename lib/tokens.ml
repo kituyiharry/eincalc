@@ -9,7 +9,6 @@
  *
  *   Token Types used to represent Steinmetz formulae
  *)
-
 type ttype =
     | TNumeral  of int    (* 0..9+ *)
     | TFloat    of float  (* x.y *)

@@ -95,7 +95,7 @@ let tests = "Lexer unit tests" >::: [
             (Lexer.mktok 0 6  (Tokens.TComma));
             (Lexer.mktok 0 8  (Tokens.TLeftAngle));
             (Lexer.mktok 0 9  (Tokens.TNumeral 4));
-            (Lexer.mktok 0 10  (Tokens.TAlphaNum "D2"));
+            (Lexer.mktok 0 10 (Tokens.TAlphaNum "D2"));
             (Lexer.mktok 0 12 (Tokens.TRange));
             (Lexer.mktok 0 14 (Tokens.TAlphaNum "D8"));
             (Lexer.mktok 0 16 (Tokens.TRightParen));
