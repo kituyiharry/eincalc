@@ -68,13 +68,14 @@ module CharSet = Set.Make (Char);;
 
 type einmatch = {
         label: char 
+    ;   param: int
     ;   index: int 
     ;   dimen: int
     ;   outlc: int
 } [@@deriving show];;
 
 type eincomp = {
-       shape: string 
+       shape: int list
     ;  elems: einmatch list
     ;  chset: CharSet.t
 };;
@@ -84,7 +85,7 @@ let parammatch ((({ inp; _ }, par): formula)) =
         (* Ensure input are unique - maybe use disjoint set *)
         let ins = (
             List.combine inp par
-            |> List.mapi (fun idx (i, p) ->
+            |> List.mapi (fun pidx (i, p) ->
                 (* TODO: use Disjoint Set *)
                 match (i, p) with
                 | (Shape l, NdArray n) -> 
@@ -92,23 +93,22 @@ let parammatch ((({ inp; _ }, par): formula)) =
                         let l' = List.length l in 
                         let g' = List.length g in
                         if  l' == g' then
-                            (* ??? *)
                             let chs = ref CharSet.empty in
                             let g' = 
                                 List.combine l g 
                                 |> List.map (fun ((label, index), dimen) ->
                                     (* -1 is ommision by default *)
                                     chs := CharSet.add label !chs;
-                                    { label; index; dimen; outlc=(-1) }
+                                    { label; index; dimen; param=pidx; outlc=(-1) }
                                 )
                             in 
                             Ok ({ 
-                                    shape=(string_of_shape g)
+                                    shape=(g)
                                 ;   elems=(g')
                                 ;   chset=(!chs)
                             })
                         else
-                            Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" (idx+1) l' g')
+                            Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" (pidx+1) l' g')
                     )
                 | _ -> Error "only shape with ndarray handled"
             )
@@ -135,7 +135,7 @@ let dupexist cb onerr lst =
             (>>==) (
                 (* Does the head exist in its own tail ?? *)
                 if List.exists (cb hd) tl then 
-                    Error (onerr hd)
+                    Error (onerr hd (List.find (cb hd) tl))
                 else
                     Ok tl
             ) (foil)
@@ -145,7 +145,7 @@ let dupexist cb onerr lst =
 (* verify stuff about a shape *)
 let verify eino comps = 
     (* output shape parameters don't allow for duplicates *)
-    (>>==) (dupexist (fun (x,_) (y,_) -> Char.equal x y) (fun (c,_) -> (Format.sprintf "Duplicated label %c in output" c)) eino)
+    (>>==) (dupexist (fun (x,_) (y,_) -> Char.equal x y) (fun (c,_) _ -> (Format.sprintf "Duplicated label %c in output" c)) eino)
     (fun x -> 
         (* output elements must be in input *)
         let allc = List.fold_left (fun a x -> CharSet.union a x.chset) CharSet.empty comps in
@@ -155,32 +155,45 @@ let verify eino comps =
     )
 ;;
 
+(* Repeated elements must have the same dimension *)
+let repeatcheck (g: eincomp list) = 
+    (>>==) (
+        List.map (fun x -> x.elems) g
+        |> List.concat
+        |> dupexist (fun x y -> 
+            x.label = y.label && not (Int.equal x.dimen y.dimen)
+        ) (fun x y -> Format.sprintf "Repetition of %c with unequal dimensions (%d != %d) for params: %d and %d respectively" x.label x.dimen y.dimen x.param y.param)
+    ) (fun _clst -> Ok g)
+;;
+
 let connect g l =
     (* connect reflected inputs to outputs = ommited items will be <0 *)
-    List.map (fun (v: eincomp) -> 
+    (* NB: also discard label sets as we do not need them *)
+    (List.map (fun (v: eincomp) -> 
         { v with elems=(List.map (fun w -> 
             match List.find_opt (fun (c, _) -> Char.equal w.label c) l with 
             | Some (_, i) ->  { w with outlc=i }
             | None        ->    w
-        ) v.elems) }
-    ) g
+        ) v.elems); chset=CharSet.empty }
+    ) g)
+    |> repeatcheck
 ;;
 
-
-let correspond (({out; _}, _) as g) = 
+(* Dimension check *)
+let correspondence (({out; _}, _) as g) = 
     (>>==) (parammatch g) (fun g' -> 
         match out with
         | None  -> 
             Ok g'
         | Some (Shape _l) ->  
-            ((>>==) (verify _l g') (Fun.compose (Result.ok) (connect g')))
+            ((>>==) (verify _l g') ((connect g')))
     )
 ;;
 
 let describe (lst: (einmatch list)) = 
     let buf = Buffer.create (256) in
-    let _ = List.iter (fun ({ label=l; index=i; dimen=s; outlc=o }) -> 
-        Buffer.add_string buf (Format.sprintf "\t* Label:%c at (%d -> %d) with size: %d \n" l i o s)
+    let _ = List.iter (fun ({ label=l; index=i; dimen=s; outlc=o; param=p }) -> 
+        Buffer.add_string buf (Format.sprintf "\t* Label:%c at (%d -> %d) with size: %d (Param: %d) \n" l i o s p)
     ) lst in 
     Buffer.contents buf
 ;;

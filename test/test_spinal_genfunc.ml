@@ -59,11 +59,17 @@ let tests = "Genfunc unit tests" >::: [
         assert_equal true (Result.is_ok @@ Genfunc.parammatch @@ fetch_form @@ lexparse "(ij,jk -> , [[1,2,3]], [[]])")
     );
     "Output not reflected in input check" >:: (fun _ ->
-        assert_equal true (Result.is_error @@ Genfunc.correspond @@ fetch_form @@ lexparse "(ij,jk -> qtv, [[1,2,3]], [[]])")
+        assert_equal true (Result.is_error @@ Genfunc.correspondence @@ fetch_form @@ lexparse "(ij,jk -> qtv, [[1,2,3]], [[]])")
     );
     "Output has no duplication" >:: (fun _ ->
-        assert_equal true (Result.is_error @@ Genfunc.correspond @@ fetch_form @@ lexparse "(ij,jk -> ii, [[1,2,3]], [[]])")
-    )
+        assert_equal true (Result.is_error @@ Genfunc.correspondence @@ fetch_form @@ lexparse "(ij,jk -> ii, [[1,2,3]], [[]])")
+    );
+    "Repeated inputs MUST have the same dimension" >:: (fun _ ->
+        assert_equal true (Result.is_ok @@ Genfunc.correspondence @@ fetch_form @@ lexparse "(ij,ij -> ij, [[1,2,3]], [[1,2,3]])")
+    );
+    "Failure if Repeated inputs DONT have the same dimension" >:: (fun _ -> 
+        assert_equal true (Result.is_error @@ Genfunc.correspondence @@ fetch_form @@ lexparse "(ij,ij -> ij, [[1,2,3]], [[1,3]])")
+    );
 ]
 
 let _ = 

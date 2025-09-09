@@ -14,6 +14,7 @@ open Lexer;;
 let (>>==) = Result.bind;;
 
 type lit     = 
+    (* TODO: Does disjoint set make sense ?? *)
     | Shape of (char * int) list 
     (* TODO: make lit *)
 and referral = 
