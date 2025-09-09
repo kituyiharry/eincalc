@@ -196,24 +196,32 @@ let correspondence (({out; _}, _) as g) =
 let describe (lst: (einmatch list)) = 
     let buf = Buffer.create (256) in
     let _ = List.iter (fun ({ label=l; index=i; dimen=s; outlc=o; param=p }) -> 
-        Buffer.add_string buf (Format.sprintf "\t* Label:%c at (%d -> %d) with size: %d (Param: %d) \n" l i o s p)
+        Buffer.add_string buf 
+            (Format.sprintf "\t* Label:%c at (%d -> %d) with size: %d (Param: %d)  |\n" l i o s p)
     ) lst in 
     Buffer.contents buf
 ;;
 
 let debug_print (l) =
-    let _ = Format.printf "\t------------------------------\n" in
+    let _ = Format.printf "\t+-----------------------------------------------+\n" in
     let _ = List.iter (fun (l, i) -> 
-            let _ = Format.printf "\t| Mat: %s\n\t------------------------------\n\t|\n%s\t|" i (describe l)
-            in
-            Format.printf "\n\t------------------------------\n" 
+        let _ = Format.printf "\t| Mat: %s                                    |
+\t+-----------------------------------------------+
+\t|                                               |\n%s" i (describe l)
+        in
+        Format.printf "\t|                                               |
+\t+-----------------------------------------------+\n" 
     ) l in ()
 ;;
 
 let transform (_e: formula)  = 
-    ()
-    (*match (correspond e) with *)
-    (*| Ok l    -> debug_print l*)
-    (*| Error v -> Format.printf "%s" v*)
+    match (correspondence _e) with 
+    | Ok l    -> 
+        List.map (fun ein -> 
+            (ein.elems, string_of_shape ein.shape)
+        ) l
+        |> debug_print
+    | Error v -> 
+        Format.printf "%s" v
 ;;
 
