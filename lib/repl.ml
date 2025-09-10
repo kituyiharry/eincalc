@@ -8,7 +8,9 @@
  *
  *)
 let handle_transform_formulae form = 
-    Genfunc.transform form
+    match Genfunc.transform form with 
+    | Ok    t -> Genfunc.debug_print t
+    | Error e -> Format.printf "Error: %s" e
 ;;
 
 let handle_parse_exp (lex: Lexer.lexeme list) = 

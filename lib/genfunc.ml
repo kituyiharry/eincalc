@@ -77,8 +77,13 @@ type einmatch = {
 type eincomp = {
        shape: int list
     ;  elems: einmatch list
-    ;  chset: CharSet.t
-};;
+    ;  chset: CharSet.t      [@opaque]
+} [@@deriving show];;
+
+type eintree = {
+        inps: eincomp list 
+    ;   outs: int list
+} [@@deriving show];;
 
 let parammatch ((({ inp; _ }, par): formula)) = 
     if List.length inp ==  List.length par then 
@@ -142,6 +147,28 @@ let dupexist cb onerr lst =
     in foil lst
 ;;
 
+let dedup cb l = 
+    let rec foil rem = 
+        (match rem with 
+            | []     -> []
+            | hd :: tl -> 
+                if List.exists (cb hd) tl then
+                    (foil tl)
+                else
+                    hd :: (foil tl)
+        )
+    in foil l
+;;
+
+(* returns the final shape of the einsum operation *)
+let equation (x: eincomp list) = 
+    List.map (fun w -> w.elems) x
+    |> List.concat
+    |> List.filter (fun w -> w.outlc > -1)
+    |> dedup       (fun x y -> Char.equal x.label y.label)
+    |> List.map    (fun w -> w.dimen)
+;;
+
 (* verify stuff about a shape *)
 let verify eino comps = 
     (* output shape parameters don't allow for duplicates *)
@@ -163,8 +190,9 @@ let repeatcheck (g: eincomp list) =
         |> dupexist (fun x y -> 
             x.label = y.label && not (Int.equal x.dimen y.dimen)
         ) (fun x y ->
-                Format.sprintf "Repetition of %c with unequal dimensions (%d != %d) for params: %d and %d respectively"
-                    x.label x.dimen y.dimen x.param y.param)
+            (* Sometimes broadcasting or contractions happen here !! *)
+            Format.sprintf "Repetition of %c with unequal dimensions (%d != %d) for params: %d and %d respectively"
+                x.label x.dimen y.dimen x.param y.param)
     ) (fun _clst -> Ok g)
 ;;
 
@@ -188,8 +216,8 @@ let correspondence (({out; _}, _) as g) =
         match out with
         | None  -> 
             Ok g'
-        | Some (Shape _l) ->  
-            ((>>==) (verify _l g') ((connect g')))
+        | Some (Shape _l) -> 
+            ((>>==) (verify _l g') (connect g'))
     )
 ;;
 
@@ -202,26 +230,20 @@ let describe (lst: (einmatch list)) =
     Buffer.contents buf
 ;;
 
-let debug_print (l) =
-    let _ = Format.printf "\t+-----------------------------------------------+\n" in
-    let _ = List.iter (fun (l, i) -> 
-        let _ = Format.printf "\t| Mat: %s                                    |
+let debug_print ({ inps; outs }) =
+    let _ = List.iter (fun l -> 
+        let _ = Format.printf "\t Mat: %s  -> %s   
 \t+-----------------------------------------------+
-\t|                                               |\n%s" i (describe l)
+\t|                                               |\n%s" (string_of_shape l.shape) (string_of_shape outs) (describe l.elems)
         in
         Format.printf "\t|                                               |
 \t+-----------------------------------------------+\n" 
-    ) l in ()
+    ) inps in ()
 ;;
 
 let transform (_e: formula)  = 
-    match (correspondence _e) with 
-    | Ok l    -> 
-        List.map (fun ein -> 
-            (ein.elems, string_of_shape ein.shape)
-        ) l
-        |> debug_print
-    | Error v -> 
-        Format.printf "%s" v
+    (>>==) (correspondence _e) (fun l -> 
+        Ok ({ inps=l; outs=(equation l) })
+    )
 ;;
 
