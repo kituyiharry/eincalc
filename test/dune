@@ -21,3 +21,9 @@
   (modules test_spinal_genfunc)
   (libraries spinal ounit2)
 )
+
+(test
+  (name test_spinal_ndarray)
+  (modules test_spinal_ndarray)
+  (libraries spinal ounit2)
+)
