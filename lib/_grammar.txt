@@ -1,3 +1,5 @@
+(repl? -> ) lexer -> parser -> genfunc -> emitter
+
 ++Phase 1: 
     - Lexer + Parser
     - Einsum interpreter

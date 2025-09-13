@@ -10,9 +10,11 @@
 module type NDArray = sig 
     type value
     type container
-    val  make: int array -> value -> container
-    val  set:  container -> int array -> value -> unit
-    val  get:  container -> int array -> value
+    type listlike
+    val  make:  int array -> value -> container
+    val  of_list: listlike -> container
+    val  set:   container -> int array -> value -> unit
+    val  get:   container -> int array -> value
     val  iteri: (int array -> value -> unit) -> container -> unit
 end
 
@@ -20,9 +22,15 @@ module Scalar(Ord: Set.OrderedType): NDArray with type value := Ord.t = struct
 
     type value     = Ord.t
     type container = value ref
+    type listlike  = Ord.t list
 
     let make (_dims: int array) (v: value) =
         ref v
+    ;;
+
+    (* must be non-empty! *)
+    let of_list _dat = 
+        ref (List.hd _dat)
     ;;
 
     let set (_cont: container) (_dims: int array) (v: value) = 
@@ -44,10 +52,16 @@ module Vector(Ord: Set.OrderedType): NDArray with type value := Ord.t = struct
 
     type value     = Ord.t
     type container = value array
+    type listlike  = value list
 
     let make (_dims: int array) (v: value) =
         let () = assert (Array.length _dims > 0) in
         Array.make (Array.unsafe_get _dims 0) v
+    ;;
+
+    (* must be non-empty! *)
+    let of_list (_dat: value list) = 
+        Array.of_list (_dat)
     ;;
 
     let set (_cont: container) (_dims: int array) (v: value) = 
@@ -71,10 +85,17 @@ module Matrix(Ord: Set.OrderedType): NDArray with type value := Ord.t = struct
 
     type value     = Ord.t
     type container = value array array
+    type listlike  = value list list
 
     let make (_dims: int array) (v: value) =
         let () = assert (Array.length _dims > 1) in
         Array.make_matrix (Array.unsafe_get _dims 0) (Array.unsafe_get _dims 1) v
+    ;;
+
+    (* must be non-empty! *)
+    let of_list: (value list list -> container) = fun _dat ->
+        List.map (Array.of_list) _dat 
+        |> Array.of_list
     ;;
 
     let set (_cont: container) (_dims: int array) (v: value) = 
@@ -98,12 +119,19 @@ module BatchMatrix(Ord: Set.OrderedType): NDArray with type value := Ord.t = str
 
     type value     = Ord.t
     type container = value array array array
+    type listlike  = value list list list
 
     let make (_dims: int array) (v: value) =
         let () = assert (Array.length _dims > 2) in
         Array.init (Array.unsafe_get _dims 2) (fun _ ->
             Array.make_matrix (Array.unsafe_get _dims 0) (Array.unsafe_get _dims 1) v
         )
+    ;;
+
+    (* must be non-empty! *)
+    let of_list: (value list list list -> container) = fun _dat ->
+        List.map (Fun.compose Array.of_list (List.map (Array.of_list))) _dat 
+        |> Array.of_list
     ;;
 
     let set (_cont: container) (_dims: int array) (v: value) = 
@@ -143,11 +171,16 @@ module MulDim: NDArray with type value := float = struct
 
     type value     = float
     type container = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t
+    type listlike  = unit
 
     (* only upto 16 dimensions! *)
     let make (_dims: int array) (_v: value) =
         let () = assert (Array.length _dims >= 1) in
         Bigarray.Genarray.create Bigarray.Float64 Bigarray.c_layout _dims
+    ;;
+
+    let of_list _ = 
+        failwith "not_implemented for multidim arrays"
     ;;
 
     let set = Bigarray.Genarray.set
@@ -182,11 +215,16 @@ module MulIntDim: NDArray with type value := int = struct
 
     type value     = int
     type container = (int, Bigarray.int_elt, Bigarray.c_layout) Bigarray.Genarray.t
+    type listlike  = unit
 
     (* only upto 16 dimensions! *)
     let make (_dims: int array) (_v: value) =
         let () = assert (Array.length _dims >= 1) in
         Bigarray.Genarray.create Bigarray.Int Bigarray.c_layout _dims
+    ;;
+
+    let of_list _ = 
+        failwith "not_implemented for multidim arrays"
     ;;
 
     let set = Bigarray.Genarray.set
@@ -214,6 +252,3 @@ module MulIntDim: NDArray with type value := int = struct
         in iterate_genarray_recursive _cont
     ;;
 end
-
-
-

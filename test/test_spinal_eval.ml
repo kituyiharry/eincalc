@@ -4,15 +4,18 @@ open Spinal.Eval;;
 
 let _testvm = {
         spine=  [||]
-    ;   stkidx=  0
+    ;   stkidx= 0
+    ;   frmptr= 0
     ;   source={
             oprtns= [| 
                 Nop;
                 Nop;
             |]
-        ;   cursor=  0
-    };
-};;
+            ; cursor=  0
+            ; consts = [||]
+        };
+    } 
+;;
 
 let tests = "Eval unit tests" >::: [
 ];;

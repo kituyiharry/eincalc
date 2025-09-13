@@ -129,8 +129,8 @@ let parammatch ((({ inp; _ }, par): formula)) =
         Error "Inputs don't correspond to parameters provided"
 ;;
 
-(* check for duplicates *)
-let dupexist cb onerr lst =
+(* check for duplicates via cb and run onxst if duplicate found *)
+let dupexist cb onexst lst =
     let rec foil rem =
         match rem with
         | [] -> 
@@ -140,7 +140,7 @@ let dupexist cb onerr lst =
             (>>==) (
                 (* Does the head exist in its own tail ?? *)
                 if List.exists (cb hd) tl then 
-                    Error (onerr hd (List.find (cb hd) tl))
+                    Error (onexst hd (List.find (cb hd) tl))
                 else
                     Ok tl
             ) (foil)
@@ -172,7 +172,11 @@ let equation (x: eincomp list) =
 (* verify stuff about a shape *)
 let verify eino comps = 
     (* output shape parameters don't allow for duplicates *)
-    (>>==) (dupexist (fun (x,_) (y,_) -> Char.equal x y) (fun (c,_) _ -> (Format.sprintf "Duplicated label %c in output" c)) eino)
+    (>>==) (dupexist 
+        (fun (x,_) (y,_) -> Char.equal x y) 
+        (fun (c,_) _ -> (Format.sprintf "Duplicated label %c in output" c)) 
+        eino
+    )
     (fun x -> 
         (* output elements must be in input *)
         let allc = List.fold_left (fun a x -> CharSet.union a x.chset) CharSet.empty comps in
@@ -239,6 +243,10 @@ let debug_print ({ inps; outs }) =
         Format.printf "\t|                                               |
 \t+-----------------------------------------------+\n" 
     ) inps in ()
+;;
+
+let argtransform (_p: params) = 
+    ()
 ;;
 
 let transform (_e: formula)  = 

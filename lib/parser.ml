@@ -421,6 +421,7 @@ and parse_ein_params state =
                     (parse_param_data _start next)
                     else (Error "Invalid range value")
                 )
+            (* TODO: single scalar values ?? *)
             | TLeftBracket -> 
                 (>>==) (parse_static_array (advance state)) (fun (x,y) ->  
                     Ok (x, NdArray y)
