@@ -46,15 +46,17 @@ module Vector(Ord: Set.OrderedType): NDArray with type value := Ord.t = struct
     type container = value array
 
     let make (_dims: int array) (v: value) =
-        let () = assert (Array.length _dims >= 1) in
+        let () = assert (Array.length _dims > 0) in
         Array.make (Array.unsafe_get _dims 0) v
     ;;
 
     let set (_cont: container) (_dims: int array) (v: value) = 
+        let () = assert (Array.length _dims > 0) in
         Array.unsafe_set _cont (Array.unsafe_get _dims 0) v
     ;;
 
     let get (_cont: container) (_dims: int array) = 
+        let () = assert (Array.length _dims > 0) in
         Array.unsafe_get _cont (Array.unsafe_get _dims 0)
     ;;
 
@@ -71,15 +73,17 @@ module Matrix(Ord: Set.OrderedType): NDArray with type value := Ord.t = struct
     type container = value array array
 
     let make (_dims: int array) (v: value) =
-        let () = assert (Array.length _dims >= 2) in
+        let () = assert (Array.length _dims > 1) in
         Array.make_matrix (Array.unsafe_get _dims 0) (Array.unsafe_get _dims 1) v
     ;;
 
     let set (_cont: container) (_dims: int array) (v: value) = 
+        let () = assert (Array.length _dims > 1) in
         Array.unsafe_set (Array.unsafe_get _cont (Array.unsafe_get _dims 0)) (Array.unsafe_get _dims 1) v
     ;;
 
     let get (_cont: container) (_dims: int array) = 
+        let () = assert (Array.length _dims > 1) in
         Array.unsafe_get (Array.unsafe_get _cont (Array.unsafe_get _dims 0)) (Array.unsafe_get _dims 1)
     ;;
 
@@ -96,13 +100,14 @@ module BatchMatrix(Ord: Set.OrderedType): NDArray with type value := Ord.t = str
     type container = value array array array
 
     let make (_dims: int array) (v: value) =
-        let () = assert (Array.length _dims >= 3) in
+        let () = assert (Array.length _dims > 2) in
         Array.init (Array.unsafe_get _dims 2) (fun _ ->
             Array.make_matrix (Array.unsafe_get _dims 0) (Array.unsafe_get _dims 1) v
         )
     ;;
 
     let set (_cont: container) (_dims: int array) (v: value) = 
+        let () = assert (Array.length _dims > 2) in
         Array.unsafe_set (
             Array.unsafe_get (
                 Array.unsafe_get _cont (Array.unsafe_get _dims 0)
@@ -111,6 +116,7 @@ module BatchMatrix(Ord: Set.OrderedType): NDArray with type value := Ord.t = str
     ;;
 
     let get (_cont: container) (_dims: int array) = 
+        let () = assert (Array.length _dims > 2) in
         Array.unsafe_get (
             Array.unsafe_get (
                 Array.unsafe_get _cont (Array.unsafe_get _dims 2)
@@ -155,7 +161,7 @@ module MulDim: NDArray with type value := float = struct
         let rec iterate_recursive arr indices dims depth =
             (if depth = Array.length dims then
                 (* Base case: we have all indices, access the element *)
-                  (apply indices @@ Genarray.get arr indices)
+                (apply indices @@ Genarray.get arr indices)
                 else
                     (* Recursive case: iterate through current dimension *)
                     for i = 0 to dims.(depth) - 1 do
@@ -171,16 +177,16 @@ module MulDim: NDArray with type value := float = struct
 end
 
 
-module MulIntDim: NDArray with type value := float = struct 
+module MulIntDim: NDArray with type value := int = struct 
     open! Bigarray;;
 
-    type value     = float
-    type container = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t
+    type value     = int
+    type container = (int, Bigarray.int_elt, Bigarray.c_layout) Bigarray.Genarray.t
 
     (* only upto 16 dimensions! *)
     let make (_dims: int array) (_v: value) =
         let () = assert (Array.length _dims >= 1) in
-        Bigarray.Genarray.create Bigarray.Float64 Bigarray.c_layout _dims
+        Bigarray.Genarray.create Bigarray.Int Bigarray.c_layout _dims
     ;;
 
     let set = Bigarray.Genarray.set
@@ -189,17 +195,12 @@ module MulIntDim: NDArray with type value := float = struct
     let get = Bigarray.Genarray.get
     ;;
 
-    let iteri (_apply: int array -> value -> unit) _cont = 
+    let iteri (apply: int array -> value -> unit) _cont = 
         let ndims = Genarray.dims _cont in 
         let rec iterate_recursive arr indices dims depth =
             (if depth = Array.length dims then
                 (* Base case: we have all indices, access the element *)
-                let value = Genarray.get arr indices in
-                Printf.printf "  [";
-                Array.iteri (fun i idx -> 
-                    Printf.printf "%d" idx;
-                    if i < Array.length indices - 1 then Printf.printf ",") indices;
-                Printf.printf "] = %.0f\n" value
+                (apply indices @@ Genarray.get arr indices)
                 else
                     (* Recursive case: iterate through current dimension *)
                     for i = 0 to dims.(depth) - 1 do
@@ -209,7 +210,6 @@ module MulIntDim: NDArray with type value := float = struct
             )
         in let iterate_genarray_recursive arr =
             let indices = Array.make (Array.length ndims) 0 in
-            Printf.printf "Recursive iteration:\n";
             iterate_recursive arr indices ndims 0
         in iterate_genarray_recursive _cont
     ;;
