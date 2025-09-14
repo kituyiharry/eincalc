@@ -8,8 +8,8 @@ let _testvm = {
     ;   frmptr= 0
     ;   source={
             oprtns= [| 
-                Nop;
-                Nop;
+                INop;
+                INop;
             |]
             ; cursor=  0
             ; consts = [||]

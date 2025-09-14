@@ -26,6 +26,36 @@ type spinval =
     | SBool   of bool
  [@@deriving show];; 
 
+let sadd x y = 
+    match (x, y) with 
+    | SNumber x', SNumber y' -> SNumber (x' +. y')
+    | _ -> failwith "Invalid add operands"
+;;
+
+let smul x y = 
+    match (x, y) with 
+    | SNumber x', SNumber y' -> SNumber (x' *. y')
+    | _ -> failwith "Invalid mul operands"
+;;
+
+let snot x = 
+    match x with 
+    | SBool b -> SBool (not b)
+    | _ -> failwith "invalid boolean not operand"
+;;
+
+let sless x y = 
+    match (x, y) with 
+    | SNumber x', SNumber y' -> SBool (Float.compare x' y' = (-1))
+    | _ -> failwith "Invalid add operands"
+;;
+
+let sgreater x y = 
+    match (x, y) with 
+    | SNumber x', SNumber y' -> SBool (Float.compare x' y' = (1))
+    | _ -> failwith "Invalid add operands"
+;;
+
 type instr = 
     | IAdd               (* binary add *)
     | IMul               (* binary multiply *)
