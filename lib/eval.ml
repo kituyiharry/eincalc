@@ -20,6 +20,10 @@ let get_stack idx { frmptr; spine; _ } =
     Array.get spine (frmptr + idx)
 ;;
 
+let set_stack idx sval { frmptr; spine; _ } = 
+    Array.set spine (frmptr + idx) sval
+;;
+
 let push s sval  = 
     let _ = Array.set s.spine (s.stkidx) sval in 
     s.stkidx <- (s.stkidx + 1)
@@ -31,6 +35,10 @@ let pop s =
     v
 ;;
 
+let peek s = 
+    Array.get s.spine (s.stkidx - 1)
+;;
+
 let binop s f = 
     match f with 
     | IAdd -> push s @@ Emitter.sadd (pop s) (pop s)
@@ -40,7 +48,7 @@ let binop s f =
 
 let reset_vm v =
     v.source.cursor <- 0; 
-    { v with stkidx = 0; spine=(Array.make 3 SNil) }
+    { v with stkidx = 0; spine=(Array.make 5 SNil) }
 ;;
 
 (* consume instructions and return the number of places to jump *)
@@ -55,9 +63,9 @@ let rec consume ({ Emitter.oprtns; cursor; _ } as s) apply =
 let handle_op vm = (function 
     | INop          -> 1 
     | IPop          -> let _ = pop vm in 1 
-    | ILoop x       -> x 
+    | ILoop x       -> let _ = vm.source.cursor <- x in 0 
     | IJump y       -> y 
-    | IJumpFalse z  -> z 
+    | IJumpFalse z  -> if (Emitter.strue @@ Emitter.seql (pop vm) (SBool true)) then z else 1
     | IAdd          -> let _ = binop vm (IAdd) in 1 
     | IMul          -> let _ = binop vm (IMul) in 1 
     | INot          -> let _ = push  vm (Emitter.snot (pop vm)) in 1 
@@ -65,8 +73,7 @@ let handle_op vm = (function
     | IGreater      -> let _ = push  vm ((Fun.flip Emitter.sgreater) (pop vm) (pop vm)) in 1 
     | IConst  _c    -> let _ = push  vm (get_const _c vm.source) in 1 
     | IGetVar _g    -> let _ = push  vm (get_stack _g vm) in 1 
-    | ITrue         -> let _ = push  vm (SBool true)  in 1 
-    | IFalse        -> let _ = push  vm (SBool false) in 1 
+    | ISetVar _g    -> let _ = set_stack _g (pop vm) vm in 1 
 );;
 
 let eval (pr: vm) = 
@@ -74,13 +81,30 @@ let eval (pr: vm) =
 ;;
 
 let tstsrc =  {
-        spine  = Array.make 3 SNil
+        spine  = Array.make 5 SNil
     ;   stkidx = 0
     ;   frmptr = 0 
     ;   source =
-    {
-            oprtns= [| IConst 0; IConst 1; IAdd; IGetVar 0; |] 
-        ;   consts= [| 10.; 20. |] |> Array.map (fun x -> SNumber x)
-        ;   cursor=0
-    }
+        {
+            oprtns= [|
+                IConst  0; 
+                IGetVar 0;
+                IConst  2;    
+                ILess    ;    
+                IJumpFalse 10;
+                IJump       6; 
+                IGetVar     0; 
+                IConst      1; 
+                IAdd;         
+                ISetVar     0; 
+                ILoop       1; 
+                INop;
+                INop;
+                ILoop       6;
+                INop;
+                INop;
+                |]
+            ;   consts= [| 0.; 1.; 10.; |] |> Array.map (fun x -> SNumber x)
+            ;   cursor=0
+        }
 };;
