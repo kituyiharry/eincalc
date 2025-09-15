@@ -90,6 +90,8 @@ type instr =
     | IConst     of int  (* load constant from position int onto the stack *)
     | IGetVar    of int  (* get the variable at a certain displacement from the stack index *)
     | ISetVar    of int  (* set value at certain displacement from stack index *)
+    (* effects *)
+    | IEcho              (* print value at the top of the stack *)
 ;;
 
 type source = {

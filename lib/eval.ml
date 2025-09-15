@@ -74,6 +74,7 @@ let handle_op vm = (function
     | IConst  _c    -> let _ = push  vm (get_const _c vm.source) in 1 
     | IGetVar _g    -> let _ = push  vm (get_stack _g vm) in 1 
     | ISetVar _g    -> let _ = set_stack _g (pop vm) vm in 1 
+    | IEcho         -> let _ = (Format.printf "%s\n" (Emitter.show_spinval (peek vm))) in 1
 );;
 
 let eval (pr: vm) = 
@@ -91,18 +92,21 @@ let tstsrc =  {
                 IGetVar 0;
                 IConst  2;    
                 ILess    ;    
-                IJumpFalse 10;
+                IJumpFalse 11;
                 IJump       6; 
                 IGetVar     0; 
                 IConst      1; 
                 IAdd;         
                 ISetVar     0; 
                 ILoop       1; 
-                INop;
-                INop;
+                IGetVar     0;
+                IEcho;
+                IPop;
                 ILoop       6;
                 INop;
                 INop;
+                IGetVar     0;
+                IEcho;
                 |]
             ;   consts= [| 0.; 1.; 10.; |] |> Array.map (fun x -> SNumber x)
             ;   cursor=0
