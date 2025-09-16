@@ -2,11 +2,15 @@ open OUnit;;
 open Spinal;;
 
 let fetch_program (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
-   fst @@ (fst @@ Result.get_ok res).prog
+   match (fst @@ Result.get_ok res).prog with 
+    | Parser.Stmt (Ein e) -> fst e 
+    | _ -> failwith "Invalid program"
 ;;
 
 let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
-   (fst @@ Result.get_ok res).prog
+    match (fst @@ Result.get_ok res).prog with 
+    | Parser.Stmt (Ein e) -> e 
+    | _ -> failwith "Invalid program"
 ;;
 
 let tests = "Parser unit tests" >::: [

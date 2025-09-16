@@ -88,10 +88,10 @@ let tstsrc =  {
     ;   source =
         {
             oprtns= [|
-                IConst  0; 
-                IGetVar 0;
-                IConst  2;    
-                ILess    ;    
+                IConst      0; 
+                IGetVar     0;
+                IConst      2;    
+                ILess        ;    
                 IJumpFalse 11;
                 IJump       6; 
                 IGetVar     0; 
@@ -107,7 +107,7 @@ let tstsrc =  {
                 INop;
                 IGetVar     0;
                 IEcho;
-                |]
+            |]
             ;   consts= [| 0.; 1.; 10.; |] |> Array.map (fun x -> SNumber x)
             ;   cursor=0
         }

@@ -2,11 +2,19 @@ open OUnit;;
 open Spinal;;
 
 let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
-   List.hd @@ snd @@ (fst @@ Result.get_ok res).prog
+    match (fst @@ Result.get_ok res).prog with 
+    | Parser.Stmt (Ein e) -> 
+            List.hd @@ snd @@ e 
+    | _ -> 
+            failwith "Unhandled fetch"
 ;; 
 
 let fetch_form (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
-  (fst @@ Result.get_ok res).prog
+  match (fst @@ Result.get_ok res).prog with 
+    | Parser.Stmt (Ein e) -> 
+        e 
+    | _ -> 
+        failwith "Unhandled form"
 ;; 
 
 let lexparse x = 

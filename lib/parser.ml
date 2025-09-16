@@ -42,7 +42,14 @@ and  einsum  = {
         inp: dimnsn list         (* input  - at least one - likely in reverse order. should correspond to the number of params *)
     ;   out: dimnsn option       (* output - can be empty *)
 }
-and  formula = einsum * params   (* formula specification *)
+and expr     = 
+    | Ein   of (einsum * params) (* formula specification *)
+(* Blocks can only have 1 inner expression and then enclose other blocks or expressions 
+   We want to discourage long blocks.
+*)
+and  formula = 
+    | Block of (expr * formula)
+    | Stmt  of expr
 and  program = formula
 [@@deriving show];;
 
@@ -57,14 +64,15 @@ type prattstate = {
     ;   prog: program
 } [@@deriving show];;
 
-let prattempty = {
-    curr = None; prev = None; prog = ({ inp=[];out=None }, [])
-};;
-
 let einempty = { 
         inp = []
     ;   out = None
     ;
+};;
+
+
+let prattempty = {
+    curr = None; prev = None; prog = Stmt (Ein (einempty, []))
 };;
 
 type parseres = (program, string) result
@@ -76,25 +84,27 @@ type prattrule = {
     ;   prec:   precedence
 };;
 
-let ruleidx tok = 
-    match tok with 
-    | TNumeral  _   ->  0 
-    | TAlphaNum _   ->  1 
-    | TArrow        ->  2 
-    | TRange        ->  3 
-    | TComma        ->  4 
-    | TQuote        ->  5 
-    | TLeftParen    ->  6 
-    | TRightParen   ->  7 
-    | TLeftBracket  ->  8 
-    | TRightBracket ->  9 
-    | TLeftAngle    ->  10 
-    | TRightAngle   ->  11 
-    | TUnderscore   ->  12
-    | TCaret        ->  13
-    | TAt           ->  14
-    | TFloat   _    ->  15
-;;
+(*
+ *let ruleidx tok = 
+ *    match tok with 
+ *    | TNumeral  _   ->  0 
+ *    | TAlphaNum _   ->  1 
+ *    | TArrow        ->  2 
+ *    | TRange        ->  3 
+ *    | TComma        ->  4 
+ *    | TQuote        ->  5 
+ *    | TLeftParen    ->  6 
+ *    | TRightParen   ->  7 
+ *    | TLeftBracket  ->  8 
+ *    | TRightBracket ->  9 
+ *    | TLeftAngle    ->  10 
+ *    | TRightAngle   ->  11 
+ *    | TUnderscore   ->  12
+ *    | TCaret        ->  13
+ *    | TAt           ->  14
+ *    | TFloat   _    ->  15
+ *;;
+ *)
 
 let rules = [|
         (* TNumeral of int    *)
@@ -133,9 +143,11 @@ let rules = [|
     ;   { prefix=None; infix=None; prec=PrecNone }
 |];;
 
-let getrule tok = 
-    rules.(ruleidx tok)
-;;
+(*
+ *let getrule tok = 
+ *    rules.(ruleidx tok)
+ *;;
+*)
 
 (* --- *)
 
@@ -195,10 +207,6 @@ let reorder ein =
     { ein with inp=List.rev ein.inp; } 
 ;;
 
-let arglist pr = 
-    snd pr.prog
-;;
-
 let parse_einsum pratt = 
     let rec _parse ein state = 
         (match (fst state).curr with
@@ -210,41 +218,50 @@ let parse_einsum pratt =
                             if check TComma prt then
                                 _parse (parse_ein_inp ein v) (advance state') 
                             else 
-                                Ok (({ prt with prog=(((reorder @@ parse_ein_inp ein v), [])) }, rem'))
+                                (* no params *)
+                                Ok (prt, ((reorder @@ parse_ein_inp ein v), []), rem')
                         ) else (Error (Format.sprintf "Input indices invalid - please use at least one ascii chars at %s" (show_prattstate @@ fst state))))
                     | _ -> 
                         let prt', rem' = state in
-                        Ok (({ prt' with prog=(((reorder ein), (snd prt'.prog))) }, rem'))
+                        Ok (prt', ((reorder ein), []), rem')
                         (*Error (Format.sprintf "Unimplemented at %s" (show_prattstate (fst state)))*)
                 )
             | _ -> 
                 Error (Format.sprintf "Unfinished einsum expression at %s" (show_prattstate (fst state)))
         )
     in
-    (>>==) (_parse einempty pratt) (fun current -> 
+    (>>==) (_parse einempty pratt) (fun (current, ein, lxm) -> 
         (* output of the einsum - NOT the parameters! *)
-        (if check TArrow (fst current) then (
-            let next = advance current in 
+        (if check TArrow (current) then (
+            let next = advance (current, lxm) in 
             (match (fst next).curr with 
                 | Some ({ tokn; _ }) -> 
                     (match tokn with
                         | TAlphaNum v -> 
                             (* Grab the last einsum and update the output *)
-                            let ein' = (fst next).prog in
-                            let upd  = parse_ein_out (fst ein') v in
-                            Ok (advance ({ (fst next) with prog=(upd, snd ein') }, (snd next)))
+                            (*let ein' = (fst next).prog in*)
+                            let upd  = parse_ein_out (fst ein) v in
+                            Ok ((advance next), (upd, snd ein))
                         | _ -> 
                             (* it was not a token - likely something closing like a Comma or RightParen *)
                             (* not what we expected - we just leave as is -  *)
-                            Ok (next)
+                            Ok (next, ein)
                     )
                 | _ -> 
                     Error "Unexpected einsum result"
             )
         ) else (
             (* arrow can be optional *)
-            Ok (current) 
+            Ok ((current, lxm), ein) 
         ))
+    )
+;;
+
+let parse_einsum_expr pratt = 
+    (>>==) (parse_einsum pratt) (fun (state, ein) -> 
+        let p = fst state in 
+        let t = snd state in 
+        Ok ({ p with prog=(Stmt (Ein (fst ein, snd ein))) }, t)
     )
 ;;
 
@@ -261,20 +278,15 @@ let as_cell w =
         Error "Row index not found??"
 ;;
 
-let add_params ((p, r)) start close  = 
-    let ein = p.prog in
-    ({ p with prog=(fst ein, (Range (start, close) :: (snd ein))) }, r)
-;;
+(*let add_params ((p, r)) start close  = *)
+    (*let ein = p.prog in*)
+    (*({ p with prog=(fst ein, (Range (start, close) :: (snd ein))) }, r)*)
+(*;;*)
 
-let add_param ((p, r)) start  = 
-    let ein = p.prog in
-    ({ p with prog=(fst ein, (Scalar (start) :: (snd ein)))  }, r)
-;;
-
-let add_crange (((p, r)), rangeinf) = 
-    let ein = p.prog in
-    ({ p with prog=(fst ein, (rangeinf :: (snd ein))) }, r)
-;;
+(*let add_param ((p, r)) start  = *)
+    (*let ein = p.prog in*)
+    (*({ p with prog=(fst ein, (Scalar (start) :: (snd ein)))  }, r)*)
+(*;;*)
 
 (* return consumed state + extracted numerals forming the array *)
 let parse_static_array state = 
@@ -443,41 +455,56 @@ and parse_ein_params state =
 
 
 (* let the call order reflect how it written for einsum parameters *)
-let call_order (prt, _rem) = 
-    let (e, p) = prt.prog in
-    ({ prt with prog=((e, (List.rev p))) }, _rem)
+(*let call_order (prt, _rem) = *)
+    (*let (e, p) = prt.prog in*)
+    (*({ prt with prog=((e, (List.rev p))) }, _rem)*)
+(*;;*)
+
+let parse_einsum_formulae state = 
+    let rec _extract (state, (ein, par)) =
+        (if check TComma (fst state) then 
+                ((>>==) (parse_ein_params (advance state)) (fun (next, rnge) -> 
+                    _extract (next, (ein, rnge :: par))
+                ))
+                (*(Fun.compose _extract add_crange)) *)
+            (* a right paren shows the end of parameter sequence - dont advance in this case *)
+            else if not @@ check TRightParen (fst state) then 
+                ((>>==) (parse_ein_params (state)) (fun (next, rnge) -> 
+                    _extract (next, (ein, rnge :: par))
+                ))
+                (*(Fun.compose _extract add_crange)) *)
+            else (Ok (state, (ein, (List.rev par))))
+        );
+    in (>>==) (parse_einsum state) (_extract)
 ;;
 
 let parse_formulae state = 
-    let rec _extract state =
-        (if check TComma (fst state) 
-            then 
-                ((>>==) (parse_ein_params (advance state)) (Fun.compose _extract add_crange)) 
-            (* a right paren shows the end of parameter sequence - dont advance in this case *)
-            else if not @@ check TRightParen (fst state)
-            then 
-                ((>>==) (parse_ein_params (state)) (Fun.compose _extract add_crange)) 
-            else (Ok (call_order state))
-        );
-    in (>>==) (parse_einsum state) (_extract)
+    (* will overwrite any previous data *)
+    (>>==) (parse_einsum_formulae state) (fun (x, y) -> 
+        let p = fst x in 
+        let t = snd x in
+        Ok ({ p with prog=(Stmt (Ein y)) }, t)
+    )
 ;;
 
 (* TODO: make errors some easily parseable and serializable type showing expected and current states *)
 let parse lstream = 
     let rec _parse_lxms current = 
         (if check TLeftParen (fst current) then
-            let next = advance current in 
-            (if check TRightParen (fst next) then 
-                Error (Format.sprintf "expected einsum expression at %s" (show_prattstate (fst next)))
-                else
-                    ((>>==) (parse_formulae next) (fun state' -> 
-                        (if check TRightParen (fst state') then
-                            _parse_lxms (advance state')
-                            else
-                                Error (Format.sprintf "Unclosed einsum formulae: %s" (show_prattstate (fst state')))
-                        )
-                    )) 
-            ) else (Ok current)
+            (let next = advance current in 
+                (if check TRightParen (fst next) then 
+                    Error (Format.sprintf "expected einsum expression at %s" (show_prattstate (fst next)))
+                    else
+                        ((>>==) (parse_formulae next) (fun state' -> 
+                            (if check TRightParen (fst state') then
+                                _parse_lxms (advance state')
+                                else
+                                    Error (Format.sprintf "Unclosed einsum formulae: %s" (show_prattstate (fst state')))
+                            )
+                        )) 
+                )
+            ) 
+            else (Ok current)
         )
     in
     _parse_lxms @@ advance (prattempty, lstream)

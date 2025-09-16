@@ -1,19 +1,15 @@
 (*
     (I[3] -> K[3])
-    for i = 0; i < 3; i = i + 1 {
-        K[i] = I[i]
-    }
+    (i in 0..3) { K[i] = I[i] }
 
     (I[3] -> K[1])
-    for i = 0; i < 3; i = i + 1{
-        K[i] += I[i]
-    }
+    (i in 0..3) { K[i] += I[i] }
 
     (I[3],I[3] -> II[3]) 
-    for i = 0; i < 3; i = i + 1{
-        II[i] += I[I] * I[i]
-    }
+    (i in 0..3) { II[i] += I[I] * I[i] }
 
+    - block scope
+    - declaration
     - initialization
     - condition
     - increment
@@ -102,28 +98,6 @@ type source = {
 
 let get_const idx { consts; _ } = 
     Array.get consts idx
-;;
-
-let gen_loop () =  
-    (*let consts = [| 0; x; |] in *)
-    [|
-        IConst  0; 
-        IGetVar 0;
-        IConst  1;          (* load indixes *)
-        IGreater ;          (* check condition *)
-        IJumpFalse 9;  (* jump outside the loop *)
-        IJump      5;  (* jump past the increment <- loop back here *)
-        IGetVar 0;          (* perform the increment *)
-        IConst  1;          (* const *)
-        IAdd;               (* add *)
-        ISetVar 0;          (* set variable *)
-        ILoop   1;          (* loop *)
-        INop;
-        INop;
-        ILoop 6;
-        INop;
-        INop;
-    |]
 ;;
 
 

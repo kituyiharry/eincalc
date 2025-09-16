@@ -85,7 +85,7 @@ type eintree = {
     ;   outs: int list
 } [@@deriving show];;
 
-let parammatch ((({ inp; _ }, par): formula)) = 
+let parammatch ((({ inp; _ }, par))) = 
     if List.length inp ==  List.length par then 
         (* Ensure input are unique - maybe use disjoint set *)
         let ins = (
@@ -249,9 +249,12 @@ let argtransform (_p: params) =
     ()
 ;;
 
-let transform (_e: formula)  = 
-    (>>==) (correspondence _e) (fun l -> 
+let transform (e: formula)  = 
+    match e with 
+    | Stmt (Ein _e) ->  (>>==) (correspondence _e) (fun l -> 
         Ok ({ inps=l; outs=(equation l) })
-    )
+        )
+    | _ -> 
+        failwith "Unimplemented transform"
 ;;
 
