@@ -48,7 +48,7 @@ let binop s f =
 
 let reset_vm v =
     v.source.cursor <- 0; 
-    { v with stkidx = 0; spine=(Array.make 5 SNil) }
+    { v with stkidx = 0; spine=(Array.make 16 SNil) }
 ;;
 
 (* consume instructions and return the number of places to jump *)
@@ -63,18 +63,20 @@ let rec consume ({ Emitter.oprtns; cursor; _ } as s) apply =
 let handle_op vm = (function 
     | INop          -> 1 
     | IPop          -> let _ = pop vm in 1 
+    | IPush v       -> let _ = push vm v in 1
     | ILoop x       -> let _ = vm.source.cursor <- x in 0 
     | IJump y       -> y 
-    | IJumpFalse z  -> if (Emitter.strue @@ Emitter.seql (pop vm) (SBool true)) then !z else 1
+    | IJumpFalse z  -> if (Emitter.strue @@ Emitter.seql (pop vm) (SBool false)) then !z else 1
     | IAdd          -> let _ = binop vm (IAdd) in 1 
     | IMul          -> let _ = binop vm (IMul) in 1 
     | INot          -> let _ = push  vm (Emitter.snot (pop vm)) in 1 
-    | ILess         -> let _ = push  vm ((Fun.flip Emitter.sless   ) (pop vm) (pop vm)) in 1 
-    | IGreater      -> let _ = push  vm ((Fun.flip Emitter.sgreater) (pop vm) (pop vm)) in 1 
+    | ILess         -> let _ = push  vm ((Emitter.sless   ) (pop vm) (pop vm)) in 1 
+    | IGreater      -> let _ = push  vm ((Emitter.sgreater) (pop vm) (pop vm)) in 1 
     | IConst  _c    -> let _ = push  vm (get_const _c vm.source) in 1 
     | IGetVar _g    -> let _ = push  vm (get_stack _g vm) in 1 
     | ISetVar _g    -> let _ = set_stack _g (pop vm) vm in 1 
-    | IEcho         -> let _ = (Format.printf "%s\n" (Emitter.show_spinval (peek vm))) in 1
+    | IEchoNl       -> let _ = (Format.printf " %s\n" (Emitter.show_spinval (peek vm))) in 1
+    | IEcho         -> let _ = (Format.printf " %s" (Emitter.show_spinval (peek vm))) in 1
 );;
 
 let eval (pr: vm) = 
@@ -82,7 +84,7 @@ let eval (pr: vm) =
 ;;
 
 let mkvm src = {
-        spine  = Array.make 5 SNil
+        spine  = Array.make 16 SNil
     ;   stkidx = 0
     ;   frmptr = 0 
     ;   source = src
