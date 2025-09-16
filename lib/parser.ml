@@ -278,16 +278,6 @@ let as_cell w =
         Error "Row index not found??"
 ;;
 
-(*let add_params ((p, r)) start close  = *)
-    (*let ein = p.prog in*)
-    (*({ p with prog=(fst ein, (Range (start, close) :: (snd ein))) }, r)*)
-(*;;*)
-
-(*let add_param ((p, r)) start  = *)
-    (*let ein = p.prog in*)
-    (*({ p with prog=(fst ein, (Scalar (start) :: (snd ein)))  }, r)*)
-(*;;*)
-
 (* return consumed state + extracted numerals forming the array *)
 let parse_static_array state = 
     let rec stack state' rows = 
@@ -453,13 +443,6 @@ and parse_ein_params state =
     | _ -> Error "Missing einsum parameters"
 ;;
 
-
-(* let the call order reflect how it written for einsum parameters *)
-(*let call_order (prt, _rem) = *)
-    (*let (e, p) = prt.prog in*)
-    (*({ prt with prog=((e, (List.rev p))) }, _rem)*)
-(*;;*)
-
 let parse_einsum_formulae state = 
     let rec _extract (state, (ein, par)) =
         (if check TComma (fst state) then 
@@ -470,6 +453,7 @@ let parse_einsum_formulae state =
             (* a right paren shows the end of parameter sequence - dont advance in this case *)
             else if not @@ check TRightParen (fst state) then 
                 ((>>==) (parse_ein_params (state)) (fun (next, rnge) -> 
+                    (* let the call order reflect how it written for einsum parameters *)
                     _extract (next, (ein, rnge :: par))
                 ))
                 (*(Fun.compose _extract add_crange)) *)

@@ -19,18 +19,21 @@
 type spinval = 
     | SNil
     | SNumber of float
+    | SIndex  of int
     | SBool   of bool
  [@@deriving show];; 
 
 let sadd x y = 
     match (x, y) with 
     | SNumber x', SNumber y' -> SNumber (x' +. y')
+    | SIndex x', SIndex y'   -> SIndex  (x' + y')
     | _ -> failwith "Invalid add operands"
 ;;
 
 let seql x y = 
     match (x, y) with 
     | SNumber x', SNumber y' -> SBool (Float.equal x' y')
+    | SIndex x', SIndex y' -> SBool   (Int.equal x' y')
     | SBool   x',   SBool y' -> SBool (Bool.equal  x' y')
     | _ -> failwith "Invalid operands for equal"
 ;;
@@ -44,6 +47,7 @@ let strue x =
 let smul x y = 
     match (x, y) with 
     | SNumber x', SNumber y' -> SNumber (x' *. y')
+    | SIndex x', SIndex y'   -> SIndex (x' * y')
     | _ -> failwith "Invalid mul operands"
 ;;
 
@@ -56,12 +60,14 @@ let snot x =
 let sless x y = 
     match (x, y) with 
     | SNumber x', SNumber y' -> SBool (Float.compare x' y' = (-1))
+    | SIndex x',  SIndex y'  -> SBool (Int.compare x' y'   = (-1))
     | _ -> failwith "Invalid add operands"
 ;;
 
 let sgreater x y = 
     match (x, y) with 
     | SNumber x', SNumber y' -> SBool (Float.compare x' y' = (1))
+    | SIndex x',  SIndex y'  -> SBool (Int.compare x' y'   = (1))
     | _ -> failwith "Invalid add operands"
 ;;
 
@@ -80,7 +86,7 @@ type instr =
     | IGreater           (* Greater than *)
     (* jumping *)
     | IJump      of int  (* Jump  *)
-    | IJumpFalse of int  (* Jump if false *)
+    | IJumpFalse of int ref  (* Jump if false *)
     | ILoop      of int  (* Jump to a specific location directly ? *)
     (* var ops *)
     | IConst     of int  (* load constant from position int onto the stack *)
@@ -99,5 +105,122 @@ type source = {
 let get_const idx { consts; _ } = 
     Array.get consts idx
 ;;
+(*
+    [|
+                IConst      0; 
+                IGetVar     0;
+                IConst      2;    
+                ILess        ;    
+
+                IJumpFalse 11;
+
+                IJump       6; 
+                IGetVar     0; 
+                IConst      1; 
+                IAdd;         
+                ISetVar     0; 
+                ILoop       1; 
+                IGetVar     0;
+                IEcho;
+                IPop;
+                ILoop       6;
+                INop;
+                INop;
+                IGetVar     0;
+                IEcho;
+            |]
+*)
+
+type presource = {
+        consts: spinval list
+    ;   oprtns: instr list
+    ;   cnsidx: int
+    ;   nmdvar: (string, int) Hashtbl.t 
+    ;   varcnt: int
+    ;   name:   string
+};;
 
 
+let presempty name = {
+        consts=[] 
+    ;   oprtns=[]
+    ;   cnsidx=0
+    ;   nmdvar=(Hashtbl.create 8) 
+    ;   varcnt=0
+    ;   name
+};;
+
+let add_const vlue ps = 
+    (ps.cnsidx, { ps with consts = vlue :: ps.consts; cnsidx=ps.cnsidx+1 })
+;;
+
+let add_named_var vlue ps = 
+    match Hashtbl.find_opt ps.nmdvar vlue with 
+        | Some idx ->  (idx, ps) 
+        | None ->
+            let _ = Hashtbl.add ps.nmdvar vlue ps.varcnt in
+            (ps.varcnt, { ps with varcnt=ps.varcnt+1 })
+;;
+
+(* 
+   create a loop 
+
+   vrn:    loop variable name (i j k ...)
+   count:  loop upper bound
+   ps:     presource data
+   lidx:   the index in the instruction source where this loop starts
+   body:   body of the loop
+*)
+let loop vrn count ps lidx body = 
+    let (sidx, ps) = add_const (SIndex 0)     ps in (* count from 0 *)
+    let (sinc, ps) = add_const (SIndex 1)     ps in (* count from 0 *)
+    let (eidx, ps) = add_const (SIndex count) ps in (* end at  eidx *)
+    let (vidx, ps) = add_named_var vrn ps in
+    let jmp        = ref 11 in
+    let ps'        = (body 11)  in
+    { 
+        ps with 
+        oprtns=[ 
+
+            (* load the indexes *)
+            IConst  sidx; 
+            IGetVar vidx; 
+            IConst  eidx; 
+            ILess       ; 
+
+            (* jump out of the loop *)
+            IJumpFalse jmp;
+
+            (* jump over the increment*)
+            IJump       6; 
+
+            (* increment -> loop back here after executing loop body *)
+            IGetVar    vidx;
+            IConst     sinc; 
+            IAdd;         
+            ISetVar    vidx; 
+            ILoop     (lidx + 1); 
+            (* end increment *)
+
+            (* do loop operations here *)
+            IGetVar   vidx;
+            IEcho;
+            IPop;
+            (* end loop operations *)
+
+            (* Go to the increment *)
+            ILoop  (lidx + 6);
+
+            (* pop the named variable *)
+            IPop; 
+        ]
+    } 
+;;
+
+let convert (s: presource) = 
+    {
+            oprtns=(Array.of_list s.oprtns) 
+        ;   consts=(Array.of_list @@ List.rev s.consts)
+        ;   cursor=0
+    }
+;;

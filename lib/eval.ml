@@ -65,7 +65,7 @@ let handle_op vm = (function
     | IPop          -> let _ = pop vm in 1 
     | ILoop x       -> let _ = vm.source.cursor <- x in 0 
     | IJump y       -> y 
-    | IJumpFalse z  -> if (Emitter.strue @@ Emitter.seql (pop vm) (SBool true)) then z else 1
+    | IJumpFalse z  -> if (Emitter.strue @@ Emitter.seql (pop vm) (SBool true)) then !z else 1
     | IAdd          -> let _ = binop vm (IAdd) in 1 
     | IMul          -> let _ = binop vm (IMul) in 1 
     | INot          -> let _ = push  vm (Emitter.snot (pop vm)) in 1 
@@ -81,34 +81,10 @@ let eval (pr: vm) =
     consume pr.source (handle_op pr)
 ;;
 
-let tstsrc =  {
+let mkvm src = {
         spine  = Array.make 5 SNil
     ;   stkidx = 0
     ;   frmptr = 0 
-    ;   source =
-        {
-            oprtns= [|
-                IConst      0; 
-                IGetVar     0;
-                IConst      2;    
-                ILess        ;    
-                IJumpFalse 11;
-                IJump       6; 
-                IGetVar     0; 
-                IConst      1; 
-                IAdd;         
-                ISetVar     0; 
-                ILoop       1; 
-                IGetVar     0;
-                IEcho;
-                IPop;
-                ILoop       6;
-                INop;
-                INop;
-                IGetVar     0;
-                IEcho;
-            |]
-            ;   consts= [| 0.; 1.; 10.; |] |> Array.map (fun x -> SNumber x)
-            ;   cursor=0
-        }
-};;
+    ;   source = src
+}
+
