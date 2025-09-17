@@ -1,4 +1,13 @@
 (*
+ *   Copyright (C) Spinal 2025. All Rights Reserved.
+ *   For internal use only. Do not redistribute.
+ *
+ *   Copyright laws and international treaties protect this app. Unauthorized 
+ *   redistribution of this app without express, written permission from our legal 
+ *   department may entail severe civil or criminal penalties.
+ *
+ *)
+(*
     (I[3] -> K[3])
     (i in 0..3) { K[i] = I[i] }
 
@@ -108,31 +117,6 @@ type source = {
 let get_const idx { consts; _ } = 
     Array.get consts idx
 ;;
-(*
-    [|
-                IConst      0; 
-                IGetVar     0;
-                IConst      2;    
-                ILess        ;    
-
-                IJumpFalse 11;
-
-                IJump       6; 
-                IGetVar     0; 
-                IConst      1; 
-                IAdd;         
-                ISetVar     0; 
-                ILoop       1; 
-                IGetVar     0;
-                IEcho;
-                IPop;
-                ILoop       6;
-                INop;
-                INop;
-                IGetVar     0;
-                IEcho;
-            |]
-*)
 
 type presource = {
         consts: spinval list
@@ -153,6 +137,7 @@ let presempty name = {
     ;   name
 };;
 
+(* todo: interning! *)
 let add_const vlue ps = 
     (ps.cnsidx, { ps with consts = vlue :: ps.consts; cnsidx=ps.cnsidx+1 })
 ;;
@@ -191,26 +176,48 @@ let echoall vlist =
    lidx:   the index in the instruction source where this loop starts
    body:   body of the loop
 *)
-let loop vrn = 
-    let rec genl vrn count ps lidx decl rem =
+
+let oplen ps =
+    List.length ps.oprtns
+;;
+
+let addoper opl ps = 
+    { ps with oprtns=ps.oprtns@opl; }
+;;
+
+let genloop vlist (pre) (post) = 
+    let rec genl vrn bound ps lidx decl rem =
         let (sidx, ps) = add_const (SIndex 0)     ps in (* count from 0 *)
         let (sinc, ps) = add_const (SIndex 1)     ps in (* increment by 1 *)
-        let (eidx, ps) = add_const (SIndex count) ps in (* end at  eidx *)
+        let (eidx, ps) = add_const (SIndex bound) ps in (* end at  eidx *)
         let (vidx, ps) = add_named_var vrn ps in
+        (* calculated as 1 jump instr + 6 for increment + 1 loop *)
         let jmp        = ref 8 in
         let ps'        = (
-            match rem with 
-            | [] -> { ps with oprtns=(echoall ((vrn, vidx) :: decl)) }
-            | (hd, count') :: rst -> genl hd count' ps (lidx + 11) ((vrn, vidx) :: decl) rst
+            (* do what you want pre body invocation 
+               pass the state with current variable, remaining vars and
+               startindex for instructions in this loop *)
+            let prebody = pre ps vrn rem lidx in
+            let body = (match rem with 
+                | [] -> 
+                    { prebody with oprtns=(echoall ((vrn, vidx) :: decl)) }
+                | (hd, bound') :: rst -> 
+                    (* build the inner loop *)
+                    genl hd bound' ps (lidx + 11) ((vrn, vidx) :: decl) rst
+            ) in
+            (* do what you want post body invocation *)
+            post body vrn
         ) in
-        let _ = jmp := (!jmp + List.length ps'.oprtns) in
+        let _ = jmp := (!jmp + oplen ps') in
         { 
             ps' with 
-            oprtns=[ 
+            oprtns=
+                [ 
 
                 (* load the indexes *)
                 IConst  sidx; 
                 IGetVar vidx; 
+
                 IConst  eidx; 
                 ILess       ; 
 
@@ -224,15 +231,12 @@ let loop vrn =
                 IGetVar    vidx;
                 IConst     sinc; 
                 IAdd;         
-                ISetVar    vidx; 
-                ILoop     (lidx + 1); 
+                ISetVar    vidx;   (* also pops the stack *)
+                ILoop      (lidx + 1); 
                 (* end increment *)
             ]
-
                 (* do loop operations here *)
-
                 @ ps'.oprtns @
-
                 (* end loop operations *)
             [
 
@@ -244,7 +248,7 @@ let loop vrn =
             ]
         }
     in 
-    match vrn with 
+    match vlist with 
     | [] -> presempty ""
     | (hd,  count) :: rest -> genl hd count (presempty hd) 0 [] rest
 ;;
