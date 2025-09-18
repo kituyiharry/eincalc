@@ -25,6 +25,8 @@
 
 *)
 
+open Genfunc;;
+
 type spinval = 
     | SNil
     | SNumber of float
@@ -106,7 +108,7 @@ type instr =
     (* effects *)
     | IEcho              (* print value at the top of the stack *)
     | IEchoNl
-;;
+[@@deriving show];;
 
 type source = {
         oprtns: instr array
@@ -122,10 +124,10 @@ type presource = {
         consts: spinval list
     ;   oprtns: instr list
     ;   cnsidx: int
-    ;   nmdvar: (string, int) Hashtbl.t 
+    ;   nmdvar: (char, int) Hashtbl.t  [@opaque]
     ;   varcnt: int
     ;   name:   string
-};;
+} [@@deriving show];;
 
 
 let presempty name = {
@@ -135,7 +137,7 @@ let presempty name = {
     ;   nmdvar=(Hashtbl.create 8) 
     ;   varcnt=0
     ;   name
-};;
+} [@@deriving show];;
 
 (* todo: interning! *)
 let add_const vlue ps = 
@@ -150,10 +152,16 @@ let add_named_var vlue ps =
         (ps.varcnt, { ps with varcnt=ps.varcnt+1 })
 ;;
 
+let get_named_var vlue ps = 
+    Hashtbl.find_opt ps.nmdvar vlue 
+;;
+
 let echoall vlist =
-    List.map (fun (var, idx) -> 
+    vlist
+    |> List.rev
+    |> List.map (fun (var, idx) -> 
         [
-            IPush (SStr var);
+            IPush (SStr (Format.sprintf "%c" var));
             IEcho;
             IGetVar idx;
             IEcho;
@@ -163,7 +171,7 @@ let echoall vlist =
             IPop;
             IPop;
         ]
-    ) vlist
+    ) 
     |> List.concat
 ;;
 
@@ -185,8 +193,8 @@ let addoper opl ps =
     { ps with oprtns=ps.oprtns@opl; }
 ;;
 
-let genloop vlist (pre) (post) = 
-    let rec genl vrn bound ps lidx decl rem =
+let genloop (pre) (post) (body) vlist = 
+    let rec genl ({ label=vrn; dimen=bound; _ } as ein) ps lidx decl rem =
         let (sidx, ps) = add_const (SIndex 0)     ps in (* count from 0 *)
         let (sinc, ps) = add_const (SIndex 1)     ps in (* increment by 1 *)
         let (eidx, ps) = add_const (SIndex bound) ps in (* end at  eidx *)
@@ -197,16 +205,20 @@ let genloop vlist (pre) (post) =
             (* do what you want pre body invocation 
                pass the state with current variable, remaining vars and
                startindex for instructions in this loop *)
-            let prebody = pre ps vrn rem lidx in
-            let body = (match rem with 
+            let prebody = pre ps ein rem lidx in
+            let body = (
+                match rem with 
                 | [] -> 
-                    { prebody with oprtns=(echoall ((vrn, vidx) :: decl)) }
-                | (hd, bound') :: rst -> 
+                    let islast = true in 
+                    (*{ prebody with oprtns=(echoall ((vrn, vidx) :: decl)) }*)
+                    body islast ein (prebody)
+                | hd' :: rst -> 
+                    let islast = false in 
                     (* build the inner loop *)
-                    genl hd bound' ps (lidx + 11) ((vrn, vidx) :: decl) rst
+                    body islast ein (genl hd' prebody (lidx + 11) ((vrn, vidx) :: decl) rst) 
             ) in
             (* do what you want post body invocation *)
-            post body vrn
+            post body ein 
         ) in
         let _ = jmp := (!jmp + oplen ps') in
         { 
@@ -249,8 +261,8 @@ let genloop vlist (pre) (post) =
         }
     in 
     match vlist with 
-    | [] -> presempty ""
-    | (hd,  count) :: rest -> genl hd count (presempty hd) 0 [] rest
+    | [] -> presempty "empty"
+    | hd :: rest -> genl hd (presempty "loop") 0 [] rest
 ;;
 
 let convert (s: presource) = 

@@ -7,7 +7,11 @@
  *   department may entail severe civil or criminal penalties.
  *
  *)
+open Parser;;
 open Emitter;;
+open Genfunc;;
+
+let (>>==) = Result.bind;;
 
 type vm = {
         spine:  Emitter.spinval array
@@ -62,7 +66,7 @@ let rec consume ({ Emitter.oprtns; cursor; _ } as s) apply =
 
 let handle_op vm = (function 
     | INop          -> 1 
-    | IPop          -> let _ = pop vm in 1 
+    | IPop          -> let _ = pop  vm in 1 
     | IPush v       -> let _ = push vm v in 1
     | ILoop x       -> let _ = vm.source.cursor <- x in 0 
     | IJump y       -> y 
@@ -81,6 +85,45 @@ let handle_op vm = (function
 
 let eval (pr: vm) = 
     consume pr.source (handle_op pr)
+;;
+
+let tosource (vw: program) = 
+    (>>==) (Genfunc.transform vw) (fun x -> 
+        let vl = x.inps 
+            |> List.map (fun { Genfunc.elems; _ } -> 
+                elems
+            )
+            |> List.concat
+            |> (Emitter.genloop (fun x _y _z _a -> 
+                    x
+                ) (fun x y ->
+                    let _ = Format.printf "for %s \n" (show_einmatch y) in
+                    { x with oprtns=x.oprtns @  
+                        [
+                            IPush (SStr (Format.sprintf "label %c -> with dimen %d" y.label y.dimen));
+                            IEchoNl;
+                            IPop;
+                        ]
+                    }
+                )) (fun islast _e ps -> 
+                    if islast then 
+                        let i = Hashtbl.fold (fun a b acc -> 
+                            [
+                                IPush (SStr (Format.sprintf "%c is at " a));
+                                IEcho;
+                                IGetVar b; 
+                                IEchoNl;
+                                IPop;
+                                IPop;
+                            ] ::
+                            acc
+                        ) ps.nmdvar [] |> List.concat 
+                        in { ps with oprtns=ps.oprtns @ i; }
+                    else ps
+                )
+        in
+        Ok vl 
+    )
 ;;
 
 let mkvm src = {

@@ -8,8 +8,15 @@
  *
  *)
 let handle_transform_formulae form = 
-    match Genfunc.transform form with 
-    | Ok    t -> Genfunc.debug_print t
+    match Eval.tosource form with 
+    | Ok    t -> 
+        let _ = 
+            Emitter.convert t
+            |> Eval.mkvm 
+            |> Eval.eval
+        in 
+        ()
+        (*Format.printf "\n%s\n" (Emitter.show_presource t)*)
     | Error e -> Format.printf "Error: %s" e
 ;;
 
