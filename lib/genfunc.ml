@@ -64,6 +64,12 @@ let string_of_shape x =
     |> String.concat " x "
 ;;
 
+let string_of_dim x = 
+    Array.to_seq x 
+    |> List.of_seq 
+    |> string_of_shape
+;;
+
 module CharSet = Set.Make (Char);;
 
 type einmatch = {

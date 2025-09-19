@@ -7,22 +7,34 @@
  *   department may entail severe civil or criminal penalties.
  *
  *)
+
+type 'a wrap = {  
+    cont: 'a; 
+    dims:  int array 
+}
+
 module type NDArray = sig 
     type value
     type container
     type listlike
-    val  make:  int array -> value -> container
+    val  make:    int array -> value -> container
     val  of_list: listlike -> container
-    val  set:   container -> int array -> value -> unit
-    val  get:   container -> int array -> value
-    val  iteri: (int array -> value -> unit) -> container -> unit
+    val  set:     container -> int array -> value -> unit
+    val  get:     container -> int array -> value
+    val  iteri:   (int array -> value -> unit) -> container -> unit
+    val  shape:   container -> int array
 end
 
-module Scalar(Ord: Set.OrderedType): NDArray with type value := Ord.t = struct 
+type ndarray = NDArray;;
 
-    type value     = Ord.t
+module Scalar(Ord: Set.OrderedType): NDArray with 
+    type value     := Ord.t and 
+    type listlike  := Ord.t list and 
+    type container := Ord.t ref = 
+struct 
+
+    type value     = (Ord.t)
     type container = value ref
-    type listlike  = Ord.t list
 
     let make (_dims: int array) (v: value) =
         ref v
@@ -45,100 +57,128 @@ module Scalar(Ord: Set.OrderedType): NDArray with type value := Ord.t = struct
         apply [|0|] !_cont
     ;;
 
+    let shape _c = 
+        [||]
+    ;;
+
 end
 
 (* n * n *)
-module Vector(Ord: Set.OrderedType): NDArray with type value := Ord.t = struct 
+module Vector(Ord: Set.OrderedType): NDArray with 
+    type value     := Ord.t and
+    type container := Ord.t array wrap and
+    type listlike  := Ord.t list
+= struct 
 
     type value     = Ord.t
-    type container = value array
-    type listlike  = value list
+    type container = (value array) wrap
 
     let make (_dims: int array) (v: value) =
         let () = assert (Array.length _dims > 0) in
-        Array.make (Array.unsafe_get _dims 0) v
+        { cont=(Array.make (Array.unsafe_get _dims 0) v); dims=(_dims) }
     ;;
 
     (* must be non-empty! *)
     let of_list (_dat: value list) = 
-        Array.of_list (_dat)
+        let a = Array.of_list _dat in
+        { cont=a; dims=[|(Array.length a)|] }
     ;;
 
     let set (_cont: container) (_dims: int array) (v: value) = 
         let () = assert (Array.length _dims > 0) in
-        Array.unsafe_set _cont (Array.unsafe_get _dims 0) v
+        Array.unsafe_set (_cont.cont) (Array.unsafe_get _dims 0) v
     ;;
 
     let get (_cont: container) (_dims: int array) = 
         let () = assert (Array.length _dims > 0) in
-        Array.unsafe_get _cont (Array.unsafe_get _dims 0)
+        Array.unsafe_get (_cont.cont) (Array.unsafe_get _dims 0)
     ;;
 
     let iteri (apply: int array -> value -> unit) _cont =
-        Array.iteri (fun i v -> apply [|i|] v) _cont
+        Array.iteri (fun i v -> apply [|i|] v) (_cont.cont)
+    ;;
+
+    let shape _c =
+        _c.dims
     ;;
 
 end
 
 (* n * n *)
-module Matrix(Ord: Set.OrderedType): NDArray with type value := Ord.t = struct 
+module Matrix(Ord: Set.OrderedType): NDArray with 
+    type value     := Ord.t  and
+    type container := Ord.t array array wrap and
+    type listlike  := Ord.t list  list =
+struct 
 
     type value     = Ord.t
-    type container = value array array
-    type listlike  = value list list
+    type container = value array array wrap
 
     let make (_dims: int array) (v: value) =
         let () = assert (Array.length _dims > 1) in
-        Array.make_matrix (Array.unsafe_get _dims 0) (Array.unsafe_get _dims 1) v
+        { cont=(Array.make_matrix (Array.unsafe_get _dims 0) (Array.unsafe_get
+            _dims 1) v); 
+          dims=(_dims) 
+        }
     ;;
 
     (* must be non-empty! *)
     let of_list: (value list list -> container) = fun _dat ->
-        List.map (Array.of_list) _dat 
-        |> Array.of_list
+        let a = List.map (Array.of_list) _dat |> Array.of_list in 
+        { cont=a; dims=[|(Array.length a);(Array.length a.(0))|] }
     ;;
 
     let set (_cont: container) (_dims: int array) (v: value) = 
         let () = assert (Array.length _dims > 1) in
-        Array.unsafe_set (Array.unsafe_get _cont (Array.unsafe_get _dims 0)) (Array.unsafe_get _dims 1) v
+        Array.unsafe_set (Array.unsafe_get _cont.cont (Array.unsafe_get _dims 0)) (Array.unsafe_get _dims 1) v
     ;;
 
     let get (_cont: container) (_dims: int array) = 
         let () = assert (Array.length _dims > 1) in
-        Array.unsafe_get (Array.unsafe_get _cont (Array.unsafe_get _dims 0)) (Array.unsafe_get _dims 1)
+        Array.unsafe_get (Array.unsafe_get _cont.cont (Array.unsafe_get _dims 0)) (Array.unsafe_get _dims 1)
     ;;
 
     let iteri (apply: int array -> value -> unit) _cont =
-        Array.iteri (fun  i a -> Array.iteri (fun j v -> apply [|i;j|] v) a) _cont
+        Array.iteri (fun  i a -> Array.iteri (fun j v -> apply [|i;j|] v) a) _cont.cont
+    ;;
+
+    let shape _c =
+        _c.dims
     ;;
 
 end
 
 (* n * n * n *)
-module BatchMatrix(Ord: Set.OrderedType): NDArray with type value := Ord.t = struct 
+module BatchMatrix(Ord: Set.OrderedType): NDArray with 
+    type value     := Ord.t and 
+    type container := Ord.t array array array wrap and
+    type listlike  := Ord.t list list list = 
+struct 
 
     type value     = Ord.t
-    type container = value array array array
-    type listlike  = value list list list
+    type container = value array array array wrap
 
     let make (_dims: int array) (v: value) =
         let () = assert (Array.length _dims > 2) in
-        Array.init (Array.unsafe_get _dims 2) (fun _ ->
+        { cont=(Array.init (Array.unsafe_get _dims 2) (fun _ ->
             Array.make_matrix (Array.unsafe_get _dims 0) (Array.unsafe_get _dims 1) v
-        )
+          )); dims=(_dims) 
+        }
     ;;
 
     (* must be non-empty! *)
     let of_list: (value list list list -> container) = fun _dat ->
-        List.map (Fun.compose Array.of_list (List.map (Array.of_list))) _dat 
+        let a = List.map (Fun.compose Array.of_list (List.map (Array.of_list))) _dat 
         |> Array.of_list
+        in 
+        { cont=a; dims=[|(Array.length a);(Array.length a.(0));(Array.length a.(0).(0))|] }
     ;;
 
     let set (_cont: container) (_dims: int array) (v: value) = 
         let () = assert (Array.length _dims > 2) in
         Array.unsafe_set (
             Array.unsafe_get (
-                Array.unsafe_get _cont (Array.unsafe_get _dims 0)
+                Array.unsafe_get _cont.cont (Array.unsafe_get _dims 0)
             ) (Array.unsafe_get _dims 1)
         ) (Array.unsafe_get _dims 2) v
     ;;
@@ -147,7 +187,7 @@ module BatchMatrix(Ord: Set.OrderedType): NDArray with type value := Ord.t = str
         let () = assert (Array.length _dims > 2) in
         Array.unsafe_get (
             Array.unsafe_get (
-                Array.unsafe_get _cont (Array.unsafe_get _dims 2)
+                Array.unsafe_get _cont.cont (Array.unsafe_get _dims 2)
             ) (Array.unsafe_get _dims 1)
         ) (Array.unsafe_get _dims 0)
     ;;
@@ -159,19 +199,24 @@ module BatchMatrix(Ord: Set.OrderedType): NDArray with type value := Ord.t = str
                     apply [|i;j;k|] v
                 ) b
             ) a
-        ) _cont
+        ) _cont.cont
     ;;
 
+    let shape _c =
+        _c.dims
+    ;;
 end
 
 (* only support float dimens at this point *)
 
-module MulDim: NDArray with type value := float = struct 
+module MulDim: NDArray with 
+    type value     := float and
+    type container := (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t and
+    type listlike  := unit = 
+struct 
     open! Bigarray;;
 
     type value     = float
-    type container = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t
-    type listlike  = unit
 
     (* only upto 16 dimensions! *)
     let make (_dims: int array) (_v: value) =
@@ -207,6 +252,11 @@ module MulDim: NDArray with type value := float = struct
             iterate_recursive arr indices ndims 0
         in iterate_genarray_recursive _cont
     ;;
+
+    let shape _cont = 
+       Genarray.dims _cont
+    ;;
+
 end
 
 
@@ -251,4 +301,9 @@ module MulIntDim: NDArray with type value := int = struct
             iterate_recursive arr indices ndims 0
         in iterate_genarray_recursive _cont
     ;;
+
+    let shape _cont = 
+       Genarray.dims _cont
+    ;;
+
 end

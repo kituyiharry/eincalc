@@ -26,14 +26,31 @@
 *)
 
 open Genfunc;;
+open Ndarray;;
 
+(* stack values *)
 type spinval = 
     | SNil
     | SNumber of float
     | SIndex  of int
     | SBool   of bool
     | SStr    of string
- [@@deriving show];; 
+    | SNdim:  ((module NDArray with type container = 'c) * 'c) -> spinval 
+;; 
+
+let show_spinval s = 
+    match s with
+    | SNil      -> "nil"
+    | SNumber f -> Format.sprintf "%f" f
+    | SIndex  i -> Format.sprintf "%d" i 
+    | SBool   b -> Bool.to_string b 
+    | SStr    s -> s 
+    | SNdim  ((module ND), n) -> Genfunc.string_of_dim @@ (ND.shape n)
+;;
+
+let pp_spinval _f _s = 
+    ()
+;;
 
 let sadd x y = 
     match (x, y) with 

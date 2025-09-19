@@ -38,6 +38,23 @@ let _tests = "Ndarray unit tests" >::: [
         let () = assert_equal 999. (S.get s [|2;2;2|]) in
         assert_equal 999. (S.get s [|0;0;0|])
     );
+    "Shape values" >:: (fun _ ->
+
+        let module M = Ndarray.Matrix(Float) in 
+        let module B = Ndarray.BatchMatrix(Float) in 
+        let module V = Ndarray.Vector(Float) in 
+        let module S = Ndarray.Scalar(Float) in 
+
+        let s = S.of_list [0.] in
+        let v = V.of_list [1.;2.;3.] in
+        let m = M.of_list [[1.; 2.];[1.; 2.]; [1.; 2.]] in
+        let b = B.of_list [[[1.];[2.]];[[1.];[2.]];[[1.];[2.]]] in
+
+        let _ = assert_equal [||]      (S.shape s) in
+        let _ = assert_equal [|3|]     (V.shape v) in
+        let _ = assert_equal [|3;2|]   (M.shape m) in
+                assert_equal [|3;2;1|] (B.shape b)
+    )
 ]
 
 let _ = run_test_tt_main _tests

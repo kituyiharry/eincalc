@@ -109,7 +109,7 @@ let tosource (vw: program) =
                     if islast then 
                         let i = Hashtbl.fold (fun a b acc -> 
                             [
-                                IPush (SStr (Format.sprintf "%c is at " a));
+                                IPush (SStr (Format.sprintf "%c is at" a));
                                 IEcho;
                                 IGetVar b; 
                                 IEchoNl;
