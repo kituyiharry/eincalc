@@ -84,6 +84,7 @@ type eincomp = {
        shape: int list
     ;  elems: einmatch list
     ;  chset: CharSet.t      [@opaque]
+    ;  param: crange
 } [@@deriving show];;
 
 type eintree = {
@@ -91,14 +92,14 @@ type eintree = {
     ;   outs: int list
 } [@@deriving show];;
 
-let parammatch ((({ inp; _ }, par))) = 
+let parammatch ({ inp; _ }, par) = 
     if List.length inp ==  List.length par then 
         (* Ensure input are unique - maybe use disjoint set *)
         let ins = (
             List.combine inp par
-            |> List.mapi (fun pidx (i, p) ->
+            |> List.mapi (fun pidx (paridx, param) ->
                 (* TODO: use Disjoint Set *)
-                match (i, p) with
+                match (paridx, param) with
                 | (Shape l, NdArray n) -> 
                     (>>==) (homogenous (metashape n)) (fun g ->
                         let l' = List.length l in 
@@ -110,13 +111,16 @@ let parammatch ((({ inp; _ }, par))) =
                                 |> List.map (fun ((label, index), dimen) ->
                                     (* -1 is ommision by default *)
                                     chs := CharSet.add label !chs;
-                                    { label; index; dimen; param=pidx; outlc=(-1) }
+                                    { label; index; dimen; param=pidx; outlc=(-1); }
                                 )
                             in 
                             Ok ({ 
-                                    shape=(g)
-                                ;   elems=(g')
-                                ;   chset=(!chs)
+                                    (* add param *)
+                                    shape=(g)     (* x by y by .... *)
+                                ;   elems=(g')    (* each dimension *)
+                                ;   chset=(!chs)  (* Character set of the labels of each dimension *)
+                                ;   param
+                                ;
                             })
                         else
                             Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" l' (pidx+1) g')
@@ -233,14 +237,14 @@ let correspondence (({out; _}, _) as g) =
 
 let describe (lst: (einmatch list)) = 
     let buf = Buffer.create (256) in
-    let _ = List.iter (fun ({ label=l; index=i; dimen=s; outlc=o; param=p }) -> 
+    let _ = List.iter (fun ({ label=l; index=i; dimen=s; outlc=o; param=p; _ }) -> 
         Buffer.add_string buf 
             (Format.sprintf "\t* Label:%c at (%d -> %d) with size: %d (Param: %d)  |\n" l i o s p)
     ) lst in 
     Buffer.contents buf
 ;;
 
-let debug_print ({ inps; outs }) =
+let debug_print ({ inps; outs; _ }) =
     let _ = List.iter (fun l -> 
         let _ = Format.printf "\t Mat: %s  -> %s   
 \t+-----------------------------------------------+
@@ -258,7 +262,7 @@ let argtransform (_p: params) =
 let transform (e: formula)  = 
     match e with 
     | Stmt (Ein _e) ->  (>>==) (correspondence _e) (fun l -> 
-        Ok ({ inps=l; outs=(equation l) })
+            Ok ({ inps=l; outs=(equation l); })
         )
     | _ -> 
         failwith "Unimplemented transform"

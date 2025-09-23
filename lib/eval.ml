@@ -28,7 +28,7 @@ let set_stack idx sval { frmptr; spine; _ } =
     Array.set spine (frmptr + idx) sval
 ;;
 
-let push s sval  = 
+let push s sval = 
     let _ = Array.set s.spine (s.stkidx) sval in 
     s.stkidx <- (s.stkidx + 1)
 ;;
@@ -89,23 +89,19 @@ let eval (pr: vm) =
 
 let tosource (vw: program) = 
     (>>==) (Genfunc.transform vw) (fun x -> 
-        let vl = x.inps 
-            |> List.map (fun { Genfunc.elems; _ } -> 
-                elems
-            )
+        let gl = Emitter.genloop (presempty "") [] in
+        let vl = (
+            x.inps 
+            |> List.map (fun { elems; _ } -> elems )
             |> List.concat
-            |> (Emitter.genloop (fun x _y _z _a -> 
-                    x
-                ) (fun x y ->
-                    let _ = Format.printf "for %s \n" (show_einmatch y) in
-                    { x with oprtns=x.oprtns @  
-                        [
-                            IPush (SStr (Format.sprintf "label %c -> with dimen %d" y.label y.dimen));
-                            IEchoNl;
-                            IPop;
-                        ]
-                    }
-                )) (fun islast _e ps -> 
+            |> (gl 
+                (* before body on each iteration *)
+                (fun x _y _z _a -> x) 
+                (* after body on each iteration *)
+                (fun x _y -> x)) 
+                (* body *)
+                (fun islast _e ps -> 
+                    (* all vars have been loaded, *)
                     if islast then 
                         let i = Hashtbl.fold (fun a b acc -> 
                             [
@@ -115,14 +111,12 @@ let tosource (vw: program) =
                                 IEchoNl;
                                 IPop;
                                 IPop;
-                            ] ::
-                            acc
+                            ] :: acc
                         ) ps.nmdvar [] |> List.concat 
                         in { ps with oprtns=ps.oprtns @ i; }
                     else ps
                 )
-        in
-        Ok vl 
+        ) in Ok vl 
     )
 ;;
 

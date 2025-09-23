@@ -32,7 +32,6 @@ and 'a ndarray =
 and  crange  = 
     | Range    of cell * cell    (* spreadsheet cell *)
     | Scalar   of cell
-    | Static   of float list     (* static array information information *)
     | NdArray  of float ndarray
     | Relative of motion * crange(* Relative cell - Up ^, Down _, Left <, Right, > *)
     | Refer    of referral       (* a way to refer to the current cell *) 

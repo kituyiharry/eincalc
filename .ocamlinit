@@ -1,0 +1,8 @@
+open Unix;;
+let timeonly f =
+        let t = Unix.gettimeofday () in
+        let _res = f () in
+        Printf.printf "Execution time: %f secondsn" (Unix.gettimeofday () -. t)
+;;
+
+
