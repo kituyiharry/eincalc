@@ -5,4 +5,3 @@ let timeonly f =
         Printf.printf "Execution time: %f secondsn" (Unix.gettimeofday () -. t)
 ;;
 
-

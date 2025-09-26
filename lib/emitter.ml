@@ -7,6 +7,7 @@
  *   department may entail severe civil or criminal penalties.
  *
  *)
+
 (*
     (I[3] -> K[3])
     (i in 0..3) { K[i] = I[i] }
@@ -22,7 +23,6 @@
     - initialization
     - condition
     - increment
-
 *)
 
 open Genfunc;;
@@ -35,6 +35,8 @@ type spinval =
     | SIndex  of int
     | SBool   of bool
     | SStr    of string
+    | SKern   of int   (* point to kernel area *)
+    | SAddr   of int array
     | SNdim:  ((module NDarray with type t = 'cont and type e = 'elt) * 'cont) -> spinval 
 ;; 
 
@@ -45,30 +47,32 @@ let shape_of_module (type n) (type b) (module N: NDarray with type t = n and typ
 let show_spinval s = 
     match s with
     | SNil      -> "nil"
-    | SNumber f -> Format.sprintf "%f" f
-    | SIndex  i -> Format.sprintf "%d" i 
+    | SNumber f -> Format.sprintf "num: %f" f
+    | SIndex  i -> Format.sprintf "idx: %d" i 
     | SBool   b -> Bool.to_string b 
     | SStr    s -> s 
-    | SNdim  (d, n) -> Genfunc.string_of_dim @@ (shape_of_module d n)
+    | SKern   k -> Format.sprintf "kern: %d" k
+    | SAddr   a -> Format.sprintf "addr: [ %s ]" (string_of_dim a)
+    | SNdim  (d, n) -> Genfunc.string_of_dim @@  (shape_of_module d n)
 ;;
 
 let pp_spinval _f _s = 
-    ()
+    (Format.fprintf _f "%s" (show_spinval _s))
 ;;
 
 let sadd x y = 
     match (x, y) with 
     | SNumber x', SNumber y' -> SNumber (x' +. y')
-    | SIndex x',  SIndex  y' -> SIndex  (x' + y')
-    | _ -> failwith "Invalid add operands"
+    | SIndex x',  SIndex  y' -> SIndex  (x' +  y')
+    | _ -> failwith (Format.sprintf "Invalid add operands: %s + %s" (show_spinval x) (show_spinval y))
 ;;
 
 let seql x y = 
     match (x, y) with 
     | SNumber x', SNumber y' -> SBool (Float.equal x' y')
-    | SIndex  x', SIndex y' ->  SBool (Int.equal x' y')
-    | SBool   x', SBool y' ->   SBool (Bool.equal  x' y')
-    | _ -> failwith "Invalid operands for equal"
+    | SIndex  x', SIndex  y' -> SBool (Int.equal   x' y')
+    | SBool   x', SBool   y' -> SBool (Bool.equal  x' y')
+    | _ -> failwith (Format.sprintf "Invalid equality operands: %s = %s" (show_spinval x) (show_spinval y))
 ;;
 
 let strue x = 
@@ -80,7 +84,7 @@ let strue x =
 let smul x y = 
     match (x, y) with 
     | SNumber x', SNumber y' -> SNumber (x' *. y')
-    | SIndex x', SIndex y'   -> SIndex (x' * y')
+    | SIndex  x', SIndex  y' -> SIndex  (x' *  y')
     | _ -> failwith "Invalid mul operands"
 ;;
 
@@ -94,14 +98,14 @@ let sless x y =
     match (x, y) with 
     | SNumber x', SNumber y' -> SBool (Float.compare x' y' = (-1))
     | SIndex x',  SIndex y'  -> SBool (Int.compare x' y'   = (-1))
-    | _ -> failwith "Invalid add operands"
+    | _ -> failwith (Format.sprintf "Invalid less operands: %s < %s" (show_spinval x) (show_spinval y))
 ;;
 
 let sgreater x y = 
     match (x, y) with 
     | SNumber x', SNumber y' -> SBool (Float.compare x' y' = (1))
     | SIndex x',  SIndex y'  -> SBool (Int.compare x' y'   = (1))
-    | _ -> failwith "Invalid add operands"
+    | _ -> failwith (Format.sprintf "Invalid greater operands: %s > %s" (show_spinval x) (show_spinval y))
 ;;
 
 type instr = 
@@ -129,12 +133,15 @@ type instr =
     (* effects *)
     | IEcho              (* print value at the top of the stack *)
     | IEchoNl
+    | IGetKern
+    | ILoadAddr  of int  (* create an address from the next n values on the stack *)
 [@@deriving show];;
 
 type source = {
         oprtns: instr array
     ;   consts: spinval array
     ;   mutable cursor: int
+    ;   kernels: spinval array 
 };;
 
 (* TODO: unsafe assert *)
@@ -145,6 +152,8 @@ let get_const idx { consts; _ } =
 type presource = {
         consts: spinval list
     ;   oprtns: instr   list
+    ;   kernels: spinval list  (* a global area for array parameters *)
+    ;   kcount: int
     ;   cnsidx: int
     ;   nmdvar: (char, int) Hashtbl.t  [@opaque]
     ;   varcnt: int
@@ -156,7 +165,8 @@ type presource = {
 
 let presempty name = {
         consts=[] 
-    (*;   ptrarr=[]*)
+    ;   kernels=[]
+    ;   kcount=0
     ;   oprtns=[]
     ;   cnsidx=0
     ;   nmdvar=(Hashtbl.create 8) 
@@ -170,12 +180,19 @@ let add_const vlue ps =
     (ps.cnsidx, { ps with consts = vlue :: ps.consts; cnsidx=ps.cnsidx+1 })
 ;;
 
+(* creates a slot for a named variable - should already be placed on the stack
+   by the time you are using the variable -> this provides a way of referencing
+   it allowing it to be set *)
 let add_named_var vlue ps = 
     match Hashtbl.find_opt ps.nmdvar vlue with 
     | Some idx ->  (idx, ps) 
     | None ->
         let _ = Hashtbl.add ps.nmdvar vlue ps.varcnt in
         (ps.varcnt, { ps with varcnt=ps.varcnt+1 })
+;;
+
+let add_kernel ndim ps = 
+    (ps.kcount, { ps with kernels=ndim::ps.kernels;kcount=ps.kcount+1 })
 ;;
 
 let get_named_var vlue ps = 
@@ -215,21 +232,71 @@ let oplen ps =
     List.length ps.oprtns
 ;;
 
-let rec iterndarray nest f nda = 
-    match nda with 
-    | Parser.Itemize a -> List.iteri (fun l c -> (f (l :: nest) c)) a
-    | Parser.Collect c -> List.iteri (fun i c' -> (iterndarray (i :: nest) f c') ) c
+let iterndarray f nda = 
+    let rec iternd nest f nda =
+        match nda with 
+        (* remember -> indices are in reverse so we need to reverse again *)
+        | Parser.Itemize a -> List.iteri (fun l c ->  (f (List.rev (l :: nest)) c)) a
+        | Parser.Collect c -> List.iteri (fun i c' -> (iternd (i :: nest) f c') ) c
+    in 
+    iternd [] f nda
 ;;
 
-
-let range_to_ndarray: (Parser.crange -> int list -> spinval) = fun n _shp -> 
+let range_to_ndarray n shp =
     (* spreadsheet cell *)
     match n with 
     | Parser.NdArray (_ndfl) -> (
-        let _scal = (module Scalar(Float): NDarray with type t = float ref and type e = float) in 
-        let (module Scalar: NDarray with type t = float ref and type e = float) = _scal in
-        let _sdat = Scalar.make [||] 0. in
-        (SNdim (_scal, _sdat))
+        match shp with 
+        | [] -> 
+            let _scal = (module Scalar(Float): NDarray with type t = float ref and type e = float) in 
+            let (module Scalar) = _scal in
+            let _sdat = Scalar.make [||] 0. in
+            let _ = iterndarray (
+                fun x y -> (
+                    Scalar.set _sdat (Array.of_list x) y
+                )
+            ) _ndfl in  
+            (SNdim (_scal, _sdat))
+        | hd :: [] -> 
+            let _scal = (module Vector(Float): NDarray with type t = float vector wrap and type e = float) in 
+            let (module Vector) = _scal in
+            let _sdat = Vector.make [|hd|] 0. in
+            let _ = iterndarray (
+                fun x y -> (
+                    Vector.set _sdat (Array.of_list x) y
+                )
+            ) _ndfl in  
+            (SNdim (_scal, _sdat))
+        | hd :: hd1 :: [] -> 
+            let _scal = (module Matrix(Float): NDarray with type t = float matrix wrap and type e = float) in 
+            let (module Matrix) = _scal in
+            let _sdat = Matrix.make [|hd;hd1|] 0. in
+            let _ = iterndarray (
+                fun x y -> (
+                    Matrix.set _sdat (Array.of_list x) y
+                )
+            ) _ndfl in  
+            (SNdim (_scal, _sdat))
+        | hd :: hd1 :: hd2 :: [] -> 
+            let _scal = (module BatchMatrix(Float): NDarray with type t = float batches wrap and type e = float) in 
+            let (module BatchMatrix) = _scal in
+            let _sdat = BatchMatrix.make [|hd;hd1;hd2|] 0. in
+            let _ = iterndarray (
+                fun x y -> (
+                    BatchMatrix.set _sdat (Array.of_list x) y
+                )
+            ) _ndfl in  
+            (SNdim (_scal, _sdat))
+        | rem -> 
+            let _scal = (module MulDim: NDarray with type t = bigfloatarray and type e = float) in 
+            let (module MulDim) = _scal in
+            let _sdat = MulDim.make (Array.of_list rem) 0. in
+            let _ = iterndarray (
+                fun x y -> (
+                    MulDim.set _sdat (Array.of_list x) y
+                )
+            ) _ndfl in  
+            (SNdim (_scal, _sdat))
     )
     | _ -> failwith "not implemented"
     (*| Range    (_frcell, _tocell) -> () *)
@@ -241,44 +308,55 @@ let range_to_ndarray: (Parser.crange -> int list -> spinval) = fun n _shp ->
 
 
 (* generates nested loops from a list of variable matches *)
-let genloop ps (parms: Parser.crange list) =
+let genloop ps (parms: (int list * Parser.crange) list) =
 
     (* load params into the  stack frame first as if they were function call arguments *)
     (* TODO: tranform into NDARRAYs *)
-    let ps = { ps with args=parms } in
 
+    let (_, _idxs, ps) = List.fold_left (fun (idx, kidxs, ps') (_shp, _cr) -> 
+        let  _ndim      = range_to_ndarray _cr _shp in
+        let (_kdx, ps') = add_kernel      _ndim ps' in
+        (* TODO: pop params at the end as well!! *)
+        (idx, _kdx :: kidxs , ps')
+    ) (0, [], ps) parms in
 
-    fun (pre) (post) (body) vlist -> 
-        let rec genl ({ label=vrn; dimen=bound; _ } as ein) ps lidx decl rem =
-            let (sidx, ps) = add_const (SIndex 0)     ps in (* count from 0 *)
-            let (sinc, ps) = add_const (SIndex 1)     ps in (* increment by 1 *)
-            let (eidx, ps) = add_const (SIndex bound) ps in (* end at  eidx *)
-            let (vidx, ps) = add_named_var vrn ps in
+    (_idxs, fun (pre) (post) (body) vlist -> 
+        let rec genl vnum ({ label=vrn; dimen=bound; _ } as ein) psi lidx decl _par rem =
+            let (sidx, ps) = add_const (SIndex 0)     psi in (* count from 0 *)
+            let (sinc, ps) = add_const (SIndex 1)     ps in  (* increment by 1 *)
+            let (eidx, ps) = add_const (SIndex bound) ps in  (* end at  eidx *)
+            let (vidx, ps) = add_named_var vrn ps in         (* capture as var once loaded *)
             (* calculated as 1 jump instr + 6 for increment + 1 loop *)
             let jmp        = ref 8 in
+            let decl'      = ((vrn, vidx) :: decl) in
             let ps'        = (
-                (* do what you want pre body invocation 
+                (* Do what you want pre body invocation 
                    pass the state with current variable, remaining vars and
-                   startindex for instructions in this loop *)
-                let prebody = pre ps ein rem lidx in
+                   startindex for instructions in this loop 
+                    
+                   join the body then attach the params
+                *)
+                let prebody = pre vnum decl' _par ps ein rem lidx in
                 let body = (
                     match rem with 
                     | [] -> 
                         let islast = true in 
                         (*{ prebody with oprtns=(echoall ((vrn, vidx) :: decl)) }*)
-                        body islast ein (prebody)
-                    | hd' :: rst -> 
+                        body vnum decl' _par islast ein (prebody)
+                    | (hd', _par') :: rst -> 
                         let islast = false in 
                         (* build the inner loop *)
-                        body islast ein (genl hd' prebody (lidx + 11) ((vrn, vidx) :: decl) rst) 
+                        body vnum decl' _par islast ein (genl (vnum + 1) hd' prebody (lidx + 11) decl' _par' rst) 
                 ) in
                 (* do what you want post body invocation *)
-                post body ein 
+                post vnum decl' _par body ein 
             ) in
             let _ = jmp := (!jmp + oplen ps') in
             { 
-                ps' with 
-                oprtns=
+                ps' with oprtns=
+                    (* attach former oprtns - we passed an empty earlier!! *)
+                    (* WARNING -> MODIFYING THIS LIST AFFECTS VM OUTPUT SINCE
+                       JUMPS ARE HARD CODED!!!! *)
                     [ 
 
                         (* load the indexes *)
@@ -317,13 +395,19 @@ let genloop ps (parms: Parser.crange list) =
         in 
         match vlist with 
         | [] -> ps
-        | hd :: rest -> genl hd ps 0 [] rest
+        | (hd, par) :: rest -> 
+            (* start loops where our current operations end
+            genl counter einmatch presource start-index declared-vars referenced-parameters remainder-einmatches-and-params *)
+            let g = genl 0 hd ps 3 [] par rest in 
+            { g with oprtns= [ IPush (SStr "==VM START=="); IEchoNl; IPop ] @ g.oprtns }
+    )
 ;;
 
 let convert (s: presource) = 
     {
-        oprtns=(Array.of_list s.oprtns) 
-        ;   consts=(Array.of_list @@ List.rev s.consts)
-        ;   cursor=0
+            oprtns =(Array.of_list s.oprtns) 
+        ;   consts =(Array.of_list @@ List.rev s.consts)
+        ;   cursor =0
+        ;   kernels=(Array.of_list @@ List.rev s.kernels) 
     }
 ;;

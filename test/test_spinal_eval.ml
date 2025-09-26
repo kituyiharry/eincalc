@@ -13,6 +13,7 @@ let _testvm = {
             |]
             ; cursor=  0
             ; consts = [||]
+            ; kernels= [||]
         };
     } 
 ;;

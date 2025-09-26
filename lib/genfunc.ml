@@ -59,9 +59,18 @@ let homogenous (matshape) =
     check matshape []
 ;;
 
+let name_of_shape =  function 
+    | 0 -> "scalar "
+    | 1 -> "vector "
+    | 2 -> "matrix "
+    | 3 -> "batches " 
+    | _ -> "bigarray "
+;;
+
 let string_of_shape x = 
     List.map (string_of_int) x
     |> String.concat " x "
+    |> (^) (name_of_shape (List.length x))
 ;;
 
 let string_of_dim x = 
@@ -69,6 +78,7 @@ let string_of_dim x =
     |> List.of_seq 
     |> string_of_shape
 ;;
+
 
 module CharSet = Set.Make (Char);;
 

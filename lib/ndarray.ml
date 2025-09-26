@@ -14,6 +14,11 @@ type 'a wrap = {
     ;
 };;
 
+type bigfloatarray = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t ;;
+type 'a vector     = 'a array
+type 'a matrix     = 'a array array 
+type 'a batches    = 'a array array array
+
 module type NDarray = sig 
     type e
     type t
@@ -24,10 +29,13 @@ module type NDarray = sig
     val  shape:   t -> int array
 end
 
-module Scalar(Ord: Set.OrderedType): NDarray with type t = float ref and type e = float = struct 
+module Scalar(Ord: Set.OrderedType): NDarray with 
+    type t = Ord.t ref and 
+    type e = Ord.t 
+= struct 
     
-    type e = float
-    type t = float ref
+    type e = Ord.t 
+    type t = Ord.t ref
 
 
     let make (_dims: int array) (v) =
@@ -57,7 +65,7 @@ end
 
 module Vector(Ord: Set.OrderedType): NDarray with 
     type e = Ord.t and 
-    type t = (Ord.t array) wrap
+    type t = (Ord.t vector) wrap
 = struct 
 
     type e = Ord.t 
@@ -95,12 +103,11 @@ module Matrix(Ord: Set.OrderedType): NDarray with
 = struct 
 
     type e = Ord.t
-    type t = e array array wrap
+    type t = Ord.t matrix wrap
 
     let make (_dims: int array) (v: e) =
         let () = assert (Array.length _dims > 1) in
-        { cont=(Array.make_matrix (Array.unsafe_get _dims 0) (Array.unsafe_get
-            _dims 1) v); 
+        { cont=(Array.make_matrix (Array.unsafe_get _dims 0) (Array.unsafe_get _dims 1) v); 
           dims=(_dims) 
         }
     ;;
@@ -127,8 +134,8 @@ end
 
 (* n * n * n *)
 module BatchMatrix(Ord: Set.OrderedType): NDarray with 
-    type e     := Ord.t and 
-    type t := Ord.t array array array wrap 
+    type e = Ord.t and 
+    type t = Ord.t batches wrap 
 = struct 
 
     type e     = Ord.t
@@ -179,12 +186,12 @@ end
 
 module MulDim: NDarray with 
     type e = float and
-    type t = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t 
+    type t = bigfloatarray 
 = struct 
     open! Bigarray;;
 
-    type e     = float
-    type t = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t 
+    type e = float
+    type t = bigfloatarray
 
     (* only upto 16 dimensions! *)
     let make (_dims: int array) (_v: e) =

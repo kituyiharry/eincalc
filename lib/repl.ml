@@ -15,8 +15,7 @@ let handle_transform_formulae form =
             |> Eval.mkvm 
             |> Eval.eval
         in 
-        ()
-        (*Format.printf "\n%s\n" (Emitter.show_presource t)*)
+        Format.printf "\n%s\n" (Emitter.show_presource t)
     | Error e -> Format.printf "Error: %s" e
 ;;
 
