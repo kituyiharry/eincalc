@@ -10,7 +10,6 @@
 open Parser;;
 open Emitter;;
 open Genfunc;;
-(*open Ndarray;;*)
 
 let (>>==) = Result.bind;;
 
@@ -77,15 +76,15 @@ let load_kernel_val vm =
     | (SKern _i, SAddr _a) -> 
         (match (vm.source.kernels.(_i)) with 
             | SNdim ((module M), modl) -> 
-                let _y = M.get modl _a in
-                Format.printf "Loaded Kernel Value \n" 
+                let _fv = M.get modl _a in
+                push vm (SNumber _fv)
             | _ -> failwith "invalid kernel!"
         )
     | (SAddr _a, SKern _i) -> 
         (match (vm.source.kernels.(_i)) with 
             | SNdim ((module M), modl) -> 
-                let _ = M.get modl _a in
-                Format.printf "Loaded Kernel Value\n"
+                let _fv = M.get modl _a in
+                push vm (SNumber _fv)
             | _ -> failwith "invalid kernel!"
         )
     | _  -> 
@@ -163,15 +162,15 @@ let tosource (vw: program) =
                     if islast then 
 
                         (* get dimensions - this will be in order of declaration *)
-                        let dims = List.map ( 
-                            fun (_name,_sidx) -> (IGetVar _sidx)
-                        ) _dcl in
+                        let dims = List.map (fun (_name,_sidx) -> (IGetVar _sidx)) _dcl in
                         let addr = dims @ [ ILoadAddr (List.length dims) ] in
 
                         let i = addr @ [
                             (*IEchoNl;*)
                             IPush _par;
                             IGetKern;
+                            IEchoNl;
+                            IPop;
                             (*IPop;*)
                             (*IPop;*)
                             (*IPush _par; *)

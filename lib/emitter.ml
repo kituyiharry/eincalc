@@ -37,10 +37,10 @@ type spinval =
     | SStr    of string
     | SKern   of int   (* point to kernel area *)
     | SAddr   of int array
-    | SNdim:  ((module NDarray with type t = 'cont and type e = 'elt) * 'cont) -> spinval 
+    | SNdim:  ((module NDarray with type t = 'cont) * 'cont) -> spinval 
 ;; 
 
-let shape_of_module (type n) (type b) (module N: NDarray with type t = n and type e = b) v = 
+let shape_of_module (type n) (module N: NDarray with type t = n) v = 
     N.shape v
 ;;
 
@@ -248,7 +248,7 @@ let range_to_ndarray n shp =
     | Parser.NdArray (_ndfl) -> (
         match shp with 
         | [] -> 
-            let _scal = (module Scalar(Float): NDarray with type t = float ref and type e = float) in 
+            let _scal = (module Scalar: NDarray with type t = float ref) in 
             let (module Scalar) = _scal in
             let _sdat = Scalar.make [||] 0. in
             let _ = iterndarray (
@@ -258,7 +258,7 @@ let range_to_ndarray n shp =
             ) _ndfl in  
             (SNdim (_scal, _sdat))
         | hd :: [] -> 
-            let _scal = (module Vector(Float): NDarray with type t = float vector wrap and type e = float) in 
+            let _scal = (module Vector: NDarray with type t = float vector wrap) in 
             let (module Vector) = _scal in
             let _sdat = Vector.make [|hd|] 0. in
             let _ = iterndarray (
@@ -268,7 +268,7 @@ let range_to_ndarray n shp =
             ) _ndfl in  
             (SNdim (_scal, _sdat))
         | hd :: hd1 :: [] -> 
-            let _scal = (module Matrix(Float): NDarray with type t = float matrix wrap and type e = float) in 
+            let _scal = (module Matrix: NDarray with type t = float matrix wrap) in 
             let (module Matrix) = _scal in
             let _sdat = Matrix.make [|hd;hd1|] 0. in
             let _ = iterndarray (
@@ -278,7 +278,7 @@ let range_to_ndarray n shp =
             ) _ndfl in  
             (SNdim (_scal, _sdat))
         | hd :: hd1 :: hd2 :: [] -> 
-            let _scal = (module BatchMatrix(Float): NDarray with type t = float batches wrap and type e = float) in 
+            let _scal = (module BatchMatrix: NDarray with type t = float batches wrap) in 
             let (module BatchMatrix) = _scal in
             let _sdat = BatchMatrix.make [|hd;hd1;hd2|] 0. in
             let _ = iterndarray (
@@ -288,7 +288,7 @@ let range_to_ndarray n shp =
             ) _ndfl in  
             (SNdim (_scal, _sdat))
         | rem -> 
-            let _scal = (module MulDim: NDarray with type t = bigfloatarray and type e = float) in 
+            let _scal = (module MulDim: NDarray with type t = bigfloatarray) in 
             let (module MulDim) = _scal in
             let _sdat = MulDim.make (Array.of_list rem) 0. in
             let _ = iterndarray (
