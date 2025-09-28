@@ -58,9 +58,7 @@ end
 
 (* n * n *)
 
-module Vector: NDarray with 
-    type t = (float vector) wrap
-= struct 
+module Vector: NDarray with type t = (float vector) wrap = struct 
 
     type t = (float array) wrap
 

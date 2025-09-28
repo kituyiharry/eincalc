@@ -83,28 +83,6 @@ type prattrule = {
     ;   prec:   precedence
 };;
 
-(*
- *let ruleidx tok = 
- *    match tok with 
- *    | TNumeral  _   ->  0 
- *    | TAlphaNum _   ->  1 
- *    | TArrow        ->  2 
- *    | TRange        ->  3 
- *    | TComma        ->  4 
- *    | TQuote        ->  5 
- *    | TLeftParen    ->  6 
- *    | TRightParen   ->  7 
- *    | TLeftBracket  ->  8 
- *    | TRightBracket ->  9 
- *    | TLeftAngle    ->  10 
- *    | TRightAngle   ->  11 
- *    | TUnderscore   ->  12
- *    | TCaret        ->  13
- *    | TAt           ->  14
- *    | TFloat   _    ->  15
- *;;
- *)
-
 let rules = [|
         (* TNumeral of int    *)
         { prefix=None; infix=None; prec=PrecNone }
