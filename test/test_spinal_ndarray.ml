@@ -32,11 +32,10 @@ let _tests = "Ndarray unit tests" >::: [
         let module S = Ndarray.BatchMatrix in 
         let s = S.make  [|3;3;3|] 10. in
         let _ = S.set s [|00;00;00|] 999. in
-        let _ = S.set s [|01;01;01|] 999. in
-        let _ = S.set s [|02;02;02|] 999. in
-        let () = assert_equal 999. (S.get s [|0;0;0|]) in
-        let () = assert_equal 999. (S.get s [|1;1;1|]) in
-        let () = assert_equal 999. (S.get s [|2;2;2|]) in
+        let _ = S.set s [|01;01;01|] 899. in
+        let _ = S.set s [|02;02;02|] 699. in
+        let () = assert_equal 899. (S.get s [|1;1;1|]) in
+        let () = assert_equal 699. (S.get s [|2;2;2|]) in
         assert_equal 999. (S.get s [|0;0;0|])
     );
 (*

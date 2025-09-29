@@ -47,6 +47,8 @@ let handle_scan_exp (_exp: string) =
     )
 ;;
 
+let mkbuf s = (let b = Buffer.create 64 in let _ = Buffer.add_string b s in b) ;;
+
 (* handles input -> return bool on whether to continue *)
 let handle_input (data: Buffer.t) = 
     let l = Buffer.length data in

@@ -17,7 +17,7 @@ type 'a wrap = {
 type bigfloatarray = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t ;;
 type 'a vector     = 'a array
 type 'a matrix     = 'a array array 
-type 'a batches    = 'a array array array
+type batches       = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Array3.t ;;
 
 module type NDarray = sig 
     type t
@@ -123,51 +123,49 @@ end
 
 (* n * n * n *)
 module BatchMatrix: NDarray with 
-    type t = float batches wrap 
+    type t = batches
 = struct 
+    open! Bigarray;;
 
     type e = float  
-    type t = float array array array wrap
+    type t = batches
 
-    let make (_dims: int array) (v: e) =
+    let make (_dims: int array) (_v: e) =
         let () = assert (Array.length _dims > 2) in
-        { cont=(Array.init (Array.unsafe_get _dims 2) (fun _ ->
-            Array.make_matrix (Array.unsafe_get _dims 0) (Array.unsafe_get _dims 1) v
-          )); dims=(_dims) 
-        }
+        Bigarray.Array3.create Bigarray.Float64 Bigarray.c_layout (_dims.(0)) (_dims.(1)) (_dims.(2))
     ;;
 
     let set (_cont: t) (_dims: int array) (v: e) = 
-        let () = assert (Array.length _dims > 2) in
-        Array.unsafe_set (
-            Array.unsafe_get (
-                Array.unsafe_get _cont.cont (Array.unsafe_get _dims 0)
-            ) (Array.unsafe_get _dims 1)
-        ) (Array.unsafe_get _dims 2) v
+        Array3.set _cont (_dims.(0)) (_dims.(1)) (_dims.(2)) v
     ;;
 
-    let get (_cont: t) (_dims: int array) = 
-        let () = assert (Array.length _dims > 2) in
-        Array.unsafe_get (
-            Array.unsafe_get (
-                Array.unsafe_get _cont.cont (Array.unsafe_get _dims 2)
-            ) (Array.unsafe_get _dims 1)
-        ) (Array.unsafe_get _dims 0)
+    let get (_cont: t) (_dims: int array) =  
+        Array3.get _cont (_dims.(0)) (_dims.(1)) (_dims.(2))
     ;;
 
-    let iteri (apply: int array -> e -> unit) _cont =
-        Array.iteri (fun  i a -> 
-            Array.iteri (fun j b -> 
-                Array.iteri (fun k v -> 
-                    apply [|i;j;k|] v
-                ) b
-            ) a
-        ) _cont.cont
+    let shape _cont = 
+        [|Array3.dim1 _cont; Array3.dim2 _cont; Array3.dim3 _cont |]
     ;;
 
-    let shape _c =
-        _c.dims
+    let iteri (apply: int array -> e -> unit) _cont = 
+        let ndims = shape _cont in 
+        let rec iterate_recursive arr indices dims depth =
+            (if depth = Array.length dims then
+                (* Base case: we have all indices, access the element *)
+                (apply indices @@ get arr indices)
+                else
+                    (* Recursive case: iterate through current dimension *)
+                    for i = 0 to dims.(depth) - 1 do
+                        indices.(depth) <- i;
+                        iterate_recursive arr indices dims (depth + 1)
+                    done
+            )
+        in let iterate_genarray_recursive arr =
+            let indices = Array.make (Array.length ndims) 0 in
+            iterate_recursive arr indices ndims 0
+        in iterate_genarray_recursive _cont
     ;;
+
 end
 
 (* only support float dimens at this point *)

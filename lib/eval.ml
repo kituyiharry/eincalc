@@ -10,6 +10,7 @@
 open Parser;;
 open Emitter;;
 open Genfunc;;
+open Planner;;
 
 let (>>==) = Result.bind;;
 
@@ -34,7 +35,8 @@ let debug_stack { spine; stkidx; _ } =
         if x > stkidx then
             ()
         else
-            Format.printf "%d -> %s\n" x (Emitter.show_spinval y)
+            let _ = Format.printf "%d -> %s\n" x (Emitter.show_spinval y) in
+            Format.print_flush ()
     ) spine 
 ;;
 
@@ -75,16 +77,18 @@ let load_kernel_val vm =
     match (indx, addr) with 
     | (SKern _i, SAddr _a) -> 
         (match (vm.source.kernels.(_i)) with 
-            | SNdim ((module M), modl) -> 
-                let _fv = M.get modl _a in
-                push vm (SNumber _fv)
+            | SNdim ((module M), _modl) as _g -> 
+                let _fv = M.get _modl _a in
+                let _ = push vm (SNumber _fv) in 
+                ()
             | _ -> failwith "invalid kernel!"
         )
     | (SAddr _a, SKern _i) -> 
         (match (vm.source.kernels.(_i)) with 
-            | SNdim ((module M), modl) -> 
-                let _fv = M.get modl _a in
-                push vm (SNumber _fv)
+            | SNdim ((module M), _modl) as _g -> 
+                let _fv = M.get _modl _a in
+                let _ = push vm (SNumber _fv) in 
+                ()
             | _ -> failwith "invalid kernel!"
         )
     | _  -> 
@@ -115,6 +119,8 @@ let rec consume ({ Emitter.oprtns; cursor; _ } as s) apply =
 
 let handle_op vm op = 
     (*let _ = Format.printf "handling: %s\n" (show_instr op) in*)
+    let _ = Format.print_flush () in
+    (*let _ = Unix.sleep 1 in*)
     match op with
     | INop          -> 1 
     | IPop          -> let _ = pop  vm in 1 
@@ -142,21 +148,25 @@ let eval (pr: vm) =
 
 let tosource (vw: program) = 
     (>>==) (Genfunc.transform vw) (fun x -> 
+
         let (_kidxs, gl) = Emitter.genloop (presempty "") (List.map (fun y -> (y.shape, y.param) ) x.inps) in 
+
+        let plan = create_plan x in
+
         let _ = Format.printf "\nTree: %s \n\n" (show_eintree x) in
+        let _ = Format.printf "\nPlan: %s \n\n" (show_spinplan plan) in
+
+        let vlist = plan.loopvars @ plan.summvars in
+        
         let vl = (
-            x.inps 
-            |> List.map (fun ({ elems; _ }: eincomp) ->
-                List.map (fun (x: einmatch) -> (x, (SKern (List.nth _kidxs x.param)))) elems
-            )
-            |> List.concat
+            vlist
             |> (gl 
                 (* before body on each iteration *)
-                (fun _i _dcl _par x _y _z _a -> x) 
+                (fun _i _dcl x _y _z _a -> x) 
                 (* after body on each iteration *)
-                (fun _i _dcl _par x _y -> x)) 
+                (fun _i _dcl x _y -> x)) 
                 (* body *)
-                (fun _i _dcl _par islast _e ps -> 
+                (fun _i _dcl islast _e ps -> 
 
                     (* all vars have been loaded, *)
                     if islast then 
@@ -165,20 +175,16 @@ let tosource (vw: program) =
                         let dims = List.map (fun (_name,_sidx) -> (IGetVar _sidx)) _dcl in
                         let addr = dims @ [ ILoadAddr (List.length dims) ] in
 
-                        let i = addr @ [
-                            (*IEchoNl;*)
-                            IPush _par;
-                            IGetKern;
-                            IEchoNl;
-                            IPop;
-                            (*IPop;*)
-                            (*IPop;*)
-                            (*IPush _par; *)
-                            (*IEchoNl; *)
-                            (*IPop;*)
-                        ] 
+                        let i = List.map (fun m ->
+                            addr @ [
+                                IPush (SKern m);
+                                IGetKern;
+                                IEchoNl;
+                                IPop;
+                            ] 
+                        ) _kidxs |> List.concat in 
 
-                        in { ps with oprtns=ps.oprtns @ i; }
+                        { ps with oprtns=ps.oprtns @ i; }
 
                     else ps
                 )
@@ -187,7 +193,7 @@ let tosource (vw: program) =
 ;;
 
 let mkvm src = {
-        spine  = Array.make 16 SNil
+        spine  = Array.make 256 SNil
     ;   stkidx = 0
     ;   frmptr = 0 
     ;   source = src

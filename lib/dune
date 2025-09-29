@@ -1,5 +1,6 @@
 (library
  (name spinal)
  (preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord))
- (modules tokens lexer parser eval repl genfunc ndarray emitter channels)
+ (libraries unix)
+ (modules tokens lexer parser eval repl genfunc ndarray emitter channels planner)
  (instrumentation (backend bisect_ppx)))

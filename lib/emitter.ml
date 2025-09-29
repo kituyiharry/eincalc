@@ -278,7 +278,7 @@ let range_to_ndarray n shp =
             ) _ndfl in  
             (SNdim (_scal, _sdat))
         | hd :: hd1 :: hd2 :: [] -> 
-            let _scal = (module BatchMatrix: NDarray with type t = float batches wrap) in 
+            let _scal = (module BatchMatrix: NDarray with type t = batches) in 
             let (module BatchMatrix) = _scal in
             let _sdat = BatchMatrix.make [|hd;hd1;hd2|] 0. in
             let _ = iterndarray (
@@ -321,7 +321,7 @@ let genloop ps (parms: (int list * Parser.crange) list) =
     ) (0, [], ps) parms in
 
     (_idxs, fun (pre) (post) (body) vlist -> 
-        let rec genl vnum ({ label=vrn; dimen=bound; _ } as ein) psi lidx decl _par rem =
+        let rec genl vnum ({ label=vrn; dimen=bound; _ } as ein) psi lidx decl rem =
             let (sidx, ps) = add_const (SIndex 0)     psi in (* count from 0 *)
             let (sinc, ps) = add_const (SIndex 1)     ps in  (* increment by 1 *)
             let (eidx, ps) = add_const (SIndex bound) ps in  (* end at  eidx *)
@@ -336,20 +336,20 @@ let genloop ps (parms: (int list * Parser.crange) list) =
                     
                    join the body then attach the params
                 *)
-                let prebody = pre vnum decl' _par ps ein rem lidx in
+                let prebody = pre vnum decl' ps ein rem lidx in
                 let body = (
                     match rem with 
                     | [] -> 
                         let islast = true in 
                         (*{ prebody with oprtns=(echoall ((vrn, vidx) :: decl)) }*)
-                        body vnum decl' _par islast ein (prebody)
-                    | (hd', _par') :: rst -> 
+                        body vnum decl' islast ein (prebody)
+                    | hd' :: rst -> 
                         let islast = false in 
                         (* build the inner loop *)
-                        body vnum decl' _par islast ein (genl (vnum + 1) hd' prebody (lidx + 11) decl' _par' rst) 
+                        body vnum decl' islast ein (genl (vnum + 1) hd' prebody (lidx + 11) decl' rst) 
                 ) in
                 (* do what you want post body invocation *)
-                post vnum decl' _par body ein 
+                post vnum decl' body ein 
             ) in
             let _ = jmp := (!jmp + oplen ps') in
             { 
@@ -395,10 +395,10 @@ let genloop ps (parms: (int list * Parser.crange) list) =
         in 
         match vlist with 
         | [] -> ps
-        | (hd, par) :: rest -> 
+        | hd :: rest -> 
             (* start loops where our current operations end
             genl counter einmatch presource start-index declared-vars referenced-parameters remainder-einmatches-and-params *)
-            let g = genl 0 hd ps 3 [] par rest in 
+            let g = genl 0 hd ps 3 [] rest in 
             { g with oprtns= [ IPush (SStr "==VM START=="); IEchoNl; IPop ] @ g.oprtns }
     )
 ;;
