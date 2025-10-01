@@ -21,13 +21,6 @@ type vm = {
     ;   mutable frmptr: int
 };;
 
-let get_stack idx { frmptr; spine; _ } = 
-    Array.get spine (frmptr + idx)
-;;
-
-let set_stack idx sval { frmptr; spine; _ } = 
-    Array.set spine (frmptr + idx) sval
-;;
 
 let debug_stack { spine; stkidx; _ } = 
     let _ = Format.printf "Stacktrace ============\n" in
@@ -38,6 +31,14 @@ let debug_stack { spine; stkidx; _ } =
             let _ = Format.printf "%d -> %s\n" x (Emitter.show_spinval y) in
             Format.print_flush ()
     ) spine 
+;;
+
+let get_stack idx ({ frmptr; spine; _ }) = 
+    Array.get spine (frmptr + idx)
+;;
+
+let set_stack idx sval { frmptr; spine; _ } = 
+    Array.set spine (frmptr + idx) sval
 ;;
 
 let push s sval = 
@@ -56,9 +57,14 @@ let peek s =
 ;;
 
 let load_kernel_addr vm count = 
+    (*let _ = debug_stack vm in*)
+    (*let _ = Format.printf "collecting %d vars\n" count in *)
     let rec collect add indx = 
         if indx == count then 
-            push vm (SAddr (Array.of_list @@ List.rev add))
+            let add' = List.rev add in
+            (*let _ = Format.printf "load addr: %s\n" (Genfunc.string_of_shape add') in*)
+            (*let _ = Format.print_flush () in*)
+            push vm (SAddr (Array.of_list add'))
         else
             (match pop vm with 
             | SIndex idx -> 
@@ -119,7 +125,7 @@ let rec consume ({ Emitter.oprtns; cursor; _ } as s) apply =
 
 let handle_op vm op = 
     (*let _ = Format.printf "handling: %s\n" (show_instr op) in*)
-    let _ = Format.print_flush () in
+    (*let _ = Format.print_flush () in*)
     (*let _ = Unix.sleep 1 in*)
     match op with
     | INop          -> 1 
@@ -149,14 +155,24 @@ let eval (pr: vm) =
 let tosource (vw: program) = 
     (>>==) (Genfunc.transform vw) (fun x -> 
 
+        (* load kernel indexes onto the stack *)
         let (_kidxs, gl) = Emitter.genloop (presempty "") (List.map (fun y -> (y.shape, y.param) ) x.inps) in 
+
+        (* each parameter input with its associated kernel index added by genloop *)
+        let  _mapidx = List.of_seq @@ Seq.zip (x.inps |> List.to_seq) (List.to_seq @@ List.rev _kidxs)  in
 
         let plan = create_plan x in
 
         let _ = Format.printf "\nTree: %s \n\n" (show_eintree x) in
         let _ = Format.printf "\nPlan: %s \n\n" (show_spinplan plan) in
 
+        (* loop vars first, sumvars last *)
         let vlist = plan.loopvars @ plan.summvars in
+
+        (* a way to resolve declared variables *)
+        let resolve c l = 
+            snd @@ List.find (fun (c', _idx) -> Char.equal c' c) l
+        in
         
         let vl = (
             vlist
@@ -171,18 +187,20 @@ let tosource (vw: program) =
                     (* all vars have been loaded, *)
                     if islast then 
 
-                        (* get dimensions - this will be in order of declaration *)
-                        let dims = List.map (fun (_name,_sidx) -> (IGetVar _sidx)) _dcl in
-                        let addr = dims @ [ ILoadAddr (List.length dims) ] in
-
-                        let i = List.map (fun m ->
+                        let i = List.map (fun ((e: eincomp), m) ->
+                            (* load each element for the parameter *)
+                            (* get dimensions - this will be in order of declaration *)
+                            let dims = List.map (fun e -> (IGetVar (resolve e.label _dcl))) e.elems in
+                            (* TODO: use static alloc array and offsets *)
+                            let addr = (List.rev dims) @ [ ILoadAddr (List.length dims) ] in
                             addr @ [
                                 IPush (SKern m);
                                 IGetKern;
                                 IEchoNl;
                                 IPop;
                             ] 
-                        ) _kidxs |> List.concat in 
+
+                        ) (_mapidx) |> List.concat in 
 
                         { ps with oprtns=ps.oprtns @ i; }
 
