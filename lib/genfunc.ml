@@ -206,14 +206,19 @@ let verify eino comps =
     )
 ;;
 
-(* Repeated elements must have the same dimension *)
+(* Repeated elements must have the same dimension e.g. in ij,jk, j must have
+   same dimen value! *)
 let repeatcheck (g: eincomp list) = 
     (>>==) (
         List.map (fun x -> x.elems) g
         |> List.concat
         |> dupexist (fun x y -> 
-            x.label = y.label && not (Int.equal x.dimen y.dimen)
-        ) (fun x y ->
+                let v = x.label = y.label && not (Int.equal x.dimen y.dimen)
+                (*in let _ = Format.printf "x: %c of %d = y: %c of %d is %b \n" x.label x.dimen y.label y.dimen v *)
+                (*in let _ = Format.print_flush () *)
+                in v
+            ) 
+            (fun x y ->
             (* Sometimes broadcasting or contractions happen here !! *)
             Format.sprintf "Repetition of %c with unequal dimensions (%d != %d) for params: %d and %d respectively"
                 x.label x.dimen y.dimen x.param y.param)
@@ -230,17 +235,19 @@ let connect g l =
             | None        ->    w
         ) v.elems); chset=CharSet.empty }
     ) g)
+    (* verify the dimensions *)
     |> repeatcheck
 ;;
 
 (* Dimension checks *)
 let correspondence (({out; _}, _) as g) = 
     (>>==) (parammatch g) (fun g' -> 
-        (* verify output against the input *)
         match out with
         | None  -> 
-            Ok g'
+            (* verify the repeated dimensions *)
+            ((>>==) (repeatcheck g') (Result.ok))
         | Some (Shape _l) -> 
+            (* TODO: verify if this also checks within inputs - done in connect function ! *)
             ((>>==) (verify _l g') (connect g'))
     )
 ;;
@@ -265,11 +272,8 @@ let debug_print ({ inps; outs; _ }) =
     ) inps in ()
 ;;
 
-let argtransform (_p: params) = 
-    ()
-;;
-
 let transform (e: formula)  = 
+    let _ = Format.printf "transforming: %s !!\n" (show_program e) in
     match e with 
     | Stmt (Ein _e) ->  (>>==) (correspondence _e) (fun l -> 
             Ok ({ inps=l; outs=(equation l); })

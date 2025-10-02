@@ -169,11 +169,6 @@ let tosource (vw: program) =
         (* loop vars first, sumvars last *)
         let vlist = plan.loopvars @ plan.summvars in
 
-        (* a way to resolve declared variables *)
-        let resolve c l = 
-            snd @@ List.find (fun (c', _idx) -> Char.equal c' c) l
-        in
-        
         let vl = (
             vlist
             |> (gl 
@@ -190,7 +185,7 @@ let tosource (vw: program) =
                         let i = List.map (fun ((e: eincomp), m) ->
                             (* load each element for the parameter *)
                             (* get dimensions - this will be in order of declaration *)
-                            let dims = List.map (fun e -> (IGetVar (resolve e.label _dcl))) e.elems in
+                            let dims = List.map (fun e -> (IGetVar (Hashtbl.find ps.nmdvar e.label))) e.elems in
                             (* TODO: use static alloc array and offsets *)
                             let addr = (List.rev dims) @ [ ILoadAddr (List.length dims) ] in
                             addr @ [
@@ -200,7 +195,7 @@ let tosource (vw: program) =
                                 IPop;
                             ] 
 
-                        ) (_mapidx) |> List.concat in 
+                        ) _mapidx |> List.concat in 
 
                         { ps with oprtns=ps.oprtns @ i; }
 

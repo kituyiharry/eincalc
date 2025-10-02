@@ -78,6 +78,9 @@ let tests = "Genfunc unit tests" >::: [
     "Failure if Repeated inputs DONT have the same dimension" >:: (fun _ -> 
         assert_equal true (Result.is_error @@ Genfunc.correspondence @@ fetch_form @@ lexparse "(ij,ij -> ij, [[1,2,3]], [[1,3]])")
     );
+    "Failure if Repeated inputs DONT have the same dimension even in summation expr" >:: (fun _ -> 
+        assert_equal true (Result.is_error @@ Genfunc.correspondence @@ fetch_form @@ lexparse "(ij,jk -> [[1,2,3],[4,5,6]],[[7,8,9],[10,11,12]])")
+    );
 ]
 
 let _ = 
