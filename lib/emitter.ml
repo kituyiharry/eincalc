@@ -344,6 +344,7 @@ let range_to_ndarray n shp =
                 cur
             ) 
         | Parser.Rand (b, s) -> 
+            (* TODO: seed random *)
             ndarray_of_dim_init s (fun _dimidx ->  
                 Random.float b 
             ) 
@@ -462,8 +463,7 @@ let genloop ps (parms: (int list * Parser.crange) list) (out: int list) =
                 referenced-parameters 
                 remainder-einmatches-and-params *)
             let g = genl 0 hd ps 3 [] rest in 
-            { g with oprtns= [ IPush (SStr "=====VM START====="); IEchoNl; IPop
-            ] @ g.oprtns }
+            { g with oprtns= [ IPush (SStr "    =====VM START====="); IEchoNl; IPop ] @ g.oprtns }
     )
 ;;
 

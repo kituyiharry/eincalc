@@ -98,7 +98,7 @@ let print_kernel vm =
                     let _ = M.iteris (fun _ -> 
                         Buffer.add_string b "\r    "
                     ) (fun _d v -> 
-                        Buffer.add_string b (Format.sprintf " |%.2f|" v)
+                        Buffer.add_string b (Format.sprintf " |%07.2f|" v)
                     ) 
                     (fun _ -> 
                         Buffer.add_string b "    \n"

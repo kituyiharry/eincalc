@@ -10,7 +10,7 @@
 let handle_transform_formulae form = 
     match Eval.tosource form with 
     | Ok    t -> 
-        let _ = Format.printf "\n%s\n" (Emitter.show_presource t) in
+        (*let _ = Format.printf "\n%s\n" (Emitter.show_presource t) in*)
         let _ = 
             Emitter.convert t
             |> Eval.mkvm 
