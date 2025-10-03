@@ -273,6 +273,36 @@ let ndarray_of_dim shp =
         (SNdim (_scal, _sdat))
 ;;
 
+
+let ndarray_of_dim_init shp f =  
+    match shp with 
+    | [] -> 
+        let _scal = (module Scalar: NDarray with type t = float ref) in 
+        let (module Scalar) = _scal in
+        let _sdat = Scalar.init [||] f in
+        (SNdim (_scal, _sdat))
+    | hd :: [] -> 
+        let _scal = (module Vector: NDarray with type t = float vector wrap) in 
+        let (module Vector) = _scal in
+        let _sdat = Vector.init [|hd|] f in
+        (SNdim (_scal, _sdat))
+    | hd :: hd1 :: [] -> 
+        let _scal = (module Matrix: NDarray with type t = float matrix wrap) in 
+        let (module Matrix) = _scal in
+        let _sdat = Matrix.init [|hd;hd1|] f in
+        (SNdim (_scal, _sdat))
+    | hd :: hd1 :: hd2 :: [] -> 
+        let _scal = (module BatchMatrix: NDarray with type t = batches) in 
+        let (module BatchMatrix) = _scal in
+        let _sdat = BatchMatrix.init [|hd;hd1;hd2|] f in
+        (SNdim (_scal, _sdat))
+    | rem -> 
+        let _scal = (module MulDim: NDarray with type t = bigfloatarray) in 
+        let (module MulDim) = _scal in
+        let _sdat = MulDim.init (Array.of_list rem) f in
+        (SNdim (_scal, _sdat))
+;;
+
 let range_to_ndarray n shp =
     (* spreadsheet cell *)
     match n with 
@@ -286,6 +316,37 @@ let range_to_ndarray n shp =
             ) _ndfl in  
             SNdim ((module M), _sdat)
         |  _ -> failwith "Unreachable in range conversion!"
+    )
+    | Parser.Create (_c) -> (
+        match _c with
+        | Parser.Diag (v, s) -> 
+            ndarray_of_dim_init [s;s] (fun dimidx -> 
+                let isdiag = Array.fold_left (fun (state, prev) x -> 
+                    (state && prev = x, x)
+                ) (true, dimidx.(0)) dimidx in
+                if fst (isdiag) then 
+                    v
+                else
+                    0.
+            )
+        | Parser.Zeros s -> 
+            ndarray_of_dim s 
+        | Parser.Ones s ->
+            ndarray_of_dim_init s (fun _dimidx -> 1.) 
+        | Parser.Fill (v, s) -> 
+            let s' = ndarray_of_dim_init s (fun _dimidx -> v )  in
+            s'
+        | Parser.Enum (m, i, s) -> 
+            let minv = ref m in
+            ndarray_of_dim_init s (fun _dimidx ->  
+                let cur = !minv in 
+                let _ = minv :=  cur +. i in 
+                cur
+            ) 
+        | Parser.Rand (b, s) -> 
+            ndarray_of_dim_init s (fun _dimidx ->  
+                Random.float b 
+            ) 
     )
     | _ -> failwith "not implemented"
     (*| Range    (_frcell, _tocell) -> () *)
@@ -316,9 +377,9 @@ let genloop ps (parms: (int list * Parser.crange) list) (out: int list) =
     (outidx, _idxs, fun (pre) (post) (_body) vlist -> 
         let rec genl vnum ({ label=vrn; dimen=bound; _ } as ein) psi lidx decl rem =
             let (sidx, ps) = add_const (SIndex 0)     psi in (* count from 0 *)
+            let (vidx, ps) = add_named_var vrn ps in         (* capture as var once loaded *)
             let (sinc, ps) = add_const (SIndex 1)     ps in  (* increment by 1 *)
             let (eidx, ps) = add_const (SIndex bound) ps in  (* end at  eidx *)
-            let (vidx, ps) = add_named_var vrn ps in         (* capture as var once loaded *)
             (* calculated as 1 jump instr + 6 for increment + 1 loop *)
             let jmp        = ref 8 in
             let decl'      = ((vrn, vidx) :: decl) in
@@ -335,7 +396,9 @@ let genloop ps (parms: (int list * Parser.crange) list) (out: int list) =
                     | [] -> 
                         let _islast = true in 
                         (*{ prebody with oprtns=(echoall ((vrn, vidx) :: decl)) }*)
-                        _body vnum decl' _islast ein (prebody)
+                        let p = _body vnum decl' _islast ein (prebody)
+                        (*in { p with oprtns=(echoall ((vrn, vidx) :: decl)) @ p.oprtns }*)
+                        in p
                     | _hd' :: _rst -> 
                         let _islast = false in 
                         (* build the inner loop *)

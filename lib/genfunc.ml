@@ -28,7 +28,7 @@ let metashape (ndarr) =
     in count ndarr
 ;;
 
-(* check if ndarray is homogenous *)
+(* check if ndarray is homogenous - return the dimension shapes *)
 let homogenous (matshape) =  
     let rec check r shpl = 
         match r with 
@@ -102,6 +102,31 @@ type eintree = {
     ;   outs: (einmatch list option * int list) (* *)
 } [@@deriving show];;
 
+let compfromshape param pidx einchars dimens  = 
+    let l' = List.length einchars in 
+    let g' = List.length dimens in
+    if  l' == g' then
+        let chs = ref CharSet.empty in
+        let g' = 
+            List.combine einchars dimens 
+            |> List.map (fun ((label, index), dimen) ->
+                (* -1 is ommision by default *)
+                chs := CharSet.add label !chs;
+                { label; index; dimen; param=pidx; outlc=(-1); }
+            )
+        in 
+        Ok ({ 
+            (* add param *)
+                shape=(dimens)(* x by y by .... *)
+            ;   elems=(g')    (* each dimension *)
+            ;   chset=(!chs)  (* Character set of the labels of each dimension *)
+            ;   param
+            ;
+        })
+    else
+        Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" l' (pidx+1) g')
+;;
+
 let parammatch ({ inp; _ }, par) = 
     if List.length inp ==  List.length par then 
         (* Ensure input are unique - maybe use disjoint set *)
@@ -111,29 +136,27 @@ let parammatch ({ inp; _ }, par) =
                 (* TODO: use Disjoint Set *)
                 match (paridx, param) with
                 | (Shape l, NdArray n) -> 
-                    (>>==) (homogenous (metashape n)) (fun g ->
-                        let l' = List.length l in 
-                        let g' = List.length g in
-                        if  l' == g' then
-                            let chs = ref CharSet.empty in
-                            let g' = 
-                                List.combine l g 
-                                |> List.map (fun ((label, index), dimen) ->
-                                    (* -1 is ommision by default *)
-                                    chs := CharSet.add label !chs;
-                                    { label; index; dimen; param=pidx; outlc=(-1); }
-                                )
-                            in 
-                            Ok ({ 
-                                    (* add param *)
-                                    shape=(g)     (* x by y by .... *)
-                                ;   elems=(g')    (* each dimension *)
-                                ;   chset=(!chs)  (* Character set of the labels of each dimension *)
-                                ;   param
-                                ;
-                            })
-                        else
-                            Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" l' (pidx+1) g')
+                    (>>==) (homogenous (metashape n)) (compfromshape param pidx l)
+                | (Shape l, Create c) ->
+                    (match c with
+                        | Diag  (_vl, shp) -> (
+                            compfromshape param pidx l [shp;shp]
+                        )   (* matrix with diagonal values *) 
+                        | Zeros shp -> (
+                            compfromshape param pidx l shp
+                        )   (* zero init with a shape  *)
+                        | Ones  shp  -> (
+                            compfromshape param pidx l shp
+                        )   (* ones init with a shape  *)
+                        | Fill  (_vl, shp) -> (
+                            compfromshape param pidx  l shp
+                        )   (* fill with a certain value *)
+                        | Enum  (_vl, _inc, shp) -> (
+                            compfromshape param pidx  l shp
+                        )  (* enumerate from minvalue and increment with a shape *)
+                        | Rand  (_vl, shp) -> (
+                            compfromshape param pidx  l shp
+                        ) (* random with bound and shape *)
                     )
                 | _ -> Error "only shape with ndarray handled"
             )
@@ -180,16 +203,6 @@ let dedup cb l =
     in foil l
 ;;
 
-(* returns the final shape of the einsum operation *)
-let equation (x: eincomp list) = 
-    List.map (fun w -> w.elems) x
-    |> List.concat
-    |> List.filter (fun w -> w.outlc > -1)
-    |> dedup       (fun x y -> Char.equal x.label y.label)
-    |> List.map    (fun w -> w.dimen)
-    |> List.rev
-;;
-
 (* verify stuff about a shape *)
 let verify eino comps = 
     (* output shape parameters don't allow for duplicates *)
@@ -234,7 +247,7 @@ let connect g l =
             match List.find_opt (fun (c, _) -> Char.equal w.label c) l with 
             | Some (_, i) ->  { w with outlc=i }
             | None        ->    w
-        ) v.elems); chset=CharSet.empty }
+        ) v.elems); }
     ) g)
     (* verify the dimensions *)
     |> repeatcheck
@@ -252,13 +265,11 @@ let correspondence (({out; _}, _) as g) =
         | Some (Shape _l) -> 
             (* TODO: verify if this also checks within inputs - done in connect function ! *)
             (>>==) ((>>==) (verify _l g') (connect g')) (fun g'' -> 
-            let chs = ref CharSet.empty in
             let g' = 
                 _l
                 |> List.map (fun (label, index) ->
                     (* -1 is ommision by default *)
                     (* NB: ensure dimens are updated later *)
-                    chs := CharSet.add label !chs;
                     { label; index; dimen=(-1); param=(-1); outlc=(-1); }
                 )
                 in Ok (g'', Some g')
@@ -286,17 +297,30 @@ let debug_print ({ inps; outs=(_,o); _ }) =
     ) inps in ()
 ;;
 
+(* find dimens from  *)
+let find_dimen varname (eincomps: eincomp list) = 
+    let dim = ref  0 in
+    let _ = List.iter (fun x -> 
+        if CharSet.mem varname x.chset then 
+            let m = List.find (fun c -> Char.equal varname c.label) x.elems in
+            dim := m.dimen
+        else
+            ()
+    ) eincomps
+    in !dim
+;;
+
 let transform (e: formula)  = 
-    (*let _ = Format.printf "transforming: %s !!\n" (show_program e) in*)
+    let _ = Format.print_flush () in 
     match e with 
     | Stmt (Ein _e) ->  (>>==) (correspondence _e) (fun (lin, lout) -> 
-        let eq = equation lin in
         match lout with 
-        | Some v -> 
-            let upd = List.combine v eq |> List.map (fun (x,y) -> { x with dimen = y }) in
-            Ok ({ inps=lin; outs=(Some upd, equation lin); })
+        | Some vout -> 
+            let upd = List.map (fun (x) -> { x with dimen = (find_dimen x.label lin) }) vout in
+            let eq = List.map (fun x -> x.dimen) upd in
+            Ok ({ inps=lin; outs=(Some upd, eq); })
         | None -> 
-            Ok ({ inps=lin; outs=(lout, equation lin); })
+            Ok ({ inps=lin; outs=(lout, []); })
     )
     | _ -> 
         failwith "Unimplemented transform"

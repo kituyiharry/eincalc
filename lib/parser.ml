@@ -19,6 +19,13 @@ type lit     =
     (* TODO: make lit *)
 and referral = 
     | Self  (* the current cell *)
+and call = 
+    | Diag  of float * int  (* square matrix with diagonal values *) 
+    | Zeros of int list     (* zero init with a shape  *)
+    | Ones  of int list     (* ones init with a shape  *)
+    | Fill  of float * int list  (* fill shape with a certain value *)
+    | Enum  of (float * float * int list) (* enumerate from minvalue and increment with a shape *)
+    | Rand  of float * int list (* random with bound and shape *)
 and  cell    = string * int      (* Rows are strings, Columns are numbers *)
 and  dimnsn  = lit               (* literal and its index *)
 and  motion  =  
@@ -35,6 +42,7 @@ and  crange  =
     | NdArray  of float ndarray
     | Relative of motion * crange(* Relative cell - Up ^, Down _, Left <, Right, > *)
     | Refer    of referral       (* a way to refer to the current cell *) 
+    | Create   of call 
     | Void
 and  params  = crange list       (* function parameters *)
 and  einsum  = { 
@@ -352,12 +360,182 @@ let compass tokn motn =
         failwith "invalid token in compass"
 ;;
 
+let parse_extract_shape state = 
+    match (fst state).curr with
+    | Some { tokn;_ } -> 
+        (
+            match tokn with 
+            | TNumeral v ->  
+                let rec collect_rem state' p  = 
+                    let next = advance state' in
+                    (match (fst next).curr with 
+                        | Some { tokn; _ } -> 
+                            (match tokn with
+                                | TComma -> 
+                                    collect_rem next p
+                                | TNumeral n -> 
+                                    collect_rem (next) (n :: p)
+                                | TFloat _f -> 
+                                    Error ("only numerals allowed in shape")
+                                | TRightBracket -> 
+                                    (* exit condition *)
+                                    Ok (advance next, (List.rev p))
+                                |  _ -> Error ("bad termination")
+                            )
+                        | None -> 
+                            Error ("Unterminated")
+                    )
+                in collect_rem state [ v ]
+            | _ -> 
+                (Error "shapes can only be natural number (>= 0)")
+        )
+    | _ -> 
+        (Error "expected number in extraction")
+;;
+
+let consume state tt  =
+    (match (fst state).curr with
+        | Some { tokn; _ } ->
+            (if equal_ttype tokn tt then 
+                (Ok (advance state)) 
+             else
+                (Error (Format.sprintf "Expected consume %s found %s" (show_ttype tt) (show_ttype tokn)))
+            )
+        | _ -> Error "failed consumption check"
+    )
+;;
+
+let parse_ref_angle_var state = 
+    (match (fst state).curr with 
+        | Some  {tokn; _} ->
+            Ok (advance state, tokn)
+        | _ -> 
+            (Error "Expected angle variable!")
+    )
+;;
+
 let parse_reference state = 
     match (fst state).curr with
     | Some { tokn;_ } -> 
         (match tokn with 
             | TAlphaNum "self" -> 
                 Ok (advance state, Refer Self)
+            | TAlphaNum "ones" -> 
+                let next = advance state in 
+                (match (fst next).curr with 
+                    | Some { tokn; _ } -> 
+                        (match tokn with
+                        | TLeftAngle -> 
+                            let after = advance next in 
+                            (match (fst after).curr with
+                                | Some { tokn; _ } -> 
+                                    (match tokn with 
+                                        | TLeftBracket -> 
+                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                (>>==) (consume after' TRightAngle) (fun final -> 
+                                                    Ok (final, Create (Ones shp))
+                                                )
+                                            )
+                                        | _ -> 
+                                            Error "Expected shape spec"
+                                    )
+                                | _ ->
+                                    Ok (advance state, Create (Ones [3;3]))
+                            )
+                        | _ -> 
+                            Error ("Expected shape spec in angle brackets")
+                        )
+                    | None -> 
+                        Error ("Expected shape spec")
+                )
+            | TAlphaNum "zeros" -> 
+                let next = advance state in 
+                (match (fst next).curr with 
+                    | Some { tokn; _ } -> 
+                        (match tokn with
+                        | TLeftAngle -> 
+                            let after = advance next in 
+                            (match (fst after).curr with
+                                | Some { tokn; _ } -> 
+                                    (match tokn with 
+                                        | TLeftBracket -> 
+                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                (>>==) (consume after' TRightAngle) (fun final -> 
+                                                    Ok (final, Create (Ones shp))
+                                                )
+                                            )
+                                        | _ -> 
+                                            Error "Expected shape spec"
+                                    )
+                                | _ ->
+                                    Ok (advance state, Create (Zeros [3;3]))
+                            )
+                        | _ -> 
+                            Error ("Expected shape spec in angle brackets")
+                        )
+                    | None -> 
+                        Error ("Expected shape spec")
+                )
+            | TAlphaNum "fill" -> 
+                let next = advance state in 
+                (match (fst next).curr with 
+                    | Some { tokn; _ } -> 
+                        (match tokn with
+                        | TLeftAngle -> 
+                                (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
+                                    match tok with 
+                                    | TFloat fval -> 
+                                        (>>==) (consume next' TComma) (fun after -> 
+                                            (match (fst after).curr with
+                                                | Some { tokn; _ } -> 
+                                                    (match tokn with 
+                                                        | TLeftBracket -> 
+                                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                                (>>==) (consume after' TRightAngle) (fun final -> 
+                                                                    Ok (final, Create (Fill (fval, shp)))
+                                                                )
+                                                            )
+                                                        | _ -> 
+                                                            Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                                | _ ->
+                                                    Ok (advance state, Create (Zeros [3;3]))
+                                            )
+                                        )
+                                    | TNumeral ival -> 
+                                        let fval = float_of_int ival in
+                                        (>>==) (consume next' TComma) (fun after -> 
+                                            (match (fst after).curr with
+                                                | Some { tokn; _ } -> 
+                                                    (match tokn with 
+                                                        | TLeftBracket -> 
+                                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                                (>>==) (consume after' TRightAngle) (fun final -> 
+                                                                    Ok (final, Create (Fill (fval, shp)))
+                                                                )
+                                                            )
+                                                        | _ -> 
+                                                            Error "Expected shape spec"
+                                                    )
+                                                | _ ->
+                                                    Ok (advance state, Create (Zeros [3;3]))
+                                            )
+                                        )
+                                    | _ -> 
+                                        Error "Expected fill value as float"
+                                )
+                        | _ -> 
+                            Error ("Expected shape spec in angle brackets")
+                        )
+                    | None -> 
+                        Error ("Expected shape spec")
+                )
+                (*Ok (advance state, Create (Fill (7., [3;3])))*)
+            | TAlphaNum "rand" -> 
+                Ok (advance state, Create (Rand (100., [3;3])))
+            | TAlphaNum "enum" -> 
+                Ok (advance state, Create (Enum (0., 1., [3;3])))
+            | TAlphaNum "diag" -> 
+                Ok (advance state, Create (Diag (1., 6)))
             | TAlphaNum _start -> 
                 (if validate _start then
                     let next = advance state in

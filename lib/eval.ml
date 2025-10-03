@@ -21,7 +21,6 @@ type vm = {
     ;   mutable frmptr: int
 };;
 
-
 let debug_stack { spine; stkidx; _ } = 
     let _ = Format.printf "Stacktrace ============\n" in
     Array.iteri (fun x y ->
@@ -256,6 +255,7 @@ let tosource (vw: program) =
                             (* load each element for the parameter *)
                             (* get dimensions - this will be in order of declaration *)
                             let dims = List.map (fun e -> 
+                                let _ = Format.print_flush () in
                                 (IGetVar (Hashtbl.find ps.nmdvar e.label))
                             ) e.elems in
                             let dimlen = List.length dims in
@@ -286,20 +286,18 @@ let tosource (vw: program) =
                                 IAdd;
                                 ILoadAddr 0;
                                 IPush (SKern _outkidx);
-                                IEchoKern;
                                 ISetKern;
                             ] in 
                             { ps with oprtns=ps.oprtns @ i @ fin; }
                         | Some e ->
-                          
+
                             (* load the variables addressing the output kernel *)
                             let dims = List.map (fun (e: einmatch) -> 
+                                let _ = Format.print_flush () in
                                 (IGetVar (Hashtbl.find ps.nmdvar e.label))
-                            ) e in
+                            ) (e) in
                             let dimlen = List.length dims in
-                            let addr = (List.rev dims) @ [ 
-                                ILoadAddr (dimlen) 
-                            ] in
+                            let addr = (List.rev dims) @ [ ILoadAddr (dimlen) ] in
 
                             (* get the current value and add it to what was
                                already there on the stack *)
@@ -317,7 +315,7 @@ let tosource (vw: program) =
                 )
         ) in Ok { 
             vl with oprtns=vl.oprtns @  
-            (* print out the kernel at the end of exec *)
+            (* print out the kernel at the end of execution *)
             [
                 IPush (SKern _outkidx);
                 IEchoKern;

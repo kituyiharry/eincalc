@@ -27,6 +27,7 @@ module type NDarray = sig
     val  iteri:   (int array -> float -> unit) -> t -> unit
     val  shape:   t -> int array
     val  iteris:  (unit -> unit) -> (int array -> float -> unit) -> (unit -> unit) -> t -> unit
+    val  init:    int array -> (int array -> float) -> t
 end
 
 module Scalar: NDarray with type t = float ref = struct 
@@ -58,6 +59,10 @@ module Scalar: NDarray with type t = float ref = struct
 
     let shape _c = 
         [||]
+    ;;
+
+    let init _dims f = 
+        ref (f _dims) 
     ;;
 
 end
@@ -97,6 +102,11 @@ module Vector: NDarray with type t = (float vector) wrap = struct
         _c.dims
     ;;
 
+    let init (_dims: int array) (f) =
+        let () = assert (Array.length _dims > 0) in
+        { cont=(Array.init (Array.unsafe_get _dims 0) (fun i -> f [|i|])); dims=(_dims) }
+    ;;
+
 end
 
 (* n * n *)
@@ -115,12 +125,22 @@ module Matrix: NDarray with
 
     let set (_cont: t) (_dims: int array) (v) = 
         let () = assert (Array.length _dims > 1) in
-        Array.unsafe_set (Array.unsafe_get _cont.cont (Array.unsafe_get _dims 0)) (Array.unsafe_get _dims 1) v
+        (*let _ = Format.printf "setting!!\n" in*)
+        (*let _ = Format.print_flush () in*)
+        let () = Array.set (Array.get _cont.cont (Array.get _dims 0)) (Array.get _dims 1) v in
+        (*let _ = Format.printf "done setting!!\n" in*)
+        (*let _ = Format.print_flush () in*)
+        ()
     ;;
 
     let get (_cont: t) (_dims: int array) = 
         let () = assert (Array.length _dims > 1) in
-        Array.unsafe_get (Array.unsafe_get _cont.cont (Array.unsafe_get _dims 0)) (Array.unsafe_get _dims 1)
+        (*let _ = Format.printf "getting!!\n" in*)
+        (*let _ = Format.print_flush () in*)
+        let v = Array.get (Array.get _cont.cont (Array.get _dims 0)) (Array.get _dims 1) in
+        (*let _ = Format.printf "done!!\n" in*)
+        (*let _ = Format.print_flush () in*)
+        v
     ;;
 
     let iteri (apply: int array -> float -> unit) _cont =
@@ -139,6 +159,13 @@ module Matrix: NDarray with
 
     let shape _c =
         _c.dims
+    ;;
+
+    let init (_dims: int array) (f) =
+        let () = assert (Array.length _dims > 1) in
+        { cont=(Array.init_matrix (Array.unsafe_get _dims 0) (Array.unsafe_get _dims 1) (fun x y -> (f [|x;y|]))); 
+          dims=(_dims) 
+        }
     ;;
 
 end
@@ -211,6 +238,12 @@ module BatchMatrix: NDarray with
         in iterate_genarray_recursive _cont
     ;;
 
+    let init (_dims: int array) (f) =
+        let () = assert (Array.length _dims > 1) in
+        Bigarray.Array3.init Bigarray.Float64 Bigarray.c_layout (_dims.(0)) (_dims.(1)) (_dims.(2))
+        (fun x y z -> f [|x;y;z|])
+    ;;
+
 end
 
 (* only support float dimens at this point *)
@@ -279,6 +312,11 @@ module MulDim: NDarray with
             let _ = iterate_recursive arr indices ndims 0 in 
             onendslice ()
         in iterate_genarray_recursive _cont
+    ;;
+
+    let init (_dims: int array) (f) =
+        let () = assert (Array.length _dims > 1) in
+        Bigarray.Genarray.init Bigarray.Float64 Bigarray.c_layout _dims (f)
     ;;
 
 end

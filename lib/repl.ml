@@ -10,12 +10,12 @@
 let handle_transform_formulae form = 
     match Eval.tosource form with 
     | Ok    t -> 
+        let _ = Format.printf "\n%s\n" (Emitter.show_presource t) in
         let _ = 
             Emitter.convert t
             |> Eval.mkvm 
             |> Eval.eval
         in 
-        (*Format.printf "\n%s\n" (Emitter.show_presource t)*)   
         ()
     | Error e -> Format.printf "Error: %s" e
 ;;
@@ -81,7 +81,7 @@ let repl () =
     let buf = Buffer.create 1024 in 
     let rec input_formula bufc = 
         let l = Buffer.length bufc in
-        let _ = if l == 0 then Format.printf "\n>>> %!" else () in
+        let _ = if l == 0 then Format.printf ">>> %!" else () in
         let _ =
             Seq.of_dispenser (fun () -> In_channel.input_char In_channel.stdin)
             |> Seq.take_while ((!=)'\n')
