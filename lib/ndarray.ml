@@ -125,22 +125,12 @@ module Matrix: NDarray with
 
     let set (_cont: t) (_dims: int array) (v) = 
         let () = assert (Array.length _dims > 1) in
-        (*let _ = Format.printf "setting!!\n" in*)
-        (*let _ = Format.print_flush () in*)
-        let () = Array.set (Array.get _cont.cont (Array.get _dims 0)) (Array.get _dims 1) v in
-        (*let _ = Format.printf "done setting!!\n" in*)
-        (*let _ = Format.print_flush () in*)
-        ()
+        Array.unsafe_set (Array.unsafe_get _cont.cont (Array.unsafe_get _dims 0)) (Array.unsafe_get _dims 1) v
     ;;
 
     let get (_cont: t) (_dims: int array) = 
         let () = assert (Array.length _dims > 1) in
-        (*let _ = Format.printf "getting!!\n" in*)
-        (*let _ = Format.print_flush () in*)
-        let v = Array.get (Array.get _cont.cont (Array.get _dims 0)) (Array.get _dims 1) in
-        (*let _ = Format.printf "done!!\n" in*)
-        (*let _ = Format.print_flush () in*)
-        v
+        Array.unsafe_get (Array.unsafe_get _cont.cont (Array.unsafe_get _dims 0)) (Array.unsafe_get _dims 1)
     ;;
 
     let iteri (apply: int array -> float -> unit) _cont =
