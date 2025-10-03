@@ -61,7 +61,6 @@ let pp_spinval _f _s =
 ;;
 
 let sadd x y = 
-    let _ = Format.printf "Adding %s and %s\n" (show_spinval x) (show_spinval y) in
     match (x, y) with 
     | SNumber x', SNumber y' -> SNumber (x' +. y')
     | SIndex x',  SIndex  y' -> SIndex  (x' +  y')
@@ -314,7 +313,7 @@ let genloop ps (parms: (int list * Parser.crange) list) (out: int list) =
         (_kdx :: kidxs , ps')
     ) ([ ], ps) parms in
 
-    (outidx, _idxs, fun (pre) (post) (body) vlist -> 
+    (outidx, _idxs, fun (pre) (post) (_body) vlist -> 
         let rec genl vnum ({ label=vrn; dimen=bound; _ } as ein) psi lidx decl rem =
             let (sidx, ps) = add_const (SIndex 0)     psi in (* count from 0 *)
             let (sinc, ps) = add_const (SIndex 1)     ps in  (* increment by 1 *)
@@ -334,13 +333,14 @@ let genloop ps (parms: (int list * Parser.crange) list) (out: int list) =
                 let body = (
                     match rem with 
                     | [] -> 
-                        let islast = true in 
+                        let _islast = true in 
                         (*{ prebody with oprtns=(echoall ((vrn, vidx) :: decl)) }*)
-                        body vnum decl' islast ein (prebody)
-                    | hd' :: rst -> 
-                        let islast = false in 
+                        _body vnum decl' _islast ein (prebody)
+                    | _hd' :: _rst -> 
+                        let _islast = false in 
                         (* build the inner loop *)
-                        body vnum decl' islast ein (genl (vnum + 1) hd' prebody (lidx + 11) decl' rst) 
+                        (*(genl (vnum + 1) _hd' prebody (lidx + 11) decl' _rst)*)
+                        _body vnum decl' _islast ein (genl (vnum + 1) _hd' prebody (lidx + 11) decl' _rst) 
                 ) in
                 (* do what you want post body invocation *)
                 post vnum decl' body ein 
@@ -349,8 +349,7 @@ let genloop ps (parms: (int list * Parser.crange) list) (out: int list) =
             { 
                 ps' with oprtns=
                     (* attach former oprtns - we passed an empty earlier!! *)
-                    (* WARNING -> MODIFYING THIS LIST AFFECTS VM OUTPUT SINCE
-                       JUMPS ARE HARD CODED!!!! *)
+                    (* WARNING -> MODIFYING THIS LIST AFFECTS VM OUTPUT SINCE JUMPS ARE HARD CODED!!!! *)
                     [ 
 
                         (* load the indexes *)
@@ -400,7 +399,8 @@ let genloop ps (parms: (int list * Parser.crange) list) (out: int list) =
                 referenced-parameters 
                 remainder-einmatches-and-params *)
             let g = genl 0 hd ps 3 [] rest in 
-            { g with oprtns= [ IPush (SStr "=====VM START====="); IEchoNl; IPop ] @ g.oprtns }
+            { g with oprtns= [ IPush (SStr "=====VM START====="); IEchoNl; IPop
+            ] @ g.oprtns }
     )
 ;;
 

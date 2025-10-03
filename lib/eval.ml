@@ -25,7 +25,9 @@ type vm = {
 let debug_stack { spine; stkidx; _ } = 
     let _ = Format.printf "Stacktrace ============\n" in
     Array.iteri (fun x y ->
-        if x > stkidx then
+        (* NB: stkidx is just pointing to where we will write the next value! we
+           skip it when printing! *)
+        if x >= stkidx then
             ()
         else
             let _ = Format.printf "%d -> %s\n" x (Emitter.show_spinval y) in
@@ -46,6 +48,11 @@ let push s sval =
     s.stkidx <- (s.stkidx + 1)
 ;;
 
+(* pop a value from the execution stack by changing the stack pointer - it
+   is worth remembering that the stack pointer just points where a value will be
+   WRITTEN it doesn't necessarily mean that value being pointed is in use so
+   when execution starts it points at nil but at the end it will likely have
+   been overwritten by some other value :-) *)
 let pop s = 
     let v = Array.get s.spine (s.stkidx - 1) in 
     let _ = s.stkidx <- (s.stkidx - 1) in 
@@ -87,10 +94,10 @@ let print_kernel vm =
                 (
                     let n = show_spinval (vm.source.kernels.(_i)) in 
                     let b = Buffer.create 256 in
-                    let _ = Buffer.add_string b n in 
+                    let _ = Buffer.add_string b ("      " ^ n) in 
                     let _ = Buffer.add_char b '\n' in 
                     let _ = M.iteris (fun _ -> 
-                        Buffer.add_string b "\n    "
+                        Buffer.add_string b "\r    "
                     ) (fun _d v -> 
                         Buffer.add_string b (Format.sprintf " |%.2f|" v)
                     ) 
@@ -181,7 +188,8 @@ let rec consume ({ Emitter.oprtns; cursor; _ } as s) apply =
 let handle_op vm op = 
     (*let _ = Format.printf "handling: %s\n" (show_instr op) in*)
     (*let _ = Format.print_flush () in*)
-    (*let _ = Unix.sleep 1 in*)
+    (*let _ = debug_stack vm in*)
+    (*let _ = Unix.sleepf 0.05 in*)
     match op with
     | INop          -> 1 
     | IPop          -> let _ = pop  vm in 1 
@@ -206,8 +214,7 @@ let handle_op vm op =
 ;;
 
 let eval (pr: vm) = 
-    let _ = consume pr.source (handle_op pr) in 
-    debug_stack pr
+    consume pr.source (handle_op pr)
 ;;
 
 let tosource (vw: program) = 
@@ -224,8 +231,8 @@ let tosource (vw: program) =
 
         let plan = create_plan x in
 
-        let _ = Format.printf "\nTree: %s \n\n" (show_eintree x) in
-        let _ = Format.printf "\nPlan: %s \n\n" (show_spinplan plan) in
+        (*let _ = Format.printf "\nTree: %s \n\n" (show_eintree x) in*)
+        (*let _ = Format.printf "\nPlan: %s \n\n" (show_spinplan plan) in*)
 
         (* loop vars first, sumvars last *)
         let vlist = plan.loopvars @ plan.summvars in
@@ -236,17 +243,7 @@ let tosource (vw: program) =
                 (* before body on each iteration *)
                 (fun _i _dcl x _y _z _a -> x) 
                 (* after body on each iteration *)
-                (fun _i _dcl x _y -> 
-                    (* after all iterations and operations, print the final kernel *)
-                    if _i = 0 then 
-                        { x with oprtns=x.oprtns @ [
-                            IPush (SKern _outkidx);
-                            IEchoKern;
-                            IPop;
-                        ]  } 
-                    else 
-                        x
-                )) 
+                (fun _i _dcl x _y -> x)) 
                 (* body *)
                 (fun _i _dcl islast _e ps -> 
 
@@ -287,7 +284,6 @@ let tosource (vw: program) =
                                 IPush (SKern _outkidx); 
                                 IGetKern;
                                 IAdd;
-                                IEchoNl;
                                 ILoadAddr 0;
                                 IPush (SKern _outkidx);
                                 IEchoKern;
@@ -311,7 +307,6 @@ let tosource (vw: program) =
                                 IPush (SKern _outkidx);
                                 IGetKern;
                                 IAdd;
-                                IEchoNl;
                             ] @ addr @ [
                                 IPush (SKern _outkidx);
                                 ISetKern;
@@ -320,7 +315,15 @@ let tosource (vw: program) =
 
                     else ps
                 )
-        ) in Ok vl 
+        ) in Ok { 
+            vl with oprtns=vl.oprtns @  
+            (* print out the kernel at the end of exec *)
+            [
+                IPush (SKern _outkidx);
+                IEchoKern;
+                IPop;
+            ]  
+        } 
     )
 ;;
 

@@ -187,6 +187,7 @@ let equation (x: eincomp list) =
     |> List.filter (fun w -> w.outlc > -1)
     |> dedup       (fun x y -> Char.equal x.label y.label)
     |> List.map    (fun w -> w.dimen)
+    |> List.rev
 ;;
 
 (* verify stuff about a shape *)
@@ -286,7 +287,7 @@ let debug_print ({ inps; outs=(_,o); _ }) =
 ;;
 
 let transform (e: formula)  = 
-    let _ = Format.printf "transforming: %s !!\n" (show_program e) in
+    (*let _ = Format.printf "transforming: %s !!\n" (show_program e) in*)
     match e with 
     | Stmt (Ein _e) ->  (>>==) (correspondence _e) (fun (lin, lout) -> 
         let eq = equation lin in

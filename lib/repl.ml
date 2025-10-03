@@ -15,7 +15,8 @@ let handle_transform_formulae form =
             |> Eval.mkvm 
             |> Eval.eval
         in 
-        Format.printf "\n%s\n" (Emitter.show_presource t)
+        (*Format.printf "\n%s\n" (Emitter.show_presource t)*)   
+        ()
     | Error e -> Format.printf "Error: %s" e
 ;;
 
@@ -26,11 +27,11 @@ let handle_parse_exp (lex: Lexer.lexeme list) =
             | Ok ({ Parser.prog; _ }, _lefttoks) -> (
                 let lem = List.length _lefttoks in
                 if lem > 0 then
-                    let _ = Format.printf "Tree: %s with rem %d\n" (Parser.show_program prog) lem
-                    in handle_transform_formulae prog
+                    (*let _ = Format.printf "Tree: %s with rem %d\n" (Parser.show_program prog) lem in *)
+                    handle_transform_formulae prog
                 else
-                    let _ = Format.printf "Tree: %s\n" (Parser.show_program prog) 
-                    in handle_transform_formulae prog
+                    (*let _ = Format.printf "Tree: %s\n" (Parser.show_program prog) in *)
+                    handle_transform_formulae prog
             )
             | Error s   -> Format.printf "Parse Error: %s" s
         )
