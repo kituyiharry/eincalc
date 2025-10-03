@@ -47,7 +47,7 @@ let shape_of_module (type n) (module N: NDarray with type t = n) v =
 let show_spinval s = 
     match s with
     | SNil      -> "nil"
-    | SNumber f -> Format.sprintf "num: %f" f
+    | SNumber f -> Format.sprintf "num: %.2f" f
     | SIndex  i -> Format.sprintf "idx: %d" i 
     | SBool   b -> Bool.to_string b 
     | SStr    s -> s 
@@ -61,6 +61,7 @@ let pp_spinval _f _s =
 ;;
 
 let sadd x y = 
+    let _ = Format.printf "Adding %s and %s\n" (show_spinval x) (show_spinval y) in
     match (x, y) with 
     | SNumber x', SNumber y' -> SNumber (x' +. y')
     | SIndex x',  SIndex  y' -> SIndex  (x' +  y')
@@ -115,7 +116,7 @@ type instr =
     (* instr *)
     | INop               (* No operation *)
     | IPop               (* Pop of the stack *)
-    | IPush      of spinval
+    | IPush      of spinval (* TODO: not really needed -> load via IConst directly *)
     (* logic *)
     (*| ITrue*)
     (*| IFalse*)
@@ -133,7 +134,9 @@ type instr =
     (* effects *)
     | IEcho              (* print value at the top of the stack *)
     | IEchoNl
-    | IGetKern
+    | IGetKern           (* load value from a kernel *)
+    | ISetKern           (* write value to a kernel *)
+    | IEchoKern          (* dereference and print out kernel values *)
     | ILoadAddr  of int  (* create an address from the next n values on the stack *)
 [@@deriving show];;
 
@@ -242,61 +245,48 @@ let iterndarray f nda =
     iternd [] f nda
 ;;
 
+let ndarray_of_dim shp =  
+    match shp with 
+    | [] -> 
+        let _scal = (module Scalar: NDarray with type t = float ref) in 
+        let (module Scalar) = _scal in
+        let _sdat = Scalar.make [||] 0. in
+        (SNdim (_scal, _sdat))
+    | hd :: [] -> 
+        let _scal = (module Vector: NDarray with type t = float vector wrap) in 
+        let (module Vector) = _scal in
+        let _sdat = Vector.make [|hd|] 0. in
+        (SNdim (_scal, _sdat))
+    | hd :: hd1 :: [] -> 
+        let _scal = (module Matrix: NDarray with type t = float matrix wrap) in 
+        let (module Matrix) = _scal in
+        let _sdat = Matrix.make [|hd;hd1|] 0. in
+        (SNdim (_scal, _sdat))
+    | hd :: hd1 :: hd2 :: [] -> 
+        let _scal = (module BatchMatrix: NDarray with type t = batches) in 
+        let (module BatchMatrix) = _scal in
+        let _sdat = BatchMatrix.make [|hd;hd1;hd2|] 0. in
+        (SNdim (_scal, _sdat))
+    | rem -> 
+        let _scal = (module MulDim: NDarray with type t = bigfloatarray) in 
+        let (module MulDim) = _scal in
+        let _sdat = MulDim.make (Array.of_list rem) 0. in
+        (SNdim (_scal, _sdat))
+;;
+
 let range_to_ndarray n shp =
     (* spreadsheet cell *)
     match n with 
     | Parser.NdArray (_ndfl) -> (
-        match shp with 
-        | [] -> 
-            let _scal = (module Scalar: NDarray with type t = float ref) in 
-            let (module Scalar) = _scal in
-            let _sdat = Scalar.make [||] 0. in
+        match ndarray_of_dim shp with 
+        | SNdim ((module M), _sdat) -> 
             let _ = iterndarray (
                 fun x y -> (
-                    Scalar.set _sdat (Array.of_list x) y
+                    M.set _sdat (Array.of_list x) y
                 )
             ) _ndfl in  
-            (SNdim (_scal, _sdat))
-        | hd :: [] -> 
-            let _scal = (module Vector: NDarray with type t = float vector wrap) in 
-            let (module Vector) = _scal in
-            let _sdat = Vector.make [|hd|] 0. in
-            let _ = iterndarray (
-                fun x y -> (
-                    Vector.set _sdat (Array.of_list x) y
-                )
-            ) _ndfl in  
-            (SNdim (_scal, _sdat))
-        | hd :: hd1 :: [] -> 
-            let _scal = (module Matrix: NDarray with type t = float matrix wrap) in 
-            let (module Matrix) = _scal in
-            let _sdat = Matrix.make [|hd;hd1|] 0. in
-            let _ = iterndarray (
-                fun x y -> (
-                    Matrix.set _sdat (Array.of_list x) y
-                )
-            ) _ndfl in  
-            (SNdim (_scal, _sdat))
-        | hd :: hd1 :: hd2 :: [] -> 
-            let _scal = (module BatchMatrix: NDarray with type t = batches) in 
-            let (module BatchMatrix) = _scal in
-            let _sdat = BatchMatrix.make [|hd;hd1;hd2|] 0. in
-            let _ = iterndarray (
-                fun x y -> (
-                    BatchMatrix.set _sdat (Array.of_list x) y
-                )
-            ) _ndfl in  
-            (SNdim (_scal, _sdat))
-        | rem -> 
-            let _scal = (module MulDim: NDarray with type t = bigfloatarray) in 
-            let (module MulDim) = _scal in
-            let _sdat = MulDim.make (Array.of_list rem) 0. in
-            let _ = iterndarray (
-                fun x y -> (
-                    MulDim.set _sdat (Array.of_list x) y
-                )
-            ) _ndfl in  
-            (SNdim (_scal, _sdat))
+            SNdim ((module M), _sdat)
+        |  _ -> failwith "Unreachable in range conversion!"
     )
     | _ -> failwith "not implemented"
     (*| Range    (_frcell, _tocell) -> () *)
@@ -308,19 +298,23 @@ let range_to_ndarray n shp =
 
 
 (* generates nested loops from a list of variable matches *)
-let genloop ps (parms: (int list * Parser.crange) list) =
+let genloop ps (parms: (int list * Parser.crange) list) (out: int list) =
 
     (* load params into the  stack frame first as if they were function call arguments *)
     (* TODO: tranform into NDARRAYs *)
 
-    let (_, _idxs, ps) = List.fold_left (fun (idx, kidxs, ps') (_shp, _cr) -> 
+    (* create the output kernel first *)
+    let outkern    = ndarray_of_dim    out in
+    let outidx, ps = add_kernel outkern ps in 
+
+    let (_idxs, ps) = List.fold_left (fun (kidxs, ps') (_shp, _cr) -> 
         let  _ndim      = range_to_ndarray _cr _shp in
         let (_kdx, ps') = add_kernel      _ndim ps' in
         (* TODO: pop params at the end as well!! *)
-        (idx, _kdx :: kidxs , ps')
-    ) (0, [], ps) parms in
+        (_kdx :: kidxs , ps')
+    ) ([ ], ps) parms in
 
-    (_idxs, fun (pre) (post) (body) vlist -> 
+    (outidx, _idxs, fun (pre) (post) (body) vlist -> 
         let rec genl vnum ({ label=vrn; dimen=bound; _ } as ein) psi lidx decl rem =
             let (sidx, ps) = add_const (SIndex 0)     psi in (* count from 0 *)
             let (sinc, ps) = add_const (SIndex 1)     ps in  (* increment by 1 *)
@@ -397,9 +391,16 @@ let genloop ps (parms: (int list * Parser.crange) list) =
         | [] -> ps
         | hd :: rest -> 
             (* start loops where our current operations end
-            genl counter einmatch presource start-index declared-vars referenced-parameters remainder-einmatches-and-params *)
+            genl, parameters are: 
+                counter 
+                einmatch 
+                presource 
+                start-index 
+                declared-vars 
+                referenced-parameters 
+                remainder-einmatches-and-params *)
             let g = genl 0 hd ps 3 [] rest in 
-            { g with oprtns= [ IPush (SStr "==VM START=="); IEchoNl; IPop ] @ g.oprtns }
+            { g with oprtns= [ IPush (SStr "=====VM START====="); IEchoNl; IPop ] @ g.oprtns }
     )
 ;;
 

@@ -14,10 +14,10 @@ type 'a wrap = {
     ;
 };;
 
-type bigfloatarray = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t ;;
 type 'a vector     = 'a array
 type 'a matrix     = 'a array array 
 type batches       = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Array3.t ;;
+type bigfloatarray = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t ;;
 
 module type NDarray = sig 
     type t
@@ -26,6 +26,7 @@ module type NDarray = sig
     val  get:     t -> int array -> float
     val  iteri:   (int array -> float -> unit) -> t -> unit
     val  shape:   t -> int array
+    val  iteris:  (unit -> unit) -> (int array -> float -> unit) -> (unit -> unit) -> t -> unit
 end
 
 module Scalar: NDarray with type t = float ref = struct 
@@ -49,6 +50,11 @@ module Scalar: NDarray with type t = float ref = struct
         apply [|0|] !_cont
     ;;
 
+    let iteris (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
+        let _ = onbeginslice () in 
+        let _ = apply [|0|] !_cont in 
+        onendslice ()
+    ;;
 
     let shape _c = 
         [||]
@@ -79,6 +85,12 @@ module Vector: NDarray with type t = (float vector) wrap = struct
 
     let iteri (apply: int array -> float -> unit) _cont =
         Array.iteri (fun i v -> apply [|i|] v) (_cont.cont)
+    ;;
+
+    let iteris (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
+        let _ = onbeginslice () in
+        let _ = Array.iteri (fun i v -> apply [|i|] v) (_cont.cont) in
+        onendslice ()
     ;;
 
     let shape _c =
@@ -113,6 +125,16 @@ module Matrix: NDarray with
 
     let iteri (apply: int array -> float -> unit) _cont =
         Array.iteri (fun  i a -> Array.iteri (fun j v -> apply [|i;j|] v) a) _cont.cont
+    ;;
+
+    let iteris (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
+        let _ = onbeginslice () in
+        let _ = Array.iteri (fun  i a -> 
+            let _ = onbeginslice () in
+            let _ = Array.iteri (fun j v -> apply [|i;j|] v) a in 
+            onendslice ()
+        ) _cont.cont
+        in onendslice ()
     ;;
 
     let shape _c =
@@ -166,6 +188,29 @@ module BatchMatrix: NDarray with
         in iterate_genarray_recursive _cont
     ;;
 
+    let iteris (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
+        let ndims = shape _cont in 
+        let rec iterate_recursive arr indices dims depth =
+            (if depth = Array.length dims then
+                (* Base case: we have all indices, access the element *)
+                (apply indices @@ get arr indices)
+                else
+                    (* Recursive case: iterate through current dimension *)
+                    let _ = onbeginslice () in    
+                    let _ = (for i = 0 to dims.(depth) - 1 do
+                        indices.(depth) <- i;
+                        iterate_recursive arr indices dims (depth + 1)
+                    done) in
+                    onendslice ()
+            )
+        in let iterate_genarray_recursive arr =
+            let indices = Array.make (Array.length ndims) 0 in
+            let _ = onbeginslice () in    
+            let _ = iterate_recursive arr indices ndims 0 in 
+            onendslice ()
+        in iterate_genarray_recursive _cont
+    ;;
+
 end
 
 (* only support float dimens at this point *)
@@ -190,6 +235,10 @@ module MulDim: NDarray with
     let get = Bigarray.Genarray.get
     ;;
 
+    let shape _cont = 
+       Genarray.dims _cont
+    ;;
+
     let iteri (apply: int array -> e -> unit) _cont = 
         let ndims = Genarray.dims _cont in 
         let rec iterate_recursive arr indices dims depth =
@@ -209,8 +258,27 @@ module MulDim: NDarray with
         in iterate_genarray_recursive _cont
     ;;
 
-    let shape _cont = 
-       Genarray.dims _cont
+    let iteris (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
+        let ndims = shape _cont in 
+        let rec iterate_recursive arr indices dims depth =
+            (if depth = Array.length dims then
+                (* Base case: we have all indices, access the element *)
+                (apply indices @@ get arr indices)
+                else
+                    (* Recursive case: iterate through current dimension *)
+                    let _ = onbeginslice () in    
+                    let _ = (for i = 0 to dims.(depth) - 1 do
+                        indices.(depth) <- i;
+                        iterate_recursive arr indices dims (depth + 1)
+                    done) in
+                    onendslice ()
+            )
+        in let iterate_genarray_recursive arr =
+            let indices = Array.make (Array.length ndims) 0 in
+            let _ = onbeginslice () in    
+            let _ = iterate_recursive arr indices ndims 0 in 
+            onendslice ()
+        in iterate_genarray_recursive _cont
     ;;
 
 end

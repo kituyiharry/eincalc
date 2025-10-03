@@ -25,7 +25,7 @@ let emptyspinplan = {
 
 let create_plan eincomps = 
 
-    let plan = { emptyspinplan with outshape=eincomps.outs } in
+    let plan = { emptyspinplan with outshape=(snd eincomps.outs) } in
     List.fold_left (fun acc v -> 
         List.fold_left (fun acc' (w: einmatch) -> 
             if CharSet.mem w.label acc'.charset then

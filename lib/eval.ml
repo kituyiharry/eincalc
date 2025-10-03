@@ -77,6 +77,61 @@ let load_kernel_addr vm count =
     collect [] 0
 ;;
 
+(* TODO: standardize order *)
+let print_kernel vm = 
+    let indx = peek vm in
+    match (indx) with 
+    | (SKern _i) -> 
+        (match (vm.source.kernels.(_i)) with 
+            | SNdim ((module M), _modl) as _g -> 
+                (
+                    let n = show_spinval (vm.source.kernels.(_i)) in 
+                    let b = Buffer.create 256 in
+                    let _ = Buffer.add_string b n in 
+                    let _ = Buffer.add_char b '\n' in 
+                    let _ = M.iteris (fun _ -> 
+                        Buffer.add_string b "\n    "
+                    ) (fun _d v -> 
+                        Buffer.add_string b (Format.sprintf " |%.2f|" v)
+                    ) 
+                    (fun _ -> 
+                        Buffer.add_string b "    \n"
+                    ) _modl in
+                    Format.printf "%s\n" (Buffer.contents b)
+                )
+            | _ -> failwith "invalid kernel!"
+        )
+    | _s -> 
+        let _ = debug_stack vm in 
+        failwith (Format.sprintf "Unable to print kernel using %s " (show_spinval indx))
+;;
+
+(* TODO: standardize order *)
+let write_kernel_val vm = 
+    let addr = pop vm in
+    let indx = pop vm in
+    let data = pop vm in
+    match (indx, addr, data) with 
+    | (SKern _i, SAddr _a, SNumber _f) -> 
+        (match (vm.source.kernels.(_i)) with 
+            | SNdim ((module M), _modl) as _g -> 
+                let _ = M.set _modl _a _f in
+                ()
+            | _ -> failwith "invalid kernel!"
+        )
+    | (SAddr _a, SKern _i, SNumber _f) -> 
+        (match (vm.source.kernels.(_i)) with 
+            | SNdim ((module M), _modl) as _g -> 
+                let _ = M.set _modl _a _f in
+                ()
+            | _ -> failwith "invalid kernel!"
+        )
+    | _  -> 
+        let _ = debug_stack vm in 
+        failwith (Format.sprintf "Unable to load kernel using params %s and %s " (show_spinval indx) (show_spinval addr))
+;;
+
+(* TODO: standardize order *)
 let load_kernel_val vm = 
     let addr = pop vm in
     let indx = pop vm in
@@ -145,18 +200,24 @@ let handle_op vm op =
     | IEchoNl       -> let _ = (Format.printf " %s\n" (Emitter.show_spinval (peek vm))) in 1
     | IEcho         -> let _ = (Format.printf " %s"   (Emitter.show_spinval (peek vm))) in 1
     | IGetKern      -> let _ = load_kernel_val  vm in 1
+    | ISetKern      -> let _ = write_kernel_val vm in 1
+    | IEchoKern     -> let _ = print_kernel vm in 1
     | ILoadAddr _a  -> let _ = load_kernel_addr vm _a in 1 
 ;;
 
 let eval (pr: vm) = 
-    consume pr.source (handle_op pr)
+    let _ = consume pr.source (handle_op pr) in 
+    debug_stack pr
 ;;
 
 let tosource (vw: program) = 
     (>>==) (Genfunc.transform vw) (fun x -> 
 
-        (* load kernel indexes onto the stack *)
-        let (_kidxs, gl) = Emitter.genloop (presempty "") (List.map (fun y -> (y.shape, y.param) ) x.inps) in 
+        let mtch, out = x.outs in
+
+        (* load kernel indexes onto the stack 
+           return output and input kernel indexes *)
+        let (_outkidx, _kidxs, gl) = Emitter.genloop (presempty "") (List.map (fun y -> (y.shape, y.param) ) x.inps) out in 
 
         (* each parameter input with its associated kernel index added by genloop *)
         let  _mapidx = List.of_seq @@ Seq.zip (x.inps |> List.to_seq) (List.to_seq @@ List.rev _kidxs)  in
@@ -175,29 +236,87 @@ let tosource (vw: program) =
                 (* before body on each iteration *)
                 (fun _i _dcl x _y _z _a -> x) 
                 (* after body on each iteration *)
-                (fun _i _dcl x _y -> x)) 
+                (fun _i _dcl x _y -> 
+                    (* after all iterations and operations, print the final kernel *)
+                    if _i = 0 then 
+                        { x with oprtns=x.oprtns @ [
+                            IPush (SKern _outkidx);
+                            IEchoKern;
+                            IPop;
+                        ]  } 
+                    else 
+                        x
+                )) 
                 (* body *)
                 (fun _i _dcl islast _e ps -> 
 
                     (* all vars have been loaded, *)
                     if islast then 
 
-                        let i = List.map (fun ((e: eincomp), m) ->
+                        (* for each parameter and input combined *)
+                        let i = List.mapi (fun _idx ((e: eincomp), m) ->
+
                             (* load each element for the parameter *)
                             (* get dimensions - this will be in order of declaration *)
-                            let dims = List.map (fun e -> (IGetVar (Hashtbl.find ps.nmdvar e.label))) e.elems in
-                            (* TODO: use static alloc array and offsets *)
-                            let addr = (List.rev dims) @ [ ILoadAddr (List.length dims) ] in
-                            addr @ [
-                                IPush (SKern m);
-                                IGetKern;
-                                IEchoNl;
-                                IPop;
-                            ] 
+                            let dims = List.map (fun e -> 
+                                (IGetVar (Hashtbl.find ps.nmdvar e.label))
+                            ) e.elems in
+                            let dimlen = List.length dims in
 
+                            (* TODO: use static alloc array and offsets *)
+                            let addr = (List.rev dims) @ [ ILoadAddr (dimlen) ] in
+                            if _idx = 0 then               (* first index *)
+                                addr @ 
+                                [
+                                    IPush (SKern m);       (* load variable from parameter *)
+                                    IGetKern;
+                                ]  
+                            else 
+                                addr @ 
+                                [
+                                    IPush (SKern m);       (* load variable from parameter *)
+                                    IGetKern;
+                                    IMul;                  (* multiply with previous *)
+                                ]  
                         ) _mapidx |> List.concat in 
 
-                        { ps with oprtns=ps.oprtns @ i; }
+                        match mtch with 
+                        | None -> 
+                            let fin = [
+                                ILoadAddr 0;
+                                IPush (SKern _outkidx); 
+                                IGetKern;
+                                IAdd;
+                                IEchoNl;
+                                ILoadAddr 0;
+                                IPush (SKern _outkidx);
+                                IEchoKern;
+                                ISetKern;
+                            ] in 
+                            { ps with oprtns=ps.oprtns @ i @ fin; }
+                        | Some e ->
+                          
+                            (* load the variables addressing the output kernel *)
+                            let dims = List.map (fun (e: einmatch) -> 
+                                (IGetVar (Hashtbl.find ps.nmdvar e.label))
+                            ) e in
+                            let dimlen = List.length dims in
+                            let addr = (List.rev dims) @ [ 
+                                ILoadAddr (dimlen) 
+                            ] in
+
+                            (* get the current value and add it to what was
+                               already there on the stack *)
+                            let fin = addr @ [
+                                IPush (SKern _outkidx);
+                                IGetKern;
+                                IAdd;
+                                IEchoNl;
+                            ] @ addr @ [
+                                IPush (SKern _outkidx);
+                                ISetKern;
+                            ] in
+                            { ps with oprtns=ps.oprtns @ i @ fin; }
 
                     else ps
                 )
@@ -206,7 +325,7 @@ let tosource (vw: program) =
 ;;
 
 let mkvm src = {
-        spine  = Array.make 256 SNil
+    spine  = Array.make 256 SNil
     ;   stkidx = 0
     ;   frmptr = 0 
     ;   source = src

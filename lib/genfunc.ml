@@ -99,7 +99,7 @@ type eincomp = {
 
 type eintree = {
         inps: eincomp list 
-    ;   outs: int list
+    ;   outs: (einmatch list option * int list) (* *)
 } [@@deriving show];;
 
 let parammatch ({ inp; _ }, par) = 
@@ -245,10 +245,23 @@ let correspondence (({out; _}, _) as g) =
         match out with
         | None  -> 
             (* verify the repeated dimensions *)
-            ((>>==) (repeatcheck g') (Result.ok))
+            ((>>==) (repeatcheck g') (fun g'' -> 
+                Ok (g'', None)
+            ))
         | Some (Shape _l) -> 
             (* TODO: verify if this also checks within inputs - done in connect function ! *)
-            ((>>==) (verify _l g') (connect g'))
+            (>>==) ((>>==) (verify _l g') (connect g')) (fun g'' -> 
+            let chs = ref CharSet.empty in
+            let g' = 
+                _l
+                |> List.map (fun (label, index) ->
+                    (* -1 is ommision by default *)
+                    (* NB: ensure dimens are updated later *)
+                    chs := CharSet.add label !chs;
+                    { label; index; dimen=(-1); param=(-1); outlc=(-1); }
+                )
+                in Ok (g'', Some g')
+            )
     )
 ;;
 
@@ -261,11 +274,11 @@ let describe (lst: (einmatch list)) =
     Buffer.contents buf
 ;;
 
-let debug_print ({ inps; outs; _ }) =
+let debug_print ({ inps; outs=(_,o); _ }) =
     let _ = List.iter (fun l -> 
         let _ = Format.printf "\t Mat: %s  -> %s   
 \t+-----------------------------------------------+
-\t|                                               |\n%s" (string_of_shape l.shape) (string_of_shape outs) (describe l.elems)
+\t|                                               |\n%s" (string_of_shape l.shape) (string_of_shape o) (describe l.elems)
         in
         Format.printf "\t|                                               |
 \t+-----------------------------------------------+\n" 
@@ -275,9 +288,15 @@ let debug_print ({ inps; outs; _ }) =
 let transform (e: formula)  = 
     let _ = Format.printf "transforming: %s !!\n" (show_program e) in
     match e with 
-    | Stmt (Ein _e) ->  (>>==) (correspondence _e) (fun l -> 
-            Ok ({ inps=l; outs=(equation l); })
-        )
+    | Stmt (Ein _e) ->  (>>==) (correspondence _e) (fun (lin, lout) -> 
+        let eq = equation lin in
+        match lout with 
+        | Some v -> 
+            let upd = List.combine v eq |> List.map (fun (x,y) -> { x with dimen = y }) in
+            Ok ({ inps=lin; outs=(Some upd, equation lin); })
+        | None -> 
+            Ok ({ inps=lin; outs=(lout, equation lin); })
+    )
     | _ -> 
         failwith "Unimplemented transform"
 ;;
