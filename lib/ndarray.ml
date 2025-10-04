@@ -79,12 +79,12 @@ module Vector: NDarray with type t = (float vector) wrap = struct
     ;;
 
     let set (_cont: t) (_dims: int array) (v) = 
-        let () = assert (Array.length _dims > 0) in
+        let () = assert (Array.length _dims > 0 && Array.for_all2 (<) _dims _cont.dims) in
         Array.unsafe_set (_cont.cont) (Array.unsafe_get _dims 0) v
     ;;
 
     let get (_cont: t) (_dims: int array) = 
-        let () = assert (Array.length _dims > 0) in
+        let () = assert (Array.length _dims > 0 && Array.for_all2 (<) _dims _cont.dims) in
         Array.unsafe_get (_cont.cont) (Array.unsafe_get _dims 0)
     ;;
 
@@ -124,12 +124,12 @@ module Matrix: NDarray with
     ;;
 
     let set (_cont: t) (_dims: int array) (v) = 
-        let () = assert (Array.length _dims > 1) in
+        let () = assert (Array.length _dims > 1 && Array.for_all2 (<) _dims _cont.dims) in
         Array.unsafe_set (Array.unsafe_get _cont.cont (Array.unsafe_get _dims 0)) (Array.unsafe_get _dims 1) v
     ;;
 
     let get (_cont: t) (_dims: int array) = 
-        let () = assert (Array.length _dims > 1) in
+        let () = assert (Array.length _dims > 1 && Array.for_all2 (<) _dims _cont.dims) in
         Array.unsafe_get (Array.unsafe_get _cont.cont (Array.unsafe_get _dims 0)) (Array.unsafe_get _dims 1)
     ;;
 

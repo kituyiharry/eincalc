@@ -108,6 +108,31 @@ let sgreater x y =
     | _ -> failwith (Format.sprintf "Invalid greater operands: %s > %s" (show_spinval x) (show_spinval y))
 ;;
 
+(* if all values are close *)
+let sallclose x y = 
+    match (x, y) with 
+    | SNdim ((module M), _dat), SNdim ((module M'), _dat') -> 
+
+        let dim  = M.shape  _dat  in 
+        let dim' = M'.shape _dat' in
+
+        if not (Array.length dim = Array.length dim') then 
+            SBool false 
+        else
+            (
+                if not (Array.for_all2 (Int.equal) dim dim') then 
+                    SBool false 
+                else
+                    (* TODO: take_while so we don't traverse the whole thing ?? *)
+                    let issame = ref true in
+                    let _ = M.iteri (fun _d v -> 
+                        issame := !issame && (Float.equal (M'.get _dat' _d) v)
+                    ) _dat in
+                    SBool (!issame)
+            )
+    | _ -> failwith (Format.sprintf "Invalid greater operands: %s > %s" (show_spinval x) (show_spinval y))
+;;
+
 type instr = 
     (* arith *)
     | IAdd               (* binary add *)

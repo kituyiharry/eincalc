@@ -766,7 +766,7 @@ let parse_reference state =
                 parse_rand_reference state
             | TAlphaNum "enum" -> 
                 parse_enum_reference state
-            | TAlphaNum "diag" -> 
+            | TAlphaNum "eye" -> 
                 parse_diag_reference state
             | TAlphaNum _start -> 
                 (if validate _start then

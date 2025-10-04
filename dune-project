@@ -25,6 +25,7 @@
  (depends
    ; Required dependencies
    (ocaml (>= 5.0.0))
+   (fungi (>= 0.1.4))
    ;(dune  (>= 3.12))
 
    ; Optional dependencies with versions

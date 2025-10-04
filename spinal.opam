@@ -12,6 +12,7 @@ bug-reports: "https://github.com/username/reponame/issues"
 depends: [
   "dune" {>= "3.20"}
   "ocaml" {>= "5.0.0"}
+  "fungi" {>= "0.1.4"}
   "spinal" {with-test}
   "ounit2" {with-test}
   "qcheck-core" {with-test}
