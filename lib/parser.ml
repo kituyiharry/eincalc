@@ -414,272 +414,100 @@ let parse_ref_angle_var state =
     )
 ;;
 
-let parse_reference state = 
-    match (fst state).curr with
-    | Some { tokn;_ } -> 
-        (match tokn with 
-            | TAlphaNum "self" -> 
-                Ok (advance state, Refer Self)
-            (* TODO: for zeros and ones - reuse definition of fill! *)
-            | TAlphaNum "ones" -> 
-                let next = advance state in 
-                (match (fst next).curr with 
-                    | Some { tokn; _ } -> 
-                        (match tokn with
-                        | TLeftAngle -> 
-                            let after = advance next in 
-                            (match (fst after).curr with
-                                | Some { tokn; _ } -> 
-                                    (match tokn with 
-                                        | TLeftBracket -> 
-                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                (>>==) (consume after' TRightAngle) (fun final -> 
-                                                    Ok (final, Create (Ones shp))
+let parse_enum_reference state = 
+    let next = advance state in 
+    (match (fst next).curr with 
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TLeftAngle -> 
+                    (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
+                        match tok with 
+                        | TFloat fval -> 
+                            (>>==) (consume next' TComma) (fun after -> 
+                                (>>==) (parse_ref_angle_var (after)) (fun (next', tok)-> 
+                                    (match tok with
+                                        |TFloat incv ->  
+                                            (>>==) (consume next' TComma) (fun after -> 
+                                                (match (fst after).curr with
+                                                    | Some { tokn; _ } -> 
+                                                        (match tokn with 
+                                                            | TLeftBracket -> 
+                                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                                    (>>==) (consume after' TRightAngle) (fun final -> 
+                                                                        Ok (final, Create (Enum (fval, incv, shp)))
+                                                                    )
+                                                                )
+                                                            | _ -> 
+                                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                                    | _ ->
+                                                        Error "Expected shape filling spec"
                                                 )
-                                            )
-                                        | _ -> 
-                                            Error "Expected shape spec"
+                                            ) 
+                                        |TNumeral incn -> 
+                                            (>>==) (consume next' TComma) (fun after -> 
+                                                (match (fst after).curr with
+                                                    | Some { tokn; _ } -> 
+                                                        (match tokn with 
+                                                            | TLeftBracket -> 
+                                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                                    (>>==) (consume after' TRightAngle) (fun final -> 
+                                                                        Ok (final, Create (Enum (fval, (float_of_int incn) ,shp)))
+                                                                    )
+                                                                )
+                                                            | _ -> 
+                                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                                    | _ ->
+                                                        Error "Expected shape filling spec"
+                                                )
+                                            ) 
+                                        | s ->
+                                            Error (Format.sprintf "Expected numeral value, found %s" (show_ttype s))
                                     )
-                                | _ ->
-                                    Error "Missing shape spec"
+                                )
                             )
-                        | _ -> 
-                            Error ("Expected shape spec in angle brackets")
-                        )
-                    | None -> 
-                        Error ("Expected shape spec")
-                )
-            | TAlphaNum "zeros" -> 
-                let next = advance state in 
-                (match (fst next).curr with 
-                    | Some { tokn; _ } -> 
-                        (match tokn with
-                        | TLeftAngle -> 
-                            let after = advance next in 
-                            (match (fst after).curr with
-                                | Some { tokn; _ } -> 
-                                    (match tokn with 
-                                        | TLeftBracket -> 
-                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                (>>==) (consume after' TRightAngle) (fun final -> 
-                                                    Ok (final, Create (Ones shp))
+                        | TNumeral ival -> 
+                            (>>==) (consume next' TComma) (fun after -> 
+                                (>>==) (parse_ref_angle_var (after)) (fun (next', tok)-> 
+                                    (match tok with
+                                        |TFloat incv ->  
+                                            (>>==) (consume next' TComma) (fun after -> 
+                                                (match (fst after).curr with
+                                                    | Some { tokn; _ } -> 
+                                                        (match tokn with 
+                                                            | TLeftBracket -> 
+                                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                                    (>>==) (consume after' TRightAngle) (fun final -> 
+                                                                        Ok (final, Create (Enum ((float_of_int ival), incv, shp)))
+                                                                    )
+                                                                )
+                                                            | _ -> 
+                                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                                    | _ ->
+                                                        Error "Expected shape filling spec"
                                                 )
-                                            )
-                                        | _ -> 
-                                            Error "Expected shape spec"
+                                            ) 
+                                        |TNumeral incn -> 
+                                            (>>==) (consume next' TComma) (fun after -> 
+                                                (match (fst after).curr with
+                                                    | Some { tokn; _ } -> 
+                                                        (match tokn with 
+                                                            | TLeftBracket -> 
+                                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                                    (>>==) (consume after' TRightAngle) (fun final -> 
+                                                                        Ok (final, Create (Enum ((float_of_int ival), (float_of_int incn) ,shp)))
+                                                                    )
+                                                                )
+                                                            | _ -> 
+                                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                                    | _ ->
+                                                        Error "Expected shape filling spec"
+                                                )
+                                            ) 
+                                        | s ->
+                                            Error (Format.sprintf "Expected numeral value, found %s" (show_ttype s))
                                     )
-                                | _ ->
-                                    Error "Missing shape spec"
+                                )
                             )
-                        | _ -> 
-                            Error ("Expected shape spec in angle brackets")
-                        )
-                    | None -> 
-                        Error ("Expected shape spec")
-                )
-            | TAlphaNum "fill" -> 
-                let next = advance state in 
-                (match (fst next).curr with 
-                    | Some { tokn; _ } -> 
-                        (match tokn with
-                        | TLeftAngle -> 
-                                (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
-                                    match tok with 
-                                    | TFloat fval -> 
-                                        (>>==) (consume next' TComma) (fun after -> 
-                                            (match (fst after).curr with
-                                                | Some { tokn; _ } -> 
-                                                    (match tokn with 
-                                                        | TLeftBracket -> 
-                                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                                (>>==) (consume after' TRightAngle) (fun final -> 
-                                                                    Ok (final, Create (Fill (fval, shp)))
-                                                                )
-                                                            )
-                                                        | _ -> 
-                                                            Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
-                                                | _ ->
-                                                    Error "Expected shape filling spec"
-                                            )
-                                        )
-                                    | TNumeral ival -> 
-                                        let fval = float_of_int ival in
-                                        (>>==) (consume next' TComma) (fun after -> 
-                                            (match (fst after).curr with
-                                                | Some { tokn; _ } -> 
-                                                    (match tokn with 
-                                                        | TLeftBracket -> 
-                                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                                (>>==) (consume after' TRightAngle) (fun final -> 
-                                                                    Ok (final, Create (Fill (fval, shp)))
-                                                                )
-                                                            )
-                                                        | _ -> 
-                                                            Error "Expected shape spec"
-                                                    )
-                                                | _ ->
-                                                    Error "Expected shape fill spec"
-                                            )
-                                        )
-                                    | _ -> 
-                                        Error "Expected fill value as float"
-                                )
-                        | _ -> 
-                            Error ("Expected shape spec in angle brackets")
-                        )
-                    | None -> 
-                        Error ("Expected shape spec")
-                )
-                (*Ok (advance state, Create (Fill (7., [3;3])))*)
-            | TAlphaNum "rand" -> 
-                let next = advance state in 
-                (match (fst next).curr with 
-                    | Some { tokn; _ } -> 
-                        (match tokn with
-                        | TLeftAngle -> 
-                                (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
-                                    match tok with 
-                                    | TFloat fval -> 
-                                        (>>==) (consume next' TComma) (fun after -> 
-                                            (match (fst after).curr with
-                                                | Some { tokn; _ } -> 
-                                                    (match tokn with 
-                                                        | TLeftBracket -> 
-                                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                                (>>==) (consume after' TRightAngle) (fun final -> 
-                                                                    Ok (final, Create (Rand (fval, shp)))
-                                                                )
-                                                            )
-                                                        | _ -> 
-                                                            Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
-                                                | _ ->
-                                                    Error "Expected shape filling spec"
-                                            )
-                                        )
-                                    | TNumeral ival -> 
-                                        let fval = float_of_int ival in
-                                        (>>==) (consume next' TComma) (fun after -> 
-                                            (match (fst after).curr with
-                                                | Some { tokn; _ } -> 
-                                                    (match tokn with 
-                                                        | TLeftBracket -> 
-                                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                                (>>==) (consume after' TRightAngle) (fun final -> 
-                                                                    Ok (final,
-                                                                        Create (Rand (fval, shp)))
-                                                                )
-                                                            )
-                                                        | _ -> 
-                                                            Error "Expected shape spec"
-                                                    )
-                                                | _ ->
-                                                    Error "Expected shape fill spec"
-                                            )
-                                        )
-                                    | _ -> 
-                                        Error "Expected fill value as float"
-                                )
-                        | _ -> 
-                            Error ("Expected shape spec in angle brackets")
-                        )
-                    | None -> 
-                        Error ("Expected shape spec")
-                )
-                (*Ok (advance state, Create (Rand (100., [3;3])))*)
-            | TAlphaNum "enum" -> 
-                let next = advance state in 
-                (match (fst next).curr with 
-                    | Some { tokn; _ } -> 
-                        (match tokn with
-                        | TLeftAngle -> 
-                                (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
-                                    match tok with 
-                                    | TFloat fval -> 
-                                        (>>==) (consume next' TComma) (fun after -> 
-                                            (>>==) (parse_ref_angle_var (after)) (fun (next', tok)-> 
-                                                (match tok with
-                                                    |TFloat incv ->  
-                                                        (>>==) (consume next' TComma) (fun after -> 
-                                                            (match (fst after).curr with
-                                                                | Some { tokn; _ } -> 
-                                                                    (match tokn with 
-                                                                        | TLeftBracket -> 
-                                                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                                                (>>==) (consume after' TRightAngle) (fun final -> 
-                                                                                    Ok (final, Create (Enum (fval, incv, shp)))
-                                                                                )
-                                                                            )
-                                                                        | _ -> 
-                                                                            Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
-                                                                | _ ->
-                                                                    Error "Expected shape filling spec"
-                                                            )
-                                                        ) 
-                                                    |TNumeral incn -> 
-                                                        (>>==) (consume next' TComma) (fun after -> 
-                                                            (match (fst after).curr with
-                                                                | Some { tokn; _ } -> 
-                                                                    (match tokn with 
-                                                                        | TLeftBracket -> 
-                                                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                                                (>>==) (consume after' TRightAngle) (fun final -> 
-                                                                                    Ok (final, Create (Enum (fval, (float_of_int incn) ,shp)))
-                                                                                )
-                                                                            )
-                                                                        | _ -> 
-                                                                            Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
-                                                                | _ ->
-                                                                    Error "Expected shape filling spec"
-                                                            )
-                                                        ) 
-                                                    | s ->
-                                                        Error (Format.sprintf "Expected numeral value, found %s" (show_ttype s))
-                                                )
-                                            )
-                                        )
-                                    | TNumeral ival -> 
-                                        (>>==) (consume next' TComma) (fun after -> 
-                                            (>>==) (parse_ref_angle_var (after)) (fun (next', tok)-> 
-                                                (match tok with
-                                                    |TFloat incv ->  
-                                                        (>>==) (consume next' TComma) (fun after -> 
-                                                            (match (fst after).curr with
-                                                                | Some { tokn; _ } -> 
-                                                                    (match tokn with 
-                                                                        | TLeftBracket -> 
-                                                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                                                (>>==) (consume after' TRightAngle) (fun final -> 
-                                                                                    Ok (final, Create (Enum ((float_of_int ival), incv, shp)))
-                                                                                )
-                                                                            )
-                                                                        | _ -> 
-                                                                            Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
-                                                                | _ ->
-                                                                    Error "Expected shape filling spec"
-                                                            )
-                                                        ) 
-                                                    |TNumeral incn -> 
-                                                        (>>==) (consume next' TComma) (fun after -> 
-                                                            (match (fst after).curr with
-                                                                | Some { tokn; _ } -> 
-                                                                    (match tokn with 
-                                                                        | TLeftBracket -> 
-                                                                            (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                                                (>>==) (consume after' TRightAngle) (fun final -> 
-                                                                                    Ok (final, Create (Enum ((float_of_int ival), (float_of_int incn) ,shp)))
-                                                                                )
-                                                                            )
-                                                                        | _ -> 
-                                                                            Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
-                                                                | _ ->
-                                                                    Error "Expected shape filling spec"
-                                                            )
-                                                        ) 
-                                                    | s ->
-                                                        Error (Format.sprintf "Expected numeral value, found %s" (show_ttype s))
-                                                )
-                                            )
-                                        )
 
                                     | _ -> 
                                         Error "Expected fill value as float"
@@ -690,62 +518,256 @@ let parse_reference state =
                     | None -> 
                         Error ("Expected shape spec")
                 )
-            | TAlphaNum "diag" -> 
-                let next = advance state in 
-                (match (fst next).curr with 
-                    | Some { tokn; _ } -> 
-                        (match tokn with
-                        | TLeftAngle -> 
-                                (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
-                                    match tok with 
-                                    | TFloat fval -> 
-                                        (>>==) (consume next' TComma) (fun after -> 
-                                            (match (fst after).curr with
-                                                | Some { tokn; _ } -> 
-                                                    (match tokn with 
-                                                        | TNumeral shp -> 
-                                                                (>>==) (consume (advance after) TRightAngle) (fun final -> 
-                                                                    Ok (final, Create (Diag (fval, shp)))
-                                                                )
-                                                        | TFloat shp -> 
-                                                                (>>==) (consume (advance after) TRightAngle) (fun final -> 
-                                                                    Ok (final, Create (Diag (fval, (int_of_float shp))))
-                                                                )
-                                                        | _ -> 
-                                                            Error (Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn)))
-                                                | _ ->
-                                                    Error "Expected shape filling spec"
-                                            )
-                                        )
-                                    | TNumeral ival -> 
-                                        let fval = float_of_int ival in
-                                        (>>==) (consume next' TComma) (fun after -> 
-                                            (match (fst after).curr with
-                                                | Some { tokn; _ } -> 
-                                                    (match tokn with 
-                                                        | TNumeral shp -> 
-                                                                (>>==) (consume (advance after) TRightAngle) (fun final -> 
-                                                                    Ok (final, Create (Diag (fval, shp)))
-                                                                )
-                                                        | TFloat shp -> 
-                                                                (>>==) (consume (advance after) TRightAngle) (fun final -> 
-                                                                    Ok (final, Create (Diag (fval, (int_of_float shp))))
-                                                                )
-                                                        | _ -> 
-                                                            Error (Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn)))
-                                                | _ ->
-                                                    Error "Expected shape fill spec"
-                                            )
-                                        )
-                                    | _ -> 
-                                        Error "Expected fill value as float"
+;;
+
+let parse_rand_reference state = 
+    let next = advance state in 
+    (match (fst next).curr with 
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TLeftAngle -> 
+                    (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
+                        match tok with 
+                        | TFloat fval -> 
+                            (>>==) (consume next' TComma) (fun after -> 
+                                (match (fst after).curr with
+                                    | Some { tokn; _ } -> 
+                                        (match tokn with 
+                                            | TLeftBracket -> 
+                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                    (>>==) (consume after' TRightAngle) (fun final -> 
+                                                        Ok (final, Create (Rand (fval, shp)))
+                                                    )
+                                                )
+                                            | _ -> 
+                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                    | _ ->
+                                        Error "Expected shape filling spec"
                                 )
+                            )
+                        | TNumeral ival -> 
+                            let fval = float_of_int ival in
+                            (>>==) (consume next' TComma) (fun after -> 
+                                (match (fst after).curr with
+                                    | Some { tokn; _ } -> 
+                                        (match tokn with 
+                                            | TLeftBracket -> 
+                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                    (>>==) (consume after' TRightAngle) (fun final -> 
+                                                        Ok (final,
+                                                            Create (Rand (fval, shp)))
+                                                    )
+                                                )
+                                            | _ -> 
+                                                Error "Expected shape spec"
+                                        )
+                                    | _ ->
+                                        Error "Expected shape fill spec"
+                                )
+                            )
                         | _ -> 
-                            Error ("Expected shape spec in angle brackets")
-                        )
-                    | None -> 
-                        Error ("Expected shape spec")
-                )
+                            Error "Expected fill value as float"
+                    )
+                | _ -> 
+                    Error ("Expected shape spec in angle brackets")
+            )
+        | None -> 
+            Error ("Expected shape spec")
+    )
+;;
+
+let parse_diag_reference state = 
+    let next = advance state in 
+    (match (fst next).curr with 
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TLeftAngle -> 
+                    (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
+                        match tok with 
+                        | TFloat fval -> 
+                            (>>==) (consume next' TComma) (fun after -> 
+                                (match (fst after).curr with
+                                    | Some { tokn; _ } -> 
+                                        (match tokn with 
+                                            | TNumeral shp -> 
+                                                (>>==) (consume (advance after) TRightAngle) (fun final -> 
+                                                    Ok (final, Create (Diag (fval, shp)))
+                                                )
+                                            | TFloat shp -> 
+                                                (>>==) (consume (advance after) TRightAngle) (fun final -> 
+                                                    Ok (final, Create (Diag (fval, (int_of_float shp))))
+                                                )
+                                            | _ -> 
+                                                Error (Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn)))
+                                    | _ ->
+                                        Error "Expected shape filling spec"
+                                )
+                            )
+                        | TNumeral ival -> 
+                            let fval = float_of_int ival in
+                            (>>==) (consume next' TComma) (fun after -> 
+                                (match (fst after).curr with
+                                    | Some { tokn; _ } -> 
+                                        (match tokn with 
+                                            | TNumeral shp -> 
+                                                (>>==) (consume (advance after) TRightAngle) (fun final -> 
+                                                    Ok (final, Create (Diag (fval, shp)))
+                                                )
+                                            | TFloat shp -> 
+                                                (>>==) (consume (advance after) TRightAngle) (fun final -> 
+                                                    Ok (final, Create (Diag (fval, (int_of_float shp))))
+                                                )
+                                            | _ -> 
+                                                Error (Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn)))
+                                    | _ ->
+                                        Error "Expected shape fill spec"
+                                )
+                            )
+                        | _ -> 
+                            Error "Expected fill value as float"
+                    )
+                | _ -> 
+                    Error ("Expected shape spec in angle brackets")
+            )
+        | None -> 
+            Error ("Expected shape spec")
+    )
+;;
+
+let parse_fill_reference state = 
+    let next = advance state in 
+    (match (fst next).curr with 
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TLeftAngle -> 
+                    (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
+                        match tok with 
+                        | TFloat fval -> 
+                            (>>==) (consume next' TComma) (fun after -> 
+                                (match (fst after).curr with
+                                    | Some { tokn; _ } -> 
+                                        (match tokn with 
+                                            | TLeftBracket -> 
+                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                    (>>==) (consume after' TRightAngle) (fun final -> 
+                                                        Ok (final, Create (Fill (fval, shp)))
+                                                    )
+                                                )
+                                            | _ -> 
+                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                    | _ ->
+                                        Error "Expected shape filling spec"
+                                )
+                            )
+                        | TNumeral ival -> 
+                            let fval = float_of_int ival in
+                            (>>==) (consume next' TComma) (fun after -> 
+                                (match (fst after).curr with
+                                    | Some { tokn; _ } -> 
+                                        (match tokn with 
+                                            | TLeftBracket -> 
+                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                    (>>==) (consume after' TRightAngle) (fun final -> 
+                                                        Ok (final, Create (Fill (fval, shp)))
+                                                    )
+                                                )
+                                            | _ -> 
+                                                Error "Expected shape spec"
+                                        )
+                                    | _ ->
+                                        Error "Expected shape fill spec"
+                                )
+                            )
+                        | _ -> 
+                            Error "Expected fill value as float"
+                    )
+                | _ -> 
+                    Error ("Expected shape spec in angle brackets")
+            )
+        | None -> 
+            Error ("Expected shape spec")
+    )
+;;
+
+let parse_ones_reference state = 
+    let next = advance state in 
+    (match (fst next).curr with 
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TLeftAngle -> 
+                    let after = advance next in 
+                    (match (fst after).curr with
+                        | Some { tokn; _ } -> 
+                            (match tokn with 
+                                | TLeftBracket -> 
+                                    (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                        (>>==) (consume after' TRightAngle) (fun final -> 
+                                            Ok (final, Create (Ones shp))
+                                        )
+                                    )
+                                | _ -> 
+                                    Error "Expected shape spec"
+                            )
+                        | _ ->
+                            Error "Missing shape spec"
+                    )
+                | _ -> 
+                    Error ("Expected shape spec in angle brackets")
+            )
+        | None -> 
+            Error ("Expected shape spec")
+    )
+;;
+
+let parse_zeros_reference state = 
+    let next = advance state in 
+    (match (fst next).curr with 
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TLeftAngle -> 
+                    let after = advance next in 
+                    (match (fst after).curr with
+                        | Some { tokn; _ } -> 
+                            (match tokn with 
+                                | TLeftBracket -> 
+                                    (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                        (>>==) (consume after' TRightAngle) (fun final -> 
+                                            Ok (final, Create (Ones shp))
+                                        )
+                                    )
+                                | _ -> 
+                                    Error "Expected shape spec"
+                            )
+                        | _ ->
+                            Error "Missing shape spec"
+                    )
+                | _ -> 
+                    Error ("Expected shape spec in angle brackets")
+            )
+        | None -> 
+            Error ("Expected shape spec")
+    )
+;;
+
+let parse_reference state = 
+    match (fst state).curr with
+    | Some { tokn;_ } -> 
+        (match tokn with 
+            | TAlphaNum "self" -> 
+                Ok (advance state, Refer Self)
+            (* TODO: for zeros and ones - reuse definition of fill! *)
+            | TAlphaNum "ones" -> 
+                parse_ones_reference state
+            | TAlphaNum "zeros" -> 
+                parse_zeros_reference state
+            | TAlphaNum "fill" -> 
+                parse_fill_reference state
+            | TAlphaNum "rand" -> 
+                parse_rand_reference state
+            | TAlphaNum "enum" -> 
+                parse_enum_reference state
+            | TAlphaNum "diag" -> 
+                parse_diag_reference state
             | TAlphaNum _start -> 
                 (if validate _start then
                     let next = advance state in
