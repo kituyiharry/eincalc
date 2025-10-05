@@ -26,6 +26,16 @@ and call =
     | Fill  of float * int list  (* fill shape with a certain value *)
     | Enum  of (float * float * int list) (* enumerate from minvalue and increment with a shape *)
     | Rand  of float * int list (* random with bound and shape *)
+and mask = 
+    | MinMax of float * float    (* min max between a apair of values *)
+    | ZScore 
+    | Mean 
+    | Stddev
+    | Rescale                    (* values add up to a certain num *)
+    | Reshape
+    | Determ                     (* determinant *)
+    | Map 
+    | Reduce
 and  cell    = string * int      (* Rows are strings, Columns are numbers *)
 and  dimnsn  = lit               (* literal and its index *)
 and  motion  =  
@@ -43,6 +53,7 @@ and  crange  =
     | Relative of motion * crange(* Relative cell - Up ^, Down _, Left <, Right, > *)
     | Refer    of referral       (* a way to refer to the current cell *) 
     | Create   of call 
+    | Mask     of mask * crange
     | Void
 and  params  = crange list       (* function parameters *)
 and  einsum  = { 
@@ -414,6 +425,7 @@ let parse_ref_angle_var state =
     )
 ;;
 
+(* TODO: support range syntax e.g 0..10 *)
 let parse_enum_reference state = 
     let next = advance state in 
     (match (fst next).curr with 

@@ -1,6 +1,7 @@
 open OUnit;;
 open Spinal;;
 open Spinal.Eval;;
+open Spinal.Types;;
 
 
 let _testvm = {
@@ -32,7 +33,7 @@ let execute src =
 ;;
 
 let compare_kernels x y = 
-    Emitter.strue @@ (Emitter.sallclose (x) (y)) 
+    strue @@ (sallclose (x) (y)) 
 ;;
 
 let make_scalar v  = 
@@ -43,7 +44,7 @@ let vector_of_list l =
     let v = Ndarray.Vector.init ([|List.length l|]) (fun _dim -> 
         List.nth l _dim.(0)
     ) in 
-    (Emitter.SNdim((module Ndarray.Vector), v))
+    (SNdim((module Ndarray.Vector), v))
 ;;
 
 let matrix_of_list l  = 
@@ -53,7 +54,7 @@ let matrix_of_list l  =
         let l' = List.nth l (_dim.(0)) in 
         List.nth l' (_dim.(1))
     ) in
-    (Emitter.SNdim((module Ndarray.Matrix), v))
+    (SNdim((module Ndarray.Matrix), v))
 ;;
 
 (* Assumption that the final result kernel is at position 0 *)
