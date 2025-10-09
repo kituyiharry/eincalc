@@ -12,6 +12,7 @@ open Emitter;;
 open Genfunc;;
 open Planner;;
 open Types;;
+open Ndmodel;;
 
 let (>>==) = Result.bind;;
 
@@ -20,6 +21,7 @@ type vm = {
     ;   source: source
     ;   mutable stkidx: int 
     ;   mutable frmptr: int
+    ;   sheet:  spinmodel Grid.t
 };;
 
 let debug_stack { spine; stkidx; _ } = 
@@ -303,10 +305,11 @@ let tosource (vw: program) =
     )
 ;;
 
-let mkvm src = {
+let mkvm grid src = {
     spine  = Array.make 256 SNil
     ;   stkidx = 0
     ;   frmptr = 0 
     ;   source = src
+    ;   sheet  = grid
 }
 
