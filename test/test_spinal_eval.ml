@@ -3,27 +3,12 @@ open Spinal;;
 open Spinal.Eval;;
 open Spinal.Types;;
 
-
-let _testvm = {
-        spine=  [||]
-    ;   stkidx= 0
-    ;   frmptr= 0
-    ;   source={
-            oprtns= [| 
-            |]
-            ; cursor=  0
-            ; consts = [||]
-            ; kernels= [||]
-        };
-    } 
-;;
-
-let execute src = 
+let execute grid src = 
     match (Lexer.runall src) with
     |  Ok tokens -> 
         (>>==) (Parser.parse tokens) (fun tree -> 
             (>>==) (Eval.tosource (fst tree).prog) (fun comp -> 
-                let vm = Eval.mkvm (Emitter.convert comp) in 
+                let vm = Eval.mkvm grid (Emitter.convert comp) in 
                 let () = Eval.eval vm in
                 Ok (vm)
             )
@@ -59,17 +44,19 @@ let matrix_of_list l  =
 
 (* Assumption that the final result kernel is at position 0 *)
 
+let _test_grid = Ndmodel.rand_grid 100. (8, 8) ;;
+
 let tests = "Eval unit tests" >::: [
     "simple vector identity"   >:: (fun _ -> 
-        let vm = Result.get_ok @@ (execute "(i -> i, @fill<1,[3]>)") in
+        let vm = Result.get_ok @@ (execute _test_grid "(i -> i, @fill<1,[3]>)") in
         assert_equal (true) (compare_kernels (vm.source.kernels.(0)) (vm.source.kernels.(1)))
     );
     "simple vector summation"   >:: (fun _ -> 
-        let vm = Result.get_ok @@ (execute "(i -> , @fill<1,[3]>)") in
+        let vm = Result.get_ok @@ (execute _test_grid "(i -> , @fill<1,[3]>)") in
         assert_equal (true) (compare_kernels (make_scalar 3.) (vm.source.kernels.(0)))
     );
     "simple vector by vector mult"   >:: (fun _ -> 
-        let vm = Result.get_ok @@ (execute "(i,j -> ij, @enum<1,1,[3]>, @enum<1,1,[3]>)") in
+        let vm = Result.get_ok @@ (execute _test_grid "(i,j -> ij, @enum<1,1,[3]>, @enum<1,1,[3]>)") in
         assert_equal (true) (compare_kernels (matrix_of_list 
             [[1.; 2.; 3.];
              [2.; 4.; 6.];
@@ -77,15 +64,15 @@ let tests = "Eval unit tests" >::: [
         ) (vm.source.kernels.(0)))
     );
     "simple vector by vector "   >:: (fun _ -> 
-        let vm = Result.get_ok @@ (execute "(i,j -> i, @enum<1,1,[3]>, @enum<1,1,[3]>)") in
+        let vm = Result.get_ok @@ (execute _test_grid "(i,j -> i, @enum<1,1,[3]>, @enum<1,1,[3]>)") in
         assert_equal (true) (compare_kernels (vector_of_list [ 6.; 12.; 18.]) (vm.source.kernels.(0)))
     );
     "simple matrix identity"   >:: (fun _ -> 
-        let vm = Result.get_ok @@ (execute "(ij -> ij, @fill<1,[3,3]>)") in
+        let vm = Result.get_ok @@ (execute _test_grid "(ij -> ij, @fill<1,[3,3]>)") in
         assert_equal (true) (compare_kernels (vm.source.kernels.(1)) (vm.source.kernels.(0)))
     );
     "simple matrix transpose"   >:: (fun _ -> 
-        let vm = Result.get_ok @@ (execute "(ij -> ji, @enum<0,1,[3,3]>)") in
+        let vm = Result.get_ok @@ (execute _test_grid "(ij -> ji, @enum<0,1,[3,3]>)") in
         let fi = matrix_of_list  
             [   [0.;3.;6.];
                 [1.;4.;7.];
@@ -95,7 +82,7 @@ let tests = "Eval unit tests" >::: [
         assert_equal (true) (compare_kernels (fi) (vm.source.kernels.(0)))
     );
     "simple matrix summation"   >:: (fun _ -> 
-        let vm = Result.get_ok @@ (execute "(ij -> , @enum<0,1,[3,3]>)") in
+        let vm = Result.get_ok @@ (execute _test_grid "(ij -> , @enum<0,1,[3,3]>)") in
         assert_equal (true) (compare_kernels (make_scalar 36.) (vm.source.kernels.(0)))
     );
 ];;
