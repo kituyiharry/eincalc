@@ -36,10 +36,36 @@ output      -> dimension
 dimension   -> alpha
 
 parameters  -> range (, range)*
+range       -> param (, mask)*
 range       -> 
+    | '@' function '<' function_params '>'
     | '@' index '..' index
     | '@' index 
     | '<' (numeric) range
+
+mask        ->
+    | '@' mask_name
+mask_name   -> 
+    | norm 
+    | reshape
+
+function    -> 
+    | "fill" 
+    | "eye"
+    | "diag" 
+    | "zeros"
+    | "ones"
+    | "rand"
+    | "alt"
+    | "enum"
+
+function_params -> param_type*
+
+param_type  ->
+    | numeric
+    | shape
+
+shape       ->  numeric+
 index       -> (alpha+) (numeric+)
 
 alpha       -> a..zA..Z+

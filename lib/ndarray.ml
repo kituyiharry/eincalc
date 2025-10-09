@@ -19,6 +19,9 @@ type 'a matrix     = 'a array array
 type batches       = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Array3.t ;;
 type bigfloatarray = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t ;;
 
+(* TODO: define a tape protocol which describes the order of the elements when
+   iterated over. implicit at the moment. can be useful once we allow for out of
+   order executions *)
 module type NDarray = sig 
     type t
     val  make:    int array -> float -> t

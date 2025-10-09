@@ -93,6 +93,10 @@ let enum_grid (r, c) =
     g
 ;;
 
+let plain_grid size = 
+    Grid.create size
+;;
+
 let collectrow g range r sparse apply = 
     range
     |> Seq.map (fun c'' -> 

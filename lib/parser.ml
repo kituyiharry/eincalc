@@ -144,15 +144,6 @@ let rules = [|
  *;;
 *)
 
-(* --- *)
-
-(* check current token tag (not the data) without advancing state *)
-let checktag tokn ({curr; _}) = 
-    match curr with
-    | None -> false 
-    | Some { tokn=tok; _ } -> ((Obj.tag @@ Obj.repr tok)  = (Obj.tag @@ Obj.repr tokn))
-;;
-
 (* check current token without advancing state *)
 let past tokn ({prev; _}) = 
     match prev with

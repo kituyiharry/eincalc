@@ -26,6 +26,7 @@ type ttype =
     | TUnderscore         (* _ *)
     | TCaret              (* ^ *)
     | TAt                 (* @ *)
+    | TPipe               (* | *)
 
     | KFor                (* loop *)
     | KDecl               (* declaration *)
