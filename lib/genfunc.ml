@@ -8,6 +8,7 @@
  *
  *)
 open Parser;;
+open Ndmodel;;
 
 type ndshape = 
     | Col of int 
@@ -58,27 +59,6 @@ let homogenous (matshape) =
     in
     check matshape []
 ;;
-
-let name_of_shape =  function 
-    | 0 -> "scalar "
-    | 1 -> "vector "
-    | 2 -> "matrix "
-    | 3 -> "batches " 
-    | _ -> "bigarray "
-;;
-
-let string_of_shape x = 
-    List.map (string_of_int) x
-    |> String.concat " x "
-    |> (^) (name_of_shape (List.length x))
-;;
-
-let string_of_dim x = 
-    Array.to_seq x 
-    |> List.of_seq 
-    |> string_of_shape
-;;
-
 
 module CharSet = Set.Make (Char);;
 
@@ -137,6 +117,20 @@ let parammatch ({ inp; _ }, par) =
                 match (paridx, param) with
                 | (Shape l, NdArray n) -> 
                     (>>==) (homogenous (metashape n)) (compfromshape param pidx l)
+                | (Shape l, Range (_cellstart, _cellend)) ->
+                    (* get the grid indexes for the references e.g A10 -> (9, 0) *)
+                    let (sr, sc) = key_of_ref _cellstart in
+                    let (er, ec) = key_of_ref _cellend in
+                    (* extract a shape *)
+                    let _shp = (match (Int.abs (er - sr), Int.abs (ec - sc)) with 
+                        | (0, 0)   -> [ ] 
+                        | (0, c)   -> [ c + 1 ] 
+                        | (r, c)   -> [ r + 1; c + 1 ]) 
+                    in
+                    (* denote the shape *)
+                    compfromshape param pidx l _shp
+                | (Shape l, Scalar _cell) ->
+                    compfromshape param pidx l []
                 | (Shape l, Create c) ->
                     (match c with
                         | Diag  (_vl, shp) -> (
@@ -287,17 +281,6 @@ let describe (lst: (einmatch list)) =
             (Format.sprintf "\t* Label:%c at (%d -> %d) with size: %d (Param: %d)  |\n" l i o s p)
     ) lst in 
     Buffer.contents buf
-;;
-
-let debug_print ({ inps; outs=(_,o); _ }) =
-    let _ = List.iter (fun l -> 
-        let _ = Format.printf "\t Mat: %s  -> %s   
-\t+-----------------------------------------------+
-\t|                                               |\n%s" (string_of_shape l.shape) (string_of_shape o) (describe l.elems)
-        in
-        Format.printf "\t|                                               |
-\t+-----------------------------------------------+\n" 
-    ) inps in ()
 ;;
 
 (* find dimens from  *)

@@ -27,6 +27,7 @@
 
 open Genfunc;;
 open Ndarray;;
+open Ndmodel;;
 open Types;;
 
 (* TODO: unsafe assert *)
@@ -187,7 +188,7 @@ let ndarray_of_dim_init shp f =
         (SNdim (_scal, _sdat))
 ;;
 
-let range_to_ndarray n shp =
+let range_to_ndarray _grid n shp =
     (* spreadsheet cell *)
     match n with 
     | Parser.NdArray (_ndfl) -> (
@@ -201,6 +202,13 @@ let range_to_ndarray n shp =
             SNdim ((module M), _sdat)
         |  _ -> failwith "Unreachable in range conversion!"
     )
+    | Parser.Range (cells, celle) -> 
+        let adds = key_of_ref cells in
+        let adde = key_of_ref celle in
+        fetch_grid _grid adds adde (Fun.const 0.)
+    | Parser.Scalar cell -> 
+        let addr = key_of_ref cell in
+        fetch_grid _grid addr addr (Fun.const 0.)
     | Parser.Create (_c) -> (
         match _c with
         | Parser.Diag (v, s) -> 
@@ -258,14 +266,14 @@ let range_to_ndarray n shp =
 
 
 (* generates nested loops from a list of variable matches *)
-let genloop ps (parms: (int list * Parser.crange) list) (out: int list) =
+let genloop grid ps (parms: (int list * Parser.crange) list) (out: int list) =
     (* load params into the  stack frame first as if they were function call arguments *)
     (* create the output kernel first *)
     let outkern    = ndarray_of_dim    out in
     let outidx, ps = add_kernel outkern ps in 
 
     let (_idxs, ps) = List.fold_left (fun (kidxs, ps') (_shp, _cr) -> 
-        let  _ndim      = range_to_ndarray _cr _shp in
+        let  _ndim      = range_to_ndarray grid _cr _shp in
         let (_kdx, ps') = add_kernel      _ndim ps' in
         (_kdx :: kidxs , ps')
     ) ([ ], ps) parms in

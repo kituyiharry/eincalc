@@ -137,7 +137,7 @@ let genrange sc ec =
 (* fetch from 2d grid with a sparse function if it is not available  - the
    second pairs are like displacements from the first *)
 (* TODO: assert r < r' and c < c' ?? or leave commutative and reverse if neg ?? *)
-let fetch g (r, c) (r', c') sparse = 
+let fetch_grid g (r, c) (r', c') sparse = 
     match (r' - r, c' - c) with
     | (0,  0) ->
         let _scal = (module Scalar: NDarray with type t = float ref) in 

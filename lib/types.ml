@@ -9,7 +9,7 @@
  *)
 
 open Ndarray;;
-open Genfunc;;
+(*open Genfunc;;*)
 
 (* stack values *)
 type spinval = 
@@ -27,6 +27,28 @@ let shape_of_module (type n) (module N: NDarray with type t = n) v =
     N.shape v
 ;;
 
+let name_of_shape =  function 
+    | 0 -> "scalar "
+    | 1 -> "vector "
+    | 2 -> "matrix "
+    | 3 -> "batches " 
+    | _ -> "bigarray "
+;;
+
+let string_of_shape x = 
+    List.map (string_of_int) x
+    |> String.concat " x "
+    |> (^) (name_of_shape (List.length x))
+;;
+
+let string_of_dim x = 
+    Array.to_seq x 
+    |> List.of_seq 
+    |> string_of_shape
+;;
+
+
+
 let show_spinval s = 
     match s with
     | SNil      -> "nil"
@@ -36,7 +58,7 @@ let show_spinval s =
     | SStr    s -> s 
     | SKern   k -> Format.sprintf "kern: %d" k
     | SAddr   a -> Format.sprintf "addr: [ %s ]" (string_of_dim a)
-    | SNdim  (d, n) -> Genfunc.string_of_dim @@  (shape_of_module d n)
+    | SNdim  (d, n) -> string_of_dim @@  (shape_of_module d n)
 ;;
 
 let pp_spinval _f _s = 

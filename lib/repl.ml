@@ -8,7 +8,7 @@
  *
  *)
 let handle_transform_formulae grid form = 
-    match Eval.tosource form with 
+    match Eval.tosource grid form with 
     | Ok    t -> 
         (*let _ = Format.printf "\n%s\n" (Emitter.show_presource t) in*)
         let _ = 

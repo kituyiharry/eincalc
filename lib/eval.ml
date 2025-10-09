@@ -223,14 +223,14 @@ let eval (pr: vm) =
     consume pr.source (handle_op pr)
 ;;
 
-let tosource (vw: program) = 
+let tosource (grid) (vw: program) = 
     (>>==) (Genfunc.transform vw) (fun x -> 
 
         let mtch, out = x.outs in
 
         (* load kernel indexes onto the stack 
            return output and input kernel indexes *)
-        let (_outkidx, _kidxs, gl) = Emitter.genloop (presempty "") (List.map (fun y -> (y.shape, y.param) ) x.inps) out in 
+        let (_outkidx, _kidxs, gl) = Emitter.genloop grid (presempty "") (List.map (fun y -> (y.shape, y.param) ) x.inps) out in 
 
         (* each parameter input with its associated kernel index added by genloop *)
         let  _mapidx = List.of_seq @@ Seq.zip (x.inps |> List.to_seq) (List.to_seq _kidxs)  in
