@@ -7,7 +7,6 @@
  *   department may entail severe civil or criminal penalties.
  *
  *)
-
 open Tokens;;
 open Lexer;;
 
@@ -16,16 +15,16 @@ let (>>==) = Result.bind;;
 type lit     = 
     (* TODO: Does disjoint set make sense ?? *)
     | Shape of (char * int) list 
-    (* TODO: make lit *)
 and referral = 
     | Self  (* the current cell *)
 and call = 
     | Diag  of float * int  (* square matrix with diagonal values *) 
     | Zeros of int list     (* zero init with a shape  *)
     | Ones  of int list     (* ones init with a shape  *)
-    | Fill  of float * int list  (* fill shape with a certain value *)
-    | Enum  of (float * float * int list) (* enumerate from minvalue and increment with a shape *)
+    | Fill  of float * int list (* fill shape with a certain value *)
+    | Enum  of float * float * int list (* enumerate from minvalue and increment with a shape *)
     | Rand  of float * int list (* random with bound and shape *)
+    | Alt   of float list * int list (* alternate of values *)
 and mask = 
     | MinMax of float * float    (* min max between a apair of values *)
     | ZScore 
@@ -369,6 +368,61 @@ let compass tokn motn =
         (South motn)
     | _ -> 
         failwith "invalid token in compass"
+;;
+
+
+let parse_extract_slice state = 
+    match (fst state).curr with
+    | Some { tokn;_ } -> 
+        (
+            match tokn with 
+            | TNumeral v ->  
+                let rec collect_rem state' p  = 
+                    let next = advance state' in
+                    (match (fst next).curr with 
+                        | Some { tokn; _ } -> 
+                            (match tokn with
+                                | TComma -> 
+                                    collect_rem next p
+                                | TNumeral n -> 
+                                    collect_rem (next) ((float_of_int n) :: p)
+                                | TFloat f -> 
+                                    collect_rem (next) ((f) :: p)
+                                | TRightBracket -> 
+                                    (* exit condition *)
+                                    Ok (advance next, (List.rev p))
+                                |  _ -> Error ("bad termination")
+                            )
+                        | None -> 
+                            Error ("Unterminated")
+                    )
+                in collect_rem state [ (float_of_int v) ]
+            | TFloat v   ->  
+                let rec collect_rem state' p  = 
+                    let next = advance state' in
+                    (match (fst next).curr with 
+                        | Some { tokn; _ } -> 
+                            (match tokn with
+                                | TComma -> 
+                                    collect_rem next p
+                                | TNumeral n -> 
+                                    collect_rem (next) ((float_of_int n) :: p)
+                                | TFloat f -> 
+                                    collect_rem (next) ((f) :: p)
+                                | TRightBracket -> 
+                                    (* exit condition *)
+                                    Ok (advance next, (List.rev p))
+                                |  _ -> Error ("bad termination")
+                            )
+                        | None -> 
+                            Error ("Unterminated")
+                    )
+                in collect_rem state [ v ]
+            | _ -> 
+                (Error "shapes can only be natural number (>= 0)")
+        )
+    | _ -> 
+        (Error "expected number in extraction")
 ;;
 
 let parse_extract_shape state = 
@@ -761,6 +815,40 @@ let parse_zeros_reference state =
     )
 ;;
 
+let parse_alt_reference state = 
+    let next = advance state in 
+    (match (fst next).curr with 
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TLeftAngle -> 
+                    let after = advance next in 
+                    (match (fst after).curr with
+                        | Some { tokn; _ } -> 
+                            (match tokn with 
+                                | TLeftBracket -> 
+                                    (>>==) (parse_extract_slice (advance after)) (fun (after', slc) -> 
+                                        (>>==) (consume after' TComma) (fun final -> 
+                                            (>>==) (parse_extract_shape (advance final)) (fun (after', shp) -> 
+                                                (>>==) (consume after' TRightAngle) (fun final -> 
+                                                    Ok (final, Create (Alt (slc, shp)))
+                                                ) 
+                                            )
+                                        )
+                                    )
+                                | _ -> 
+                                    Error "Expected shape spec"
+                            )
+                        | _ ->
+                            Error "Missing shape spec"
+                    )
+                | _ -> 
+                    Error ("Expected shape spec in angle brackets")
+            )
+        | None -> 
+            Error ("Expected shape spec")
+    )
+;;
+
 let parse_reference state = 
     match (fst state).curr with
     | Some { tokn;_ } -> 
@@ -778,8 +866,10 @@ let parse_reference state =
                 parse_rand_reference state
             | TAlphaNum "enum" -> 
                 parse_enum_reference state
-            | TAlphaNum "eye" -> 
+            | TAlphaNum "eye" | TAlphaNum "diag" -> 
                 parse_diag_reference state
+            | TAlphaNum "alt" -> 
+                parse_alt_reference state
             | TAlphaNum _start -> 
                 (if validate _start then
                     let next = advance state in

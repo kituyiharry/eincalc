@@ -157,6 +157,9 @@ let parammatch ({ inp; _ }, par) =
                         | Rand  (_vl, shp) -> (
                             compfromshape param pidx  l shp
                         ) (* random with bound and shape *)
+                        | Alt (_slc, shp)  -> (
+                            compfromshape param pidx  l shp
+                        )
                     )
                 | _ -> Error "only shape with ndarray handled"
             )

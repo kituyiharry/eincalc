@@ -84,30 +84,34 @@ let load_kernel_addr vm count =
     collect [] 0
 ;;
 
-(* TODO: standardize order *)
-let print_kernel vm = 
-    let indx = peek vm in
-    match (indx) with 
-    | (SKern _i) -> 
-        (match (vm.source.kernels.(_i)) with 
-            | SNdim ((module M), _modl) as _g -> 
-                (
-                    let n = show_spinval (vm.source.kernels.(_i)) in 
-                    let b = Buffer.create 256 in
-                    let _ = Buffer.add_string b ("      " ^ n) in 
-                    let _ = Buffer.add_char b '\n' in 
-                    let _ = M.iteris (fun _ -> 
-                        Buffer.add_string b "\r    "
-                    ) (fun _d v -> 
+let show_kernel sk = 
+    (match sk with 
+        | SNdim ((module M), _modl) as _g -> 
+            (
+                let n = show_spinval (sk) in 
+                let b = Buffer.create 256 in
+                let _ = Buffer.add_string b ("      " ^ n) in 
+                let _ = Buffer.add_char b '\n' in 
+                let _ = M.iteris (fun _ -> 
+                    Buffer.add_string b "\r    "
+                ) (fun _d v -> 
                         Buffer.add_string b (Format.sprintf " |% 7.2f|" v)
                     ) 
                     (fun _ -> 
                         Buffer.add_string b "    \n"
                     ) _modl in
-                    Format.printf "%s\n" (Buffer.contents b)
-                )
-            | _ -> failwith "invalid kernel!"
-        )
+                Format.printf "%s\n" (Buffer.contents b)
+            )
+        | _ -> failwith "invalid kernel!"
+    )
+;;
+
+(* TODO: standardize order *)
+let print_kernel vm = 
+    let indx = peek vm in
+    match (indx) with 
+    | (SKern _i) -> 
+        (show_kernel (vm.source.kernels.(_i)))
     | _s -> 
         let _ = debug_stack vm in 
         failwith (Format.sprintf "Unable to print kernel using %s " (show_spinval indx))

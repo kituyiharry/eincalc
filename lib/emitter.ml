@@ -232,6 +232,21 @@ let range_to_ndarray n shp =
             ndarray_of_dim_init s (fun _dimidx ->  
                 Random.float b 
             ) 
+        | Parser.Alt (slc, shp) -> 
+            match slc with 
+            | [] -> 
+                ndarray_of_dim_init shp (Fun.const 0.) 
+            | hd :: [] -> 
+                ndarray_of_dim_init shp (Fun.const hd) 
+            | _  ->
+                let selc = Array.of_list slc in
+                let len  = Array.length selc in 
+                let loc  = ref 0 in
+                ndarray_of_dim_init shp (fun _dimidx ->  
+                    let v  = Array.unsafe_get selc (!loc) in 
+                    let  _ = loc := (!loc + 1) mod len 
+                    in v
+                ) 
     )
     | _ -> failwith "not implemented"
     (*| Range    (_frcell, _tocell) -> () *)
