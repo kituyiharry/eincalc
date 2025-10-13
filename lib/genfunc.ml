@@ -96,7 +96,27 @@ let compfromshape param pidx einchars dimens  =
             )
         in 
         Ok ({ 
-            (* add param *)
+                (* add param *)
+                shape=(dimens)(* x by y by .... *)
+            ;   elems=(g')    (* each dimension *)
+            ;   chset=(!chs)  (* Character set of the labels of each dimension *)
+            ;   param
+            ;
+        })
+    (* EDGE case -> scalar will have no shape but we take it as a kind of 1
+       length vector. is this a good approach ?? *)
+    else if l' = 1 && List.is_empty dimens then
+        let chs = ref CharSet.empty in
+        let g' = 
+            List.combine einchars [1] 
+            |> List.map (fun ((label, index), dimen) ->
+                (* -1 is ommision by default *)
+                chs := CharSet.add label !chs;
+                { label; index; dimen; param=pidx; outlc=(-1); }
+            )
+        in 
+        Ok ({ 
+                (* add param *)
                 shape=(dimens)(* x by y by .... *)
             ;   elems=(g')    (* each dimension *)
             ;   chset=(!chs)  (* Character set of the labels of each dimension *)
@@ -107,55 +127,98 @@ let compfromshape param pidx einchars dimens  =
         Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" l' (pidx+1) g')
 ;;
 
+let shape_of_mask m map = 
+    match m with
+    | MinMax (_, _) -> 
+        map
+    | ZScore -> 
+        map
+    | Mean ->
+        []
+    | Mode -> 
+        []
+    | Stddev ->
+        []
+    | Reshape shp -> 
+        shp
+    (*| Determ -> *)
+        (*[]*)
+    (*| Cumulative -> *)
+        (*map*)
+;;
+
+(* calculate shape from checking parameter structure *)
+let rec calcshape c = 
+    match c with 
+    | Range (_cellstart, _cellend) -> 
+        (* get the grid indexes for the references e.g A10 -> (9, 0) *)
+        let (sr, sc) = key_of_ref _cellstart in
+        let (er, ec) = key_of_ref _cellend in
+        (* extract a shape *)
+        (match (Int.abs (er - sr), Int.abs (ec - sc)) with 
+        | (0, 0)   -> Ok [ ] 
+        | (0, c)   -> Ok [ c + 1 ] 
+        | (r, c)   -> Ok [ r + 1; c + 1 ]) 
+    | Scalar _cell ->
+        Ok []
+    | NdArray n ->
+        (homogenous (metashape n))
+    | Mask (r, m) -> 
+        (>>==) (calcshape r) (fun lshp -> 
+            List.fold_left (fun acc maskval -> 
+                match acc with 
+                | Ok a ->
+                    let rshp = shape_of_mask maskval a in
+                    (match (Types.cardinal_of_shp rshp, Types.cardinal_of_shp a) with
+                    | (l, r) when l = r -> 
+                        Ok rshp 
+                    | (l, _d) when l = 1 -> 
+                        Ok rshp
+                    | _ -> 
+                        Error (Format.sprintf "improperly structured shape transformation: %s to %s!" 
+                            (Types.string_of_shape a) (Types.string_of_shape rshp)
+                        )
+                    )
+                | _ -> 
+                    acc
+            ) (Ok lshp) m
+        )
+    | Create c -> 
+        (match c with
+            | Diag  (_vl, shp) -> (
+                Ok [shp;shp]
+            )   (* matrix with diagonal values *) 
+            | Zeros shp -> (
+                Ok shp
+            )   (* zero init with a shape  *)
+            | Ones  shp  -> (
+                Ok shp
+            )   (* ones init with a shape  *)
+            | Fill  (_vl, shp) -> (
+                Ok shp
+            )   (* fill with a certain value *)
+            | Enum  (_vl, _inc, shp) -> (
+                Ok shp
+            )  (* enumerate from minvalue and increment with a shape *)
+            | Rand  (_vl, shp) -> (
+                Ok shp
+            ) (* random with bound and shape *)
+            | Alt (_slc, shp)  -> (
+                Ok shp
+            )
+        )
+    | _  -> 
+        Error "unimplemented shape calculation!"
+;;
+
 let parammatch ({ inp; _ }, par) = 
     if List.length inp ==  List.length par then 
         (* Ensure input are unique - maybe use disjoint set *)
         let ins = (
             List.combine inp par
-            |> List.mapi (fun pidx (paridx, param) ->
+            |> List.mapi (fun pidx ((Shape l), param) ->
                 (* TODO: use Disjoint Set *)
-                match (paridx, param) with
-                | (Shape l, NdArray n) -> 
-                    (>>==) (homogenous (metashape n)) (compfromshape param pidx l)
-                | (Shape l, Range (_cellstart, _cellend)) ->
-                    (* get the grid indexes for the references e.g A10 -> (9, 0) *)
-                    let (sr, sc) = key_of_ref _cellstart in
-                    let (er, ec) = key_of_ref _cellend in
-                    (* extract a shape *)
-                    let _shp = (match (Int.abs (er - sr), Int.abs (ec - sc)) with 
-                        | (0, 0)   -> [ ] 
-                        | (0, c)   -> [ c + 1 ] 
-                        | (r, c)   -> [ r + 1; c + 1 ]) 
-                    in
-                    (* denote the shape *)
-                    compfromshape param pidx l _shp
-                | (Shape l, Scalar _cell) ->
-                    compfromshape param pidx l []
-                | (Shape l, Create c) ->
-                    (match c with
-                        | Diag  (_vl, shp) -> (
-                            compfromshape param pidx l [shp;shp]
-                        )   (* matrix with diagonal values *) 
-                        | Zeros shp -> (
-                            compfromshape param pidx l shp
-                        )   (* zero init with a shape  *)
-                        | Ones  shp  -> (
-                            compfromshape param pidx l shp
-                        )   (* ones init with a shape  *)
-                        | Fill  (_vl, shp) -> (
-                            compfromshape param pidx  l shp
-                        )   (* fill with a certain value *)
-                        | Enum  (_vl, _inc, shp) -> (
-                            compfromshape param pidx  l shp
-                        )  (* enumerate from minvalue and increment with a shape *)
-                        | Rand  (_vl, shp) -> (
-                            compfromshape param pidx  l shp
-                        ) (* random with bound and shape *)
-                        | Alt (_slc, shp)  -> (
-                            compfromshape param pidx  l shp
-                        )
-                    )
-                | _ -> Error "only shape with ndarray handled"
+                (>>==) (calcshape param) (compfromshape param pidx l)
             )
         ) in 
         if List.exists (Result.is_error) ins then

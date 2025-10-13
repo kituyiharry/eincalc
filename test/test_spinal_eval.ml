@@ -22,7 +22,7 @@ let compare_kernels x y =
 ;;
 
 let make_scalar v  = 
-    Emitter.ndarray_of_dim_init [] (fun _ -> v)
+    ndarray_of_dim_init [] (fun _ -> v)
 ;;
 
 let vector_of_list l = 

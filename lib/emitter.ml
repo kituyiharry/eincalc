@@ -26,7 +26,6 @@
 *)
 
 open Genfunc;;
-open Ndarray;;
 open Ndmodel;;
 open Types;;
 
@@ -119,76 +118,7 @@ let oplen ps =
     List.length ps.oprtns
 ;;
 
-let iterndarray f nda = 
-    let rec iternd nest f nda =
-        match nda with 
-        (* remember -> indices are in reverse so we need to reverse again *)
-        | Parser.Itemize a -> List.iteri (fun l c ->  (f (List.rev (l :: nest)) c)) a
-        | Parser.Collect c -> List.iteri (fun i c' -> (iternd (i :: nest) f c') ) c
-    in 
-    iternd [] f nda
-;;
-
-let ndarray_of_dim shp =  
-    match shp with 
-    | [] -> 
-        let _scal = (module Scalar: NDarray with type t = float ref) in 
-        let (module Scalar) = _scal in
-        let _sdat = Scalar.make [||] 0. in
-        (SNdim (_scal, _sdat))
-    | hd :: [] -> 
-        let _scal = (module Vector: NDarray with type t = float vector wrap) in 
-        let (module Vector) = _scal in
-        let _sdat = Vector.make [|hd|] 0. in
-        (SNdim (_scal, _sdat))
-    | hd :: hd1 :: [] -> 
-        let _scal = (module Matrix: NDarray with type t = float matrix wrap) in 
-        let (module Matrix) = _scal in
-        let _sdat = Matrix.make [|hd;hd1|] 0. in
-        (SNdim (_scal, _sdat))
-    | hd :: hd1 :: hd2 :: [] -> 
-        let _scal = (module BatchMatrix: NDarray with type t = batches) in 
-        let (module BatchMatrix) = _scal in
-        let _sdat = BatchMatrix.make [|hd;hd1;hd2|] 0. in
-        (SNdim (_scal, _sdat))
-    | rem -> 
-        let _scal = (module MulDim: NDarray with type t = bigfloatarray) in 
-        let (module MulDim) = _scal in
-        let _sdat = MulDim.make (Array.of_list rem) 0. in
-        (SNdim (_scal, _sdat))
-;;
-
-
-let ndarray_of_dim_init shp f =  
-    match shp with 
-    | [] -> 
-        let _scal = (module Scalar: NDarray with type t = float ref) in 
-        let (module Scalar) = _scal in
-        let _sdat = Scalar.init [||] f in
-        (SNdim (_scal, _sdat))
-    | hd :: [] -> 
-        let _scal = (module Vector: NDarray with type t = float vector wrap) in 
-        let (module Vector) = _scal in
-        let _sdat = Vector.init [|hd|] f in
-        (SNdim (_scal, _sdat))
-    | hd :: hd1 :: [] -> 
-        let _scal = (module Matrix: NDarray with type t = float matrix wrap) in 
-        let (module Matrix) = _scal in
-        let _sdat = Matrix.init [|hd;hd1|] f in
-        (SNdim (_scal, _sdat))
-    | hd :: hd1 :: hd2 :: [] -> 
-        let _scal = (module BatchMatrix: NDarray with type t = batches) in 
-        let (module BatchMatrix) = _scal in
-        let _sdat = BatchMatrix.init [|hd;hd1;hd2|] f in
-        (SNdim (_scal, _sdat))
-    | rem -> 
-        let _scal = (module MulDim: NDarray with type t = bigfloatarray) in 
-        let (module MulDim) = _scal in
-        let _sdat = MulDim.init (Array.of_list rem) f in
-        (SNdim (_scal, _sdat))
-;;
-
-let range_to_ndarray _grid n shp =
+let rec range_to_ndarray _grid n shp =
     (* spreadsheet cell *)
     match n with 
     | Parser.NdArray (_ndfl) -> (
@@ -226,7 +156,7 @@ let range_to_ndarray _grid n shp =
         | Parser.Ones s ->
             ndarray_of_dim_init s (fun _dimidx -> 1.) 
         | Parser.Fill (v, s) -> 
-            let s' = ndarray_of_dim_init s (fun _dimidx -> v )  in
+            let s' = Types.ndarray_of_dim_init s (fun _dimidx -> v )  in
             s'
         | Parser.Enum (m, i, s) -> 
             let minv = ref m in
@@ -256,14 +186,55 @@ let range_to_ndarray _grid n shp =
                     in v
                 ) 
     )
+    | Mask (_cr, _ml) -> 
+        masked_to_ndarray _grid _ml _cr
     | _ -> failwith "not implemented"
-    (*| Range    (_frcell, _tocell) -> () *)
     (*| Relative (_motion, _crange) -> () *)
     (*| Refer    (_referral) -> () *)
     (*| Void ->  ()*)
+and masked_to_ndarray _grid _masks range = 
+    (* TODO: we may not need to recalculate *)
+    match calcshape range with 
+    | Ok ishp -> 
+        let ndarr = range_to_ndarray _grid range ishp in
+        List.fold_left (fun acc mask -> 
+            (match acc with
+            | SNdim ((module M), data) ->
+                (match mask with
+                    | Parser.MinMax (a, b) -> 
+                        let data' = Masks.minmaxscale (module M) data (a, b) in
+                        SNdim ((module M), data')
+                    | Parser.ZScore ->
+                        let data' = Masks.zscore (module M) data in
+                        SNdim ((module M), data')
+                    | Parser.Mean ->
+                        let mnval = Masks.mean (module M) data in 
+                        let acc' = Ndarray.Scalar.make [||] mnval in
+                        SNdim ((module Ndarray.Scalar), acc')
+                    | Parser.Mode ->
+                        let freq = Masks.frequencies (module M) (Masks.ModeTable.create 16) data in
+                        let mode = Masks.mode freq in 
+                        let acc' = Ndarray.Scalar.make [||] mode in
+                        SNdim ((module Ndarray.Scalar), acc')
+                    | Parser.Stddev -> 
+                        let stdval = Masks.stddev (module M) data in 
+                        let acc' = Ndarray.Scalar.make [||] stdval in
+                        SNdim ((module Ndarray.Scalar), acc')
+                    | Parser.Reshape nshp -> 
+                        (match ndarray_of_dim nshp with 
+                            | SNdim ((module M'), ndata) -> 
+                                let _ =  Masks.reshape (module M) (module M') data ndata in
+                                SNdim ((module M'), ndata)
+                            | _ -> failwith "reshape error!"
+                        )
+                )
+            | _ -> 
+                failwith "Invalid mask argument!!"
+            )
+        ) ndarr _masks
+    | Error s -> 
+        failwith s
 ;;
-
-
 
 (* generates nested loops from a list of variable matches *)
 let genloop grid ps (parms: (int list * Parser.crange) list) (out: int list) =

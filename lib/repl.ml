@@ -17,7 +17,7 @@ let handle_transform_formulae grid form =
             |> Eval.eval
         in 
         ()
-    | Error e -> Format.printf "Error: %s" e
+    | Error e -> Format.printf "Error: %s\n" e
 ;;
 
 let handle_parse_exp grid (lex: Lexer.lexeme list) = 
@@ -33,7 +33,7 @@ let handle_parse_exp grid (lex: Lexer.lexeme list) =
                     (*let _ = Format.printf "Tree: %s\n" (Parser.show_program prog) in *)
                     handle_transform_formulae grid prog
             )
-            | Error s   -> Format.printf "Parse Error: %s" s
+            | Error s   -> Format.printf "Parse Error: %s\n" s
         )
     )
 ;;

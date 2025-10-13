@@ -26,15 +26,20 @@ and call =
     | Rand  of float * int list (* random with bound and shape *)
     | Alt   of float list * int list (* alternate of values *)
 and mask = 
+    (* TODO: support axis values for direction of application - default means
+       flattening and applying over whole  *)
     | MinMax of float * float    (* min max between a apair of values *)
     | ZScore 
     | Mean 
+    | Mode
     | Stddev
-    | Rescale                    (* values add up to a certain num *)
-    | Reshape
-    | Determ                     (* determinant *)
-    | Map 
-    | Reduce
+    | Reshape of int list
+    (*| Determ                     (* determinant *)*)
+    (* todo: robust scaling and unit vector norm *)
+    (*| Rescale                  (* values add up to a certain num *)*)
+    (*| Cumulative*)
+    (*| Map *)
+    (*| Reduce *)
 and  cell    = string * int      (* Rows are strings, Columns are numbers *)
 and  dimnsn  = lit               (* literal and its index *)
 and  motion  =  
@@ -52,7 +57,7 @@ and  crange  =
     | Relative of motion * crange(* Relative cell - Up ^, Down _, Left <, Right, > *)
     | Refer    of referral       (* a way to refer to the current cell *) 
     | Create   of call 
-    | Mask     of mask * crange
+    | Mask     of crange * mask list
     | Void
 and  params  = crange list       (* function parameters *)
 and  einsum  = { 
@@ -917,17 +922,121 @@ and parse_ein_params state =
             | TComma   ->  
                 (* NB: Trailing commas will add a Void *)
                 Ok (state, Void)
+            | TFloat fval -> 
+                Ok (advance state, NdArray (Itemize ([ fval ])))
+            | TNumeral ival -> 
+                Ok (advance state, NdArray (Itemize ([ float_of_int ival ])))
             | _ -> 
                 Error "Bad token"
         )
     | _ -> Error "Missing einsum parameters"
 ;;
 
+let parse_num state = 
+
+    (match (fst state).curr with 
+        | Some { tokn; _ } -> 
+            (match tokn with 
+            | TNumeral _ | TFloat _ -> 
+                (Ok ((advance state), tokn))
+            | _ ->
+                Error ("expected number")
+            )
+        | None ->
+            Error "expected number token"
+    )
+;;
+
+let parse_ein_mask state = 
+    (* TODO: support arbitrary expression operations
+     *| Map 
+     *| Reduce
+     *| Rescale                    (* values add up to a certain num *)*
+     *)
+    let rec masklist state lst = 
+        (match (fst state).curr with 
+            | Some { tokn; _ } -> 
+                (>>==) (match tokn with 
+                    (* maps to same shape *)
+                    | TAlphaNum "zscore" -> 
+                        Ok (advance state, ZScore)
+                    | TAlphaNum "minmax" ->
+                        let nxt = advance state in
+                        if check (TLeftAngle) (fst nxt) then
+                            (>>==) (parse_num (advance nxt)) (fun (after, num1) -> 
+                                (>>==) (consume  after TComma) (fun nxt -> 
+                                    (>>==) (parse_num nxt) (fun (after', num2) -> 
+                                        (match (num1, num2) with 
+                                        | (TFloat vala, TFloat valb) -> 
+                                            (>>==) (consume after' TRightAngle) (fun after' ->
+                                                Ok ((after'), MinMax(vala, valb))
+                                            )
+                                        | (TNumeral vala, TNumeral valb) ->
+                                            (>>==) (consume after' TRightAngle) (fun after' ->
+                                                Ok (after', MinMax((float_of_int vala), (float_of_int valb)))
+                                            )
+                                        | (TFloat vala, TNumeral valb) ->
+                                            (>>==) (consume after' TRightAngle) (fun after' ->
+                                                Ok (after', MinMax(vala, (float_of_int valb)))
+                                            )
+                                        | (TNumeral vala, TFloat valb) ->
+                                            (>>==) (consume after' TRightAngle) (fun after' ->
+                                                Ok (after', MinMax((float_of_int vala), valb))
+                                            )
+                                        | _ -> 
+                                            Error "unreachable condition!!"
+                                        )
+                                    )
+                                )
+                            )
+                        else
+                            Ok (advance state, MinMax(-1., 1.))
+                    | TAlphaNum "reshape" ->
+                        let nxt = advance state in
+                        if check (TLeftAngle) (fst nxt) then
+                            let nxt' = advance nxt in
+                            if check TLeftBracket (fst nxt') then 
+                                (>>==) (parse_extract_shape (advance nxt')) (fun (after, shp) -> 
+                                    (>>==) (consume after TRightAngle) (fun after' ->
+                                        Ok (after', Reshape shp)
+                                    )
+                                ) 
+                            else
+                                Error "reshape value should be in shape format"
+                        else
+                            Error "missing reshape values!"
+                    (* reductions to Scalar *)
+                    | TAlphaNum "mean" ->
+                        Ok (advance state, Mean)
+                    | TAlphaNum "stddev" ->
+                        Ok (advance state, Stddev)
+                    | TAlphaNum "mode" ->
+                        Ok (advance state, Mode)
+                    | t -> 
+                        Error (Format.sprintf "Unknown mask function: %s" (show_ttype t))
+                ) (fun (state', mask) -> 
+                    if check TPipe (fst state') then
+                        (masklist (advance state') (mask :: lst))
+                    else
+                        Ok (state', List.rev (mask :: lst))
+                )
+            | None -> 
+                Error "expected mask function"
+        ) in 
+    masklist state []
+;;
+
 let parse_einsum_formulae state = 
     let rec _extract (state, (ein, par)) =
         (if check TComma (fst state) then 
                 ((>>==) (parse_ein_params (advance state)) (fun (next, rnge) -> 
-                    _extract (next, (ein, rnge :: par))
+                  (* check for masks which are piped to parameters *)
+                    if check TPipe (fst next) then
+                        (>>==) (parse_ein_mask (advance next)) (fun (next', ml) -> 
+                            _extract (next', (ein, (Mask (rnge, ml)) :: par))
+                        )
+                    else
+                        _extract (next, (ein, rnge :: par))
                 ))
                 (*(Fun.compose _extract add_crange)) *)
             (* a right paren shows the end of parameter sequence - dont advance in this case *)
@@ -936,7 +1045,6 @@ let parse_einsum_formulae state =
                     (* let the call order reflect how it written for einsum parameters *)
                     _extract (next, (ein, rnge :: par))
                 ))
-                (*(Fun.compose _extract add_crange)) *)
             else (Ok (state, (ein, (List.rev par))))
         );
     in (>>==) (parse_einsum state) (_extract)

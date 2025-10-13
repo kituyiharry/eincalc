@@ -230,6 +230,9 @@ let tosource (grid) (vw: program) =
 
         (* load kernel indexes onto the stack 
            return output and input kernel indexes *)
+
+        (* TODO: represent param as shape transformation types so we don't need
+           to recalculate it while masking! *)
         let (_outkidx, _kidxs, gl) = Emitter.genloop grid (presempty "") (List.map (fun y -> (y.shape, y.param) ) x.inps) out in 
 
         (* each parameter input with its associated kernel index added by genloop *)

@@ -14,8 +14,8 @@ type 'a wrap = {
     ;
 };;
 
-type 'a vector     = 'a array
-type 'a matrix     = 'a array array 
+type 'a vector     = 'a array wrap
+type 'a matrix     = 'a array array wrap
 type batches       = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Array3.t ;;
 type bigfloatarray = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t ;;
 
@@ -72,9 +72,9 @@ end
 
 (* n * n *)
 
-module Vector: NDarray with type t = (float vector) wrap = struct 
+module Vector: NDarray with type t = (float array wrap) = struct 
 
-    type t = (float array) wrap
+    type t = float vector
 
     let make (_dims: int array) (v) =
         let () = assert (Array.length _dims > 0) in
@@ -113,11 +113,9 @@ module Vector: NDarray with type t = (float vector) wrap = struct
 end
 
 (* n * n *)
-module Matrix: NDarray with 
-    type t = float array array wrap
-= struct 
+module Matrix: NDarray with type t = float array array wrap = struct 
 
-    type t = float matrix wrap
+    type t = float matrix
 
     let make (_dims: int array) (v) =
         let () = assert (Array.length _dims > 1) in
@@ -164,9 +162,7 @@ module Matrix: NDarray with
 end
 
 (* n * n * n *)
-module BatchMatrix: NDarray with 
-    type t = batches
-= struct 
+module BatchMatrix: NDarray with type t = batches = struct 
     open! Bigarray;;
 
     type e = float  
@@ -241,9 +237,7 @@ end
 
 (* only support float dimens at this point *)
 
-module MulDim: NDarray with 
-    type t = bigfloatarray 
-= struct 
+module MulDim: NDarray with type t = bigfloatarray = struct 
     open! Bigarray;;
 
     type e = float

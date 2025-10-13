@@ -161,7 +161,7 @@ let fetch_grid g (r, c) (r', c') sparse =
                 (SNdim (_scal, _sdat))
         )
     | (0, _len) ->
-        let _scal = (module Vector: NDarray with type t = float vector wrap) in 
+        let _scal = (module Vector: NDarray with type t = float vector) in 
         let (module Vector) = _scal in
         let _sdat = Vector.make [|(Int.abs _len) + 1|] 0. in
         (* TODO: can we eliminate this counter to allow for out of order computation *)
@@ -172,7 +172,7 @@ let fetch_grid g (r, c) (r', c') sparse =
         ) in  
         (SNdim(_scal, _sdat))
     | (_lenr, _lenc) -> 
-        let _scal = (module Matrix: NDarray with type t = float matrix wrap) in 
+        let _scal = (module Matrix: NDarray with type t = float matrix) in 
         let (module Matrix) = _scal in
         let _sdat = Matrix.make [|(Int.abs _lenr) + 1;(Int.abs _lenc) + 1|] 0. in
         (* TODO: can we eliminate this counter to allow for out of order computation *)

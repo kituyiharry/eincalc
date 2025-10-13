@@ -11,6 +11,8 @@ open Tokens;;
 
 (* TODO: Maybe use array instead of list *)
 
+let (>>==) = Result.bind;;
+
 type lexeme = {
         tokn: ttype 
     ;   line: int 
@@ -37,7 +39,7 @@ let isAlphaNum c =
     isDigit c || isAlpha c 
 ;;
 
-let scan_token (line, colm, sstr) index rest =
+let rec scan_token (line, colm, sstr) index rest =
     match sstr with
     | '('  -> Ok ((mktok line colm TLeftParen),   index, rest)
     | ')'  -> Ok ((mktok line colm TRightParen),  index, rest)
@@ -50,6 +52,7 @@ let scan_token (line, colm, sstr) index rest =
     | '^'  -> Ok ((mktok line colm TCaret),       index, rest)
     | '_'  -> Ok ((mktok line colm TUnderscore),  index, rest)
     | '@'  -> Ok ((mktok line colm TAt),          index, rest)
+    | '|'  -> Ok ((mktok line colm TPipe),        index, rest)
     | '.'  -> 
         (match rest with
             |  ('.') :: rest' -> 
@@ -60,6 +63,14 @@ let scan_token (line, colm, sstr) index rest =
     | '-'  -> (match rest with
             | ('>') :: rest' -> 
                 Ok ((mktok line colm TArrow), index+1, rest')
+            | ns :: rest' when isDigit ns -> 
+                (* TODO: may have fudged line tracking! *)
+                (>>==) (scan_token (line, colm+1, ns) index rest') (fun (tok, indx, rem) -> 
+                    match tok.tokn with 
+                    | TFloat   v -> (Ok ((mktok line colm (TFloat ((-1. *. v)))), indx, rem))
+                    | TNumeral v -> (Ok ((mktok line colm (TNumeral (- v))), indx, rem))
+                    | _ -> Error (line, colm, "bad unary operation on token")
+                )
             | _ -> 
                 Error (line, colm, Format.sprintf "expected einsum arrow function '->'")
         )
