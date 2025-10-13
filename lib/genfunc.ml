@@ -10,6 +10,15 @@
 open Parser;;
 open Ndmodel;;
 
+(*
+ *
+ * Checked Rules:
+ *   -> subscripts with the same letter must have the same dimension size
+ *   -> subscripts not appearing in the output will be summed over
+ *   -> subcripts in the output cannot be repeated
+ *
+ *)
+
 type ndshape = 
     | Col of int 
     | Row of int * ndshape list
