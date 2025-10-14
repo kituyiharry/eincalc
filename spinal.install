@@ -1,0 +1,11 @@
+lib: [
+  "_build/install/default/lib/spinal/META"
+  "_build/install/default/lib/spinal/dune-package"
+  "_build/install/default/lib/spinal/opam"
+]
+bin: [
+  "_build/install/default/bin/spinal"
+]
+doc: [
+  "_build/install/default/doc/spinal/README.md"
+]

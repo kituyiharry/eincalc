@@ -1,0 +1,12 @@
+(executable
+ (name index)
+ (modes byte js)
+ (preprocess (pps js_of_ocaml-ppx))
+ (libraries js_of_ocaml js_of_ocaml-lwt js_of_ocaml-lwt.graphics)
+ )
+
+(rule
+ (mode promote)
+ (targets index.js)
+ (deps index.bc.js)
+ (action (copy index.bc.js index.js)))
