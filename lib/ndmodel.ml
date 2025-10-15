@@ -121,6 +121,7 @@ let collectrow g range r sparse apply =
 ;;
 
 (*  
+    creates a sequence from values -> inclusive range
     [0, 0] -> [ 0 ]
     [0, 3] -> [ 0, 1, 2, 3 ]
     [3, 0] -> [ 3, 2, 1, 0 ]

@@ -1,19 +1,19 @@
 module Html = Js_of_ocaml.Dom_html
-module Dom = Js_of_ocaml.Dom
-module Js = Js_of_ocaml.Js
-module G =  Graphics_js
+module Dom  = Js_of_ocaml.Dom
+module Js   = Js_of_ocaml.Js
+module G    = Graphics_js
 
-let js_str = Js.string
-let js_num = Js.number_of_float
+let js_str  = Js.string
+let js_num  = Js.number_of_float
 
 let doc = Html.document
 
-let canvas_width = 300.
+let canvas_width  = 300.
 let canvas_height = 150.
 
 let create_canvas () =
   let r = Html.createCanvas doc in
-  r##.width := int_of_float canvas_width;
+  r##.width  := int_of_float canvas_width;
   r##.height := int_of_float canvas_height;
   r
 ;;
@@ -35,7 +35,7 @@ let rec draw_things (context: Html.canvasRenderingContext2D Js.t) counter =
 
 let onload _event =
   let canvas = create_canvas () in
-  G.open_canvas canvas;
+  G.open_canvas   canvas;
   Dom.appendChild doc##.body canvas;
   let c = canvas##getContext Html._2d_ in
   let _ = draw_things c 0 |> ignore in
@@ -43,5 +43,42 @@ let onload _event =
 ;;
 
 let _ =
+    let _g = Spinal.Ndmodel.enum_grid (10, 10) in
+    let _ = Js.export "myLib"
+            (object%js (_self)
+
+                (*you can export polymorphic methods to javascript.*)
+                method add x y = x + y
+
+                (*you can export values as well. Note that exported values and functions must follow the [snake case]().*)
+                val myVal = 3
+
+                (*The Js_of_ocaml.Js module contains javascript types and functions to handle them.*)
+                method hello (name: Js.js_string Js.t) : (Js.js_string Js.t) = 
+                (
+                    let name = Js.to_string name in 
+                    let hello_name = "hello " ^ name in
+                    Js.string hello_name
+                )
+
+                (*You can also write javascript within your OCaml code. Note that the versino of javascript supported is not recent               (no let keyword for example).*)
+                method typedArray _ =
+                (
+                    let init_typed_array = Js.Unsafe.js_expr
+                        {js|(function() {
+                            var buf = new Uint8Array(2);
+                            buf[0] = 1;
+                            return buf;
+                            })
+                        |js}
+                    in
+                    let typed_array = Js.Unsafe.fun_call init_typed_array [||] in
+                    let typed_array = Js_of_ocaml.Typed_array.String.of_uint8Array typed_array in
+                    String.iter (fun (x:char) -> Format.printf "%d\n" (int_of_char x)) typed_array
+                )
+
+            end) 
+  in
+  Format.printf "Hello console!";
   Html.window##.onload := Html.handler onload
 
