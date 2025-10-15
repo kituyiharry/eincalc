@@ -1,0 +1,5 @@
+(rule
+ (mode promote)
+ (targets index.js)
+ (deps ../../index.bc.js)
+ (action (copy ../../index.bc.js index.js)))

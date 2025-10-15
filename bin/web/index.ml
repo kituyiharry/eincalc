@@ -33,10 +33,10 @@ let rec draw_things (context: Html.canvasRenderingContext2D Js.t) counter =
     draw_things context (counter + 1)
 ;;
 
-let onload _event =
+let _onload domnode =
   let canvas = create_canvas () in
   G.open_canvas   canvas;
-  Dom.appendChild doc##.body canvas;
+  Dom.appendChild domnode canvas;
   let c = canvas##getContext Html._2d_ in
   let _ = draw_things c 0 |> ignore in
   Js._false
@@ -61,7 +61,14 @@ let _ =
                     Js.string hello_name
                 )
 
-                (*You can also write javascript within your OCaml code. Note that the versino of javascript supported is not recent               (no let keyword for example).*)
+                method load (elt: #Dom.node Js.t) = 
+                (
+                    _onload elt
+                )
+
+                (*You can also write javascript within your OCaml code.
+                  Note that the versino of javascript supported is not recent               
+                  (no let keyword for example).*)
                 method typedArray _ =
                 (
                     let init_typed_array = Js.Unsafe.js_expr
@@ -79,6 +86,6 @@ let _ =
 
             end) 
   in
-  Format.printf "Hello console!";
-  Html.window##.onload := Html.handler onload
+  Format.printf "Hello console from ocaml!";
+  (*Html.window##.onload := Html.handler onload*)
 
