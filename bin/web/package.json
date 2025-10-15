@@ -34,10 +34,10 @@
     "vite": "^7.1.7",
     "vite-plugin-devtools-json": "^1.0.0",
     "vitest": "^3.2.4",
-    "vitest-browser-svelte": "^1.1.0"
-  },
-  "dependencies": {
+    "vitest-browser-svelte": "^1.1.0",
     "@originjs/vite-plugin-commonjs": "^1.0.3",
     "vite-plugin-node-polyfills": "^0.24.0"
+  },
+  "dependencies": {
   }
 }
