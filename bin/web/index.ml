@@ -51,7 +51,7 @@ let _ =
                 method add x y = x + y
 
                 (*you can export values as well. Note that exported values and functions must follow the [snake case]().*)
-                val myVal = 3
+                val myVal = _g
 
                 (*The Js_of_ocaml.Js module contains javascript types and functions to handle them.*)
                 method hello (name: Js.js_string Js.t) : (Js.js_string Js.t) = 
