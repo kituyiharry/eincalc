@@ -20,6 +20,7 @@ type spinmodel =
 type gridref = (string * int) 
 
 (* convert a pair like ("DD", 100) -> to referencable 0 indexed cell (100, ) *)
+(* TODO: Support greek letters or other alphabet types and numeral systems *)
 let key_of_ref ((col, row): gridref) = 
     let col = String.fold_left (fun acc c -> 
         (acc * ((Char.code 'Z' - Char.code 'A') + 1))
