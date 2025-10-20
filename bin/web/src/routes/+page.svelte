@@ -138,20 +138,20 @@
       isDragging = false;
   }
 
-  function handleClick(e) {
-      if (isDragging) return
-      const rect = e.target.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+  // function handleClick(e) {
+  //     if (isDragging) return
+  //     const rect = e.target.getBoundingClientRect();
+  //     const x = e.clientX - rect.left;
+  //     const y = e.clientY - rect.top;
 
-      const cell = getCellFromPosition(x, y);
-      if (cell) {
-          const cellKey = `${cell.row},${cell.col}`;
-          selectionStart = cell;
-          selectionEnd = cell;
-      }
-      counter++;
-  }
+  //     const cell = getCellFromPosition(x, y);
+  //     if (cell) {
+  //         const cellKey = `${cell.row},${cell.col}`;
+  //         selectionStart = cell;
+  //         selectionEnd = cell;
+  //     }
+  //     counter++;
+  // }
 
   function handleDoubleClick(e) {
       const rect = e.target.getBoundingClientRect();
@@ -174,8 +174,19 @@
   function handleEditorBlur() {
     if (editingCell) {
       const cellKey = `${editingCell.row},${editingCell.col}`;
-      cellData[cellKey] = editValue;
+      const editOut = editValue.trim();
+      if (editOut.startsWith('=')) {
+        const num = parseFloat(editOut.substring(1));  
+        controller.myLib.gridaddnumber(editingCell.row, editingCell.col, num);
+        console.log("was number");
+      } else {
+        controller.myLib.gridaddstring(editingCell.row, editingCell.col, editOut);
+        console.log("was string");
+      }
+      visibleCells.delete(cellKey);
+      //cellData[cellKey] = editValue;
       editingCell = null;
+      counter++;
     }
   }
 
@@ -198,7 +209,6 @@
 <div class='h-[100vh] w-[100vw]'>
 
     <!--TODO: wheel and touch events may not work as well on layers - find out why ?? --->
-
     <input
         bind:this={editor}
         type="text"
@@ -209,7 +219,6 @@
         style={Object.entries(editorStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}
     />
     <Canvas 
-        onclick={handleClick}
         ondblclick ={handleDoubleClick} 
         onmousedown={handleMouseDown} 
         onmouseup  ={handleMouseUp}

@@ -2,6 +2,7 @@
 (*module Dom  = Js_of_ocaml.Dom*)
 (*module G    = Graphics_js*)
 module Js   = Js_of_ocaml.Js
+module Con  = Js_of_ocaml.Console
 
 let js_str  = Js.string
 let js_num  = Js.number_of_float
@@ -13,36 +14,24 @@ let _ =
                 
                 method get row col = (
                     match Spinal.Ndmodel.Grid.find_opt _g (row, col) with 
-                    | Some v -> (
-                        match v with
-                        | Spinal.Ndmodel.TFormulae s | Spinal.Ndmodel.TValue s -> (js_str s)
-                        | Spinal.Ndmodel.TNumber f-> js_str (string_of_float f)
-                    )
+                    | Some Spinal.Ndmodel.TValue  s -> (js_str s)
+                    | Some Spinal.Ndmodel.TNumber f -> (js_str (string_of_float f))
                     | None   -> js_str ""
                 )
 
-                (*you can export polymorphic methods to javascript.*)
-                (*method add x y = x + y*)
+                (* TODO: use OptDef or Opt for null checks *)
+                method gridaddnumber row col (value: Js.number Js.t) = (
+                    let vstr = Js.to_float value in
+                    (*let _ = Con.console##log (Format.sprintf "adding %f\n" vstr) in*)
+                    Spinal.Ndmodel.Grid.add _g (row, col) (TNumber vstr)
+                )
 
-                (*you can export values as well. Note that exported values and functions must follow the [snake case]().*)
-                (*val repo = _g*)
-
-                (*The Js_of_ocaml.Js module contains javascript types and functions to handle them.*)
-                (*
-                 *method hello (name: Js.js_string Js.t) : (Js.js_string Js.t) = 
-                 *(
-                 *    let name = Js.to_string name in 
-                 *    let hello_name = "hello " ^ name in
-                 *    Js.string hello_name
-                 *\)
-                 *)
-
-                (*
-                 *method load (elt: #Dom.node Js.t) = 
-                 *(
-                 *    _onload elt
-                 *\)
-                 *)
+                (* TODO: use OptDef or Opt for null checks *)
+                method gridaddstring row col (value: Js.js_string Js.t) = (
+                    let vstr = Js.to_string value in
+                    (*let _ = Con.console##log (Format.sprintf "adding %s\n" vstr)  in*)
+                    Spinal.Ndmodel.Grid.add _g (row, col) (TValue vstr)
+                )
 
                 (*You can also write javascript within your OCaml code.
                   Note that the versino of javascript supported is not recent               
