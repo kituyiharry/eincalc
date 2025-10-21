@@ -285,6 +285,7 @@ type instr =
     | ISetKern           (* write value to a kernel *)
     | IEchoKern          (* dereference and print out kernel values *)
     | ILoadAddr  of int  (* create an address from the next n values on the stack *)
+    | IApplyMasks
 [@@deriving show];;
 
 type source = {

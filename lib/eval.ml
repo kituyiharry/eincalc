@@ -65,6 +65,13 @@ let peek s =
     Array.get s.spine (s.stkidx - 1)
 ;;
 
+
+let apply_masks pr = 
+    let _ = Format.printf "applying %d masks\n" (List.length pr.source.pmasks) in
+    let s = Emitter.transform_mask pr.sheet (pr.source.kernels.(0)) pr.source.pmasks
+    in pr.source.kernels.(0) <- s
+;;
+
 let load_kernel_addr vm count = 
     (*let _ = debug_stack vm in*)
     (*let _ = Format.printf "collecting %d vars\n" count in *)
@@ -217,12 +224,11 @@ let handle_op vm op =
     | ISetKern      -> let _ = write_kernel_val vm in 1
     | IEchoKern     -> let _ = print_kernel vm in 1
     | ILoadAddr _a  -> let _ = load_kernel_addr vm _a in 1 
+    | IApplyMasks   -> let _ = apply_masks vm in 1
 ;;
 
 let eval (pr: vm) = 
-    let _ = consume pr.source (handle_op pr) in 
-    let s = Emitter.transform_mask pr.sheet (pr.source.kernels.(0)) pr.source.pmasks
-    in pr.source.kernels.(0) <- s
+    consume pr.source (handle_op pr)
 ;;
 
 let tosource (grid) (vw: program) = 
@@ -306,7 +312,7 @@ let tosource (grid) (vw: program) =
         (* print out the kernel at the end of execution *)
         let echokerns = List.map (Funcs.print_kern) (_kidxs) |> List.concat in
         Ok { 
-            vl with oprtns=vl.oprtns @ echokerns @ (Funcs.print_kern _outkidx)
+            vl with oprtns=vl.oprtns @ [ IApplyMasks ] @ echokerns @ (Funcs.print_kern _outkidx)
             ; pmasks=masks
         } 
     )
