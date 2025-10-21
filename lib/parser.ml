@@ -28,15 +28,18 @@ and call =
 and mask = 
     (* TODO: support axis values for direction of application - default means
        flattening and applying over whole  *)
-    | MinMax of float * float    (* min max between a apair of values *)
-    | ZScore 
-    | Mean 
+    (* TODO: robust scaling and unit vector norm *)
+    | MinMax of float * float     (* min max between a pair of values *)
+    | ZScore                      (* z-score normalization *)
+    | Mean
     | Mode
     | Stddev
     | Reshape of int list
-    (*| Determ                     (* determinant *)*)
-    (* todo: robust scaling and unit vector norm *)
-    (*| Rescale                  (* values add up to a certain num *)*)
+    | Write   of cell             (* executes an effect to the grid *)           
+    (*| Unbox                     (* undo top dimension maybe by running a function over it ?? *) *)
+    (*| Partition                 (* break into groups *) *)
+    (*| Determ                    (* determinant *) *)
+    (*| Rescale                   (* values add up to a certain num *)*)
     (*| Cumulative*)
     (*| Map *)
     (*| Reduce *)
@@ -66,7 +69,7 @@ and  einsum  = {
 }
 and expr     = 
     | Ein   of (einsum * params) (* formula specification *)
-(* Blocks can only have 1 inner expression and then enclose other blocks or expressions 
+(* TODO: Blocks can only have 1 inner expression and then enclose other blocks or expressions 
    We want to discourage long blocks.
 *)
 and  formula = 
@@ -960,6 +963,27 @@ let parse_ein_mask state =
                     (* maps to same shape *)
                     | TAlphaNum "zscore" -> 
                         Ok (advance state, ZScore)
+                    | TAlphaNum "write" -> 
+                        let nxt = advance state in
+                        if check TLeftAngle (fst nxt) then
+                            let nxt' = advance nxt in 
+                            (match (fst nxt').curr with 
+                            | Some  { tokn; _ } -> 
+                                (match tokn with 
+                                    | TAlphaNum _end ->  
+                                        (>>==) (as_cell _end) (fun ecell -> 
+                                            (>>==) (consume (advance nxt') TRightAngle) (fun final -> 
+                                                Ok (final, (Write ecell))
+                                            )
+                                        )
+                                    | _ -> 
+                                        Error "Expected range end"
+                                ) 
+                            | None -> 
+                                Error "missing cell argument"
+                            )
+                        else
+                            Error "expected write cell argument in angle brackets"
                     | TAlphaNum "minmax" ->
                         let nxt = advance state in
                         if check (TLeftAngle) (fst nxt) then

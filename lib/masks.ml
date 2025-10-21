@@ -91,7 +91,7 @@ let zscore (type data) (module M: Ndarray.NDarray with type t = data) (d: data) 
 
 let minmaxscale (type data) (module M: Ndarray.NDarray with type t = data) (d: data) (a, b) =
     let mn, mx = minmaxvalue (module M) d in
-    let rdiff  = b -. a   in 
+    let rdiff  = b  -. a   in 
     let mdiff  = mx -. mn in
     let d' = M.make (M.shape d) 0. in
     let _ = M.iteri (fun dim v -> 
@@ -104,5 +104,16 @@ let reshape (type adata bdata) (module S1: Ndarray.NDarray with type t = adata) 
     let (ashape, bshape) = (S1.shape a, S2.shape b) in 
     Seq.zip (Types.indexsequence ashape) (Types.indexsequence bshape)
     |> Seq.iter (fun (aidx, bidx) -> S2.set b bidx (S1.get a aidx))
+;; 
+
+let write (type data) (module S: Ndarray.NDarray with type t = data) (row, col) (data: data) (grid: Ndmodel.spinmodel Ndmodel.Grid.t) =
+    let offsetrow, offsetcol = ref row, ref col in
+    S.iteris (ignore) (fun _dim value -> 
+        let _ = Ndmodel.Grid.add grid (!offsetrow, !offsetcol) (Ndmodel.TNumber value) in
+        incr offsetcol
+    ) (fun _ -> 
+            incr offsetrow;
+            offsetcol := col;
+        ) data
 ;;
 

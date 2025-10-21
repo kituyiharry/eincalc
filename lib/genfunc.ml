@@ -112,7 +112,7 @@ let compfromshape param pidx einchars dimens  =
             ;   param
             ;
         })
-    (* EDGE case -> scalar will have no shape but we take it as a kind of 1
+    (* TODO: EDGE case -> scalar will have no shape but we take it as a kind of 1
        length vector. is this a good approach ?? *)
     else if l' = 1 && List.is_empty dimens then
         let chs = ref CharSet.empty in
@@ -133,6 +133,7 @@ let compfromshape param pidx einchars dimens  =
             ;
         })
     else
+        (* TODO: handle 1+ dimension reshape e.g 3x2 can be reshaped to 1x3x2 *)
         Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" l' (pidx+1) g')
 ;;
 
@@ -150,6 +151,8 @@ let shape_of_mask m map =
         []
     | Reshape shp -> 
         shp
+    | Write _cell -> 
+        map
     (*| Determ -> *)
         (*[]*)
     (*| Cumulative -> *)

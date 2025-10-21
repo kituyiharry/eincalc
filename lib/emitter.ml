@@ -227,6 +227,11 @@ and masked_to_ndarray _grid _masks range =
                                 SNdim ((module M'), ndata)
                             | _ -> failwith "reshape error!"
                         )
+                    | Parser.Write _cell -> 
+                        (* execute an effect back to the grid *)
+                        let start = key_of_ref _cell in
+                        let _ = Masks.write (module M) start data _grid in
+                        acc
                 )
             | _ -> 
                 failwith "Invalid mask argument!!"

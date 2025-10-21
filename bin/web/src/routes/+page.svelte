@@ -3,7 +3,7 @@
   // TODO: standardize controller so that we can type it
   import { default as controller } from '$lib/index';
 
-  let counter = 0;
+  let refresh = 0;
 
   const CELL_WIDTH       = 120;
   const CELL_HEIGHT      = 30;
@@ -131,7 +131,7 @@
       if (cell && (cell.row !== selectionEnd?.row || cell.col !== selectionEnd?.col)) {
           selectionEnd = cell;
       }
-      counter++;
+      refresh++;
   }
 
   function handleMouseUp() {
@@ -167,7 +167,7 @@
           editValue = cellData[cellKey] || '';
           setTimeout(() => editor?.focus(), 0);
       }
-      counter++;
+      refresh++;
   }
 
   
@@ -186,7 +186,7 @@
       visibleCells.delete(cellKey);
       //cellData[cellKey] = editValue;
       editingCell = null;
-      counter++;
+      refresh++;
     }
   }
 
@@ -226,7 +226,7 @@
         onwheel={handleWheel} 
         layerEvents 
         style="display: block; cursor: cell;">
-        {#key counter}
+        {#key refresh}
             <Layer render={ ({ context, width, height }) => { 
                 // see: https://github.com/sveltejs/svelte/issues/15066
                 // see: https://github.com/sveltejs/svelte/issues/2068
