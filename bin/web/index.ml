@@ -1,3 +1,5 @@
+(* TODO: eventually remove svelte canvas with preference to raw Canvas
+   manipulation  *)
 (*module Html = Js_of_ocaml.Dom_html*)
 (*module Dom  = Js_of_ocaml.Dom*)
 (*module G    = Graphics_js*)
@@ -9,6 +11,7 @@ let js_num  = Js.number_of_float
 
 let _ =
     let _g = Spinal.Ndmodel.enum_grid (10, 10) in
+    (*  TODO: come up with a better controller interface *)
     let _ = Js.export "myLib"
             (object%js (_self)
                 

@@ -14,7 +14,8 @@ let (>>==) = Result.bind;;
 
 type lit     = 
     (* TODO: Does disjoint set make sense ?? *)
-    | Shape of (char * int) list 
+    (* evaluation of this mask is AFTER the parameter masks *)
+    | Shape of ((char * int) list * mask list)
 and referral = 
     | Self  (* the current cell *)
 and call = 
@@ -60,7 +61,8 @@ and  crange  =
     | Relative of motion * crange(* Relative cell - Up ^, Down _, Left <, Right, > *)
     | Refer    of referral       (* a way to refer to the current cell *) 
     | Create   of call 
-    | Mask     of crange * mask list
+    (* Support masks that DONT copy over data *)
+    | Mask     of crange * mask list (* functional masks - copy over data *)
     | Void
 and  params  = crange list       (* function parameters *)
 and  einsum  = { 
@@ -183,15 +185,21 @@ let validate word =
 ;;
 
 (* NB: inputs will be in reverse order of declaration! *)
-let parse_ein_inp ein word = 
+let parse_ein_inp ein word ml = 
     { ein with 
-        inp=(Shape (List.of_seq @@ Seq.mapi (fun i c -> (c, i)) (String.to_seq word)) :: ein.inp) 
+        inp=(Shape (
+            (List.of_seq @@ Seq.mapi (fun i c -> (c, i)) (String.to_seq word))
+            , ml
+        ) :: ein.inp) 
     } 
 ;;
 
-let parse_ein_out ein word = 
+let parse_ein_out ein word ml = 
     if validate word then  
-        { ein with out=Some (Shape (List.of_seq @@ Seq.mapi (fun i c -> (c, i)) (String.to_seq word))) } 
+        { ein with out=Some (Shape (
+            (List.of_seq @@ Seq.mapi (fun i c -> (c, i)) (String.to_seq word))
+            , ml
+        )) } 
     else 
         { ein with out=None }
 ;;
@@ -200,65 +208,6 @@ let parse_ein_out ein word =
 let reorder ein = 
     { ein with inp=List.rev ein.inp; } 
 ;;
-
-let parse_einsum pratt = 
-    let rec _parse ein state = 
-        (match (fst state).curr with
-            | Some ({ tokn; _ }) -> 
-                (match tokn with 
-                    | TAlphaNum v -> 
-                        (if validate v then (
-                            let (prt, rem') as state' = advance state in
-                            if check TComma prt then
-                                _parse (parse_ein_inp ein v) (advance state') 
-                            else 
-                                (* no params *)
-                                Ok (prt, ((reorder @@ parse_ein_inp ein v), []), rem')
-                        ) else (Error (Format.sprintf "Input indices invalid - please use at least one ascii chars at %s" (show_prattstate @@ fst state))))
-                    | _ -> 
-                        let prt', rem' = state in
-                        Ok (prt', ((reorder ein), []), rem')
-                        (*Error (Format.sprintf "Unimplemented at %s" (show_prattstate (fst state)))*)
-                )
-            | _ -> 
-                Error (Format.sprintf "Unfinished einsum expression at %s" (show_prattstate (fst state)))
-        )
-    in
-    (>>==) (_parse einempty pratt) (fun (current, ein, lxm) -> 
-        (* output of the einsum - NOT the parameters! *)
-        (if check TArrow (current) then (
-            let next = advance (current, lxm) in 
-            (match (fst next).curr with 
-                | Some ({ tokn; _ }) -> 
-                    (match tokn with
-                        | TAlphaNum v -> 
-                            (* Grab the last einsum and update the output *)
-                            (*let ein' = (fst next).prog in*)
-                            let upd  = parse_ein_out (fst ein) v in
-                            Ok ((advance next), (upd, snd ein))
-                        | _ -> 
-                            (* it was not a token - likely something closing like a Comma or RightParen *)
-                            (* not what we expected - we just leave as is -  *)
-                            Ok (next, ein)
-                    )
-                | _ -> 
-                    Error "Unexpected einsum result"
-            )
-        ) else (
-            (* arrow can be optional *)
-            Ok ((current, lxm), ein) 
-        ))
-    )
-;;
-
-let parse_einsum_expr pratt = 
-    (>>==) (parse_einsum pratt) (fun (state, ein) -> 
-        let p = fst state in 
-        let t = snd state in 
-        Ok ({ p with prog=(Stmt (Ein (fst ein, snd ein))) }, t)
-    )
-;;
-
 let as_cell w = 
     match Seq.find_index (fun c ->  Lexer.isDigit c) @@ String.to_seq w  with 
     | Some idx -> 
@@ -1049,6 +998,86 @@ let parse_ein_mask state =
         ) in 
     masklist state []
 ;;
+
+let parse_einsum pratt = 
+    let rec _parse ein state = 
+        (match (fst state).curr with
+            | Some ({ tokn; _ }) -> 
+                (match tokn with 
+                    | TAlphaNum v -> 
+                        (if validate v then (
+                            let (prt, rem') as state' = advance state in
+                            if check TComma prt then
+                                _parse (parse_ein_inp ein v []) (advance state') 
+                            else if check TPipe prt then
+                                (>>==) (parse_ein_mask (advance state')) (
+                                    fun ((prt', rem'') as state'', ml) -> 
+                                    if check TComma (fst state'') then 
+                                        _parse (parse_ein_inp ein v ml) (advance state'') 
+                                    else
+                                        Ok (prt', ((reorder @@ parse_ein_inp ein v ml), []), rem'')
+                                )
+                            else 
+                                (* no params *)
+                                Ok (prt, ((reorder @@ parse_ein_inp ein v []), []), rem')
+                        ) else (
+                            Error (Format.sprintf "Input indices invalid - please use at least one ascii chars at %s" 
+                                    (show_prattstate @@ fst state))
+                            )
+                        )
+                    | _ -> 
+                        let prt', rem' = state in
+                        Ok (prt', ((reorder ein), []), rem')
+                        (*Error (Format.sprintf "Unimplemented at %s" (show_prattstate (fst state)))*)
+                )
+            | _ -> 
+                Error (Format.sprintf "Unfinished einsum expression at %s" (show_prattstate (fst state)))
+        )
+    in
+    (>>==) (_parse einempty pratt) (fun (current, ein, lxm) -> 
+        (* output of the einsum - NOT the parameters! *)
+        (if check TArrow (current) then (
+            let next = advance (current, lxm) in 
+            (match (fst next).curr with 
+                | Some ({ tokn; _ }) -> 
+                    (match tokn with
+                        | TAlphaNum v -> 
+                            (* Grab the last einsum and update the output *)
+                            (*let ein' = (fst next).prog in*)
+                            let next' = advance next in
+                            if check TPipe (fst next') then
+                                (>>==) (parse_ein_mask (advance next')) (
+                                    fun (state'', ml) -> 
+                                        let upd  = parse_ein_out (fst ein) v ml in
+                                        Ok (state'', (upd, snd ein))
+                                )
+                            else
+                                let upd  = parse_ein_out (fst ein) v [] in
+                                Ok (next', (upd, snd ein))
+                        | _ -> 
+                            (* it was not a token - likely something closing like a Comma or RightParen *)
+                            (* not what we expected - we just leave as is -  *)
+                            Ok (next, ein)
+                    )
+                | _ -> 
+                    Error "Unexpected einsum result"
+            )
+        ) else (
+            (* arrow can be optional *)
+            Ok ((current, lxm), ein) 
+        ))
+    )
+;;
+
+let parse_einsum_expr pratt = 
+    (>>==) (parse_einsum pratt) (fun (state, ein) -> 
+        let p = fst state in 
+        let t = snd state in 
+        Ok ({ p with prog=(Stmt (Ein (fst ein, snd ein))) }, t)
+    )
+;;
+
+
 
 let parse_einsum_formulae state = 
     let rec _extract (state, (ein, par)) =

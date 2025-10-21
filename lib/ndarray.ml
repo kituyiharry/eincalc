@@ -22,6 +22,11 @@ type bigfloatarray = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.G
 (* TODO: define a tape protocol which describes the order of the elements when
    iterated over. implicit at the moment. can be useful once we allow for out of
    order executions *)
+(*
+   TODO: try and implement a view-based layout which does not need to be copied
+   over when certain masks are applied but simply reinterpreted. Bigarray and
+   Genarray would be able to reshape efficiently via Bigarray.reshape
+*)
 module type NDarray = sig 
     type t
     val  make:    int array -> float -> t

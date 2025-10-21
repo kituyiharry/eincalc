@@ -46,7 +46,7 @@ type presource = {
     ;   varcnt: int
     ;   name:   string
     ;   args:   Parser.crange list
-    ;
+    ;   pmasks: Parser.mask list (* masks executed after *)
 } [@@deriving show];;
 
 let presempty name = {
@@ -58,6 +58,7 @@ let presempty name = {
     ;   nmdvar=(Hashtbl.create 8) 
     ;   varcnt=0
     ;   args=[]
+    ;   pmasks=[]
     ;   name
 } [@@deriving show];;
 
@@ -239,18 +240,61 @@ and masked_to_ndarray _grid _masks range =
         ) ndarr _masks
     | Error s -> 
         failwith s
+and transform_mask _grid ndarr masks = 
+    List.fold_left (fun acc mask -> 
+        (match acc with
+            | SNdim ((module M), data) ->
+                (match mask with
+                    | Parser.MinMax (a, b) -> 
+                        let data' = Masks.minmaxscale (module M) data (a, b) in
+                        SNdim ((module M), data')
+                    | Parser.ZScore ->
+                        let data' = Masks.zscore (module M) data in
+                        SNdim ((module M), data')
+                    | Parser.Mean ->
+                        let mnval = Masks.mean (module M) data in 
+                        let acc' = Ndarray.Scalar.make [||] mnval in
+                        SNdim ((module Ndarray.Scalar), acc')
+                    | Parser.Mode ->
+                        let freq = Masks.frequencies (module M) (Masks.ModeTable.create 16) data in
+                        let mode = Masks.mode freq in 
+                        let acc' = Ndarray.Scalar.make [||] mode in
+                        SNdim ((module Ndarray.Scalar), acc')
+                    | Parser.Stddev -> 
+                        let stdval = Masks.stddev (module M) data in 
+                        let acc' = Ndarray.Scalar.make [||] stdval in
+                        SNdim ((module Ndarray.Scalar), acc')
+                    (* TODO: may be more efficient when converted to bigarray *)
+                    | Parser.Reshape nshp -> 
+                        (match ndarray_of_dim nshp with 
+                            | SNdim ((module M'), ndata) -> 
+                                let _ =  Masks.reshape (module M) (module M') data ndata in
+                                SNdim ((module M'), ndata)
+                            | _ -> failwith "reshape error!"
+                        )
+                    | Parser.Write _cell -> 
+                        (* execute an effect back to the grid *)
+                        let start = key_of_ref _cell in
+                        let _ = Masks.write (module M) start data _grid in
+                        acc
+                )
+            | _ -> 
+                failwith "Invalid mask argument!!"
+        )
+    ) ndarr masks
 ;;
 
 (* generates nested loops from a list of variable matches *)
-let genloop grid ps (parms: (int list * Parser.crange) list) (out: int list) =
+let genloop grid ps (parms: (int list * Parser.crange * Parser.mask list) list) (out: int list) =
     (* load params into the  stack frame first as if they were function call arguments *)
     (* create the output kernel first *)
     let outkern    = ndarray_of_dim    out in
     let outidx, ps = add_kernel outkern ps in 
 
-    let (_idxs, ps) = List.fold_left (fun (kidxs, ps') (_shp, _cr) -> 
-        let  _ndim      = range_to_ndarray grid _cr _shp in
-        let (_kdx, ps') = add_kernel      _ndim ps' in
+    let (_idxs, ps) = List.fold_left (fun (kidxs, ps') (_shp, _cr, _msks) -> 
+        let  _ndim      = range_to_ndarray grid _cr   _shp in
+        let  _ndim'     = transform_mask   grid _ndim _msks in
+        let (_kdx, ps') = add_kernel     _ndim' ps' in
         (_kdx :: kidxs , ps')
     ) ([ ], ps) parms in
 
@@ -302,5 +346,6 @@ let convert (s: presource) =
         ;   consts =(Array.of_list @@ List.rev s.consts)
         ;   cursor =0
         ;   kernels=(Array.of_list @@ List.rev s.kernels) 
+        ;   pmasks =s.pmasks
     }
 ;;

@@ -19,48 +19,48 @@ let tests = "Parser unit tests" >::: [
     );
     "simple summation" >:: (fun _ -> 
         assert_equal { 
-            Parser.inp=[ Spinal.Parser.Shape [('i', 0);]; ]; 
+            Parser.inp=[ Spinal.Parser.Shape ([('i', 0);], []); ]; 
             out=None 
         } (fetch_program @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> )")
     );
     "simple identity einsum" >:: (fun _ -> 
         assert_equal { 
-            Parser.inp=[ Parser.Shape [('i', 0);('j', 1)]; ];
-            out=Some(Parser.Shape [('i', 0);('j', 1)]);
+            Parser.inp=[ Parser.Shape ([('i', 0);('j', 1)], []); ];
+            out=Some(Parser.Shape ([('i', 0);('j', 1)], []));
         } (fetch_program @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(ij -> ij)")
     );
     "simple matmul" >:: (fun _ -> 
         assert_equal { 
             Parser.inp=[ 
-                Parser.Shape [('i', 0);('k', 1)];
-                Parser.Shape [('k', 0);('j', 1)];
+                Parser.Shape ([('i', 0);('k', 1)], []);
+                Parser.Shape ([('k', 0);('j', 1)], []);
             ];
-            out=Some(Parser.Shape [('i', 0);('j', 1)]);
+            out=Some(Parser.Shape ([('i', 0);('j', 1)], []));
         } (fetch_program @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(ik,kj -> ij)")
     );
     "simple identity einsum with params" >:: (fun _ -> 
         assert_equal ({ 
-            Parser.inp=[ Parser.Shape [('i', 0);]; ];
-            out=Some(Parser.Shape [('i', 0);]);
+            Parser.inp=[ Parser.Shape ([('i', 0);], []); ];
+            out=Some(Parser.Shape ([('i', 0);], []));
         }, [ (Parser.Scalar ("D", 10)) ]) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> i, @D10)")
     );
     "simple identity einsum with params trailing comma" >:: (fun _ -> 
         assert_equal ({ 
-            Parser.inp=[ Parser.Shape [('i', 0);]; ];
-            out=Some(Parser.Shape [('i', 0);]);
+            Parser.inp=[ Parser.Shape ([('i', 0);], []); ];
+            out=Some(Parser.Shape ([('i', 0);], []));
         }, [ (Parser.Scalar ("D", 10)); Parser.Void ]) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> i, @D10, )")
     );
     "simple summation einsum with ranged params" >:: (fun _ -> 
         assert_equal ({ 
-            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            Parser.inp=[ Parser.Shape ([('i', 0);], []); ];
             out=None;
         }, [ Parser.Range (("D", 10),("E",11)) ]) (fetch_first @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i ->  , @D10..E11)")
     );
     "simple summation einsum with multiple ranged params" >:: (fun _ -> 
         assert_equal ({ 
             Parser.inp=[ 
-                Parser.Shape [('i', 0);];
-                Parser.Shape [('i', 0);];
+                Parser.Shape ([('i', 0);], []);
+                Parser.Shape ([('i', 0);], []);
             ];
             out=None;
         },
@@ -73,8 +73,8 @@ let tests = "Parser unit tests" >::: [
     "simple summation einsum with multiple mixed ranged params" >:: (fun _ -> 
         assert_equal ({ 
             Parser.inp=[ 
-                Parser.Shape [('i', 0);];
-                Parser.Shape [('i', 0);];
+                Parser.Shape ([('i', 0);], []);
+                Parser.Shape ([('i', 0);], []);
             ];
             out=None;
         },
@@ -87,7 +87,7 @@ let tests = "Parser unit tests" >::: [
     );
     "simple summation with static arrays" >:: (fun _ -> 
         assert_equal ({ 
-            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            Parser.inp=[ Parser.Shape ([('i', 0);], []); ];
             out=None;
         },
         [ Parser.NdArray (Parser.Itemize [1.;2.;3.;4.;5.]); ]
@@ -95,7 +95,7 @@ let tests = "Parser unit tests" >::: [
     );
     "simple summation with ndim arrays" >:: (fun _ -> 
         assert_equal ({ 
-            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            Parser.inp=[ Parser.Shape ([('i', 0);], []); ];
             out=None;
         },
         [ Parser.NdArray (
@@ -108,7 +108,7 @@ let tests = "Parser unit tests" >::: [
     );
     "simple summation with bigger ndim arrays" >:: (fun _ -> 
         assert_equal ({ 
-            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            Parser.inp=[ Parser.Shape ([('i', 0);], []); ];
             out=None;
         },
         [ 
@@ -146,7 +146,7 @@ let tests = "Parser unit tests" >::: [
     );
     "simple summation with non-homogenous ndim arrays" >:: (fun _ -> 
         assert_equal ({ 
-            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            Parser.inp=[ Parser.Shape ([('i', 0);], []); ];
             out=None;
         },
         [ 
@@ -184,7 +184,7 @@ let tests = "Parser unit tests" >::: [
     );
     "simple summation with ndim arrays and trailing commas" >:: (fun _ -> 
         assert_equal ({ 
-            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            Parser.inp=[ Parser.Shape ([('i', 0);], []); ];
             out=None;
         },
         [ 
@@ -223,7 +223,7 @@ let tests = "Parser unit tests" >::: [
     );
     "simple summation with relative indexing" >:: (fun _ -> 
         assert_equal ({ 
-            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            Parser.inp=[ Parser.Shape ([('i', 0);], []); ];
             out=None;
         },
         [
@@ -233,7 +233,7 @@ let tests = "Parser unit tests" >::: [
     );
     "simple summation with multiple relative indexing" >:: (fun _ -> 
         assert_equal ({ 
-            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            Parser.inp=[ Parser.Shape ([('i', 0);], []); ];
             out=None;
         },
             [
@@ -248,7 +248,7 @@ let tests = "Parser unit tests" >::: [
     );
     "simple summation with reference" >:: (fun _ -> 
         assert_equal ({ 
-            Parser.inp=[ Parser.Shape [('i', 0);]; ];
+            Parser.inp=[ Parser.Shape ([('i', 0);], []); ];
             out=None;
         },
             [

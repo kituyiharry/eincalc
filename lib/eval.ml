@@ -220,20 +220,23 @@ let handle_op vm op =
 ;;
 
 let eval (pr: vm) = 
-    consume pr.source (handle_op pr)
+    let _ = consume pr.source (handle_op pr) in 
+    let s = Emitter.transform_mask pr.sheet (pr.source.kernels.(0)) pr.source.pmasks
+    in pr.source.kernels.(0) <- s
 ;;
 
 let tosource (grid) (vw: program) = 
     (>>==) (Genfunc.transform vw) (fun x -> 
 
-        let mtch, out = x.outs in
+        (* get the match and output shape and post execution masks *)
+        let mtch, out, masks = x.outs in
 
         (* load kernel indexes onto the stack 
            return output and input kernel indexes *)
 
         (* TODO: represent param as shape transformation types so we don't need
            to recalculate it while masking! *)
-        let (_outkidx, _kidxs, gl) = Emitter.genloop grid (presempty "") (List.map (fun y -> (y.shape, y.param) ) x.inps) out in 
+        let (_outkidx, _kidxs, gl) = Emitter.genloop grid (presempty "") (List.map (fun y -> (y.shape, y.param, y.masks) ) x.inps) out in 
 
         (* each parameter input with its associated kernel index added by genloop *)
         let  _mapidx = List.of_seq @@ Seq.zip (x.inps |> List.to_seq) (List.to_seq _kidxs)  in
@@ -304,6 +307,7 @@ let tosource (grid) (vw: program) =
         let echokerns = List.map (Funcs.print_kern) (_kidxs) |> List.concat in
         Ok { 
             vl with oprtns=vl.oprtns @ echokerns @ (Funcs.print_kern _outkidx)
+            ; pmasks=masks
         } 
     )
 ;;

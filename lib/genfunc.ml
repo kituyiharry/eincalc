@@ -84,14 +84,15 @@ type eincomp = {
     ;  elems: einmatch list
     ;  chset: CharSet.t      [@opaque]
     ;  param: crange
+    ;  masks: mask list
 } [@@deriving show];;
 
 type eintree = {
         inps: eincomp list 
-    ;   outs: (einmatch list option * int list) (* *)
+    ;   outs: (einmatch list option * int list * mask list) (* output matches, final shape and post execution masks *)
 } [@@deriving show];;
 
-let compfromshape param pidx einchars dimens  = 
+let compfromshape param pidx einchars masks dimens = 
     let l' = List.length einchars in 
     let g' = List.length dimens in
     if  l' == g' then
@@ -110,7 +111,7 @@ let compfromshape param pidx einchars dimens  =
             ;   elems=(g')    (* each dimension *)
             ;   chset=(!chs)  (* Character set of the labels of each dimension *)
             ;   param
-            ;
+            ;   masks         (* masks applied AFTER parameter masks *)
         })
     (* TODO: EDGE case -> scalar will have no shape but we take it as a kind of 1
        length vector. is this a good approach ?? *)
@@ -130,7 +131,7 @@ let compfromshape param pidx einchars dimens  =
             ;   elems=(g')    (* each dimension *)
             ;   chset=(!chs)  (* Character set of the labels of each dimension *)
             ;   param
-            ;
+            ;   masks         (* masks applied AFTER parameter masks *)
         })
     else
         (* TODO: handle 1+ dimension reshape e.g 3x2 can be reshaped to 1x3x2 *)
@@ -228,9 +229,9 @@ let parammatch ({ inp; _ }, par) =
         (* Ensure input are unique - maybe use disjoint set *)
         let ins = (
             List.combine inp par
-            |> List.mapi (fun pidx ((Shape l), param) ->
+            |> List.mapi (fun pidx ((Shape (l, _m)), param) ->
                 (* TODO: use Disjoint Set *)
-                (>>==) (calcshape param) (compfromshape param pidx l)
+                (>>==) (calcshape (Mask (param, _m))) (compfromshape param pidx l _m)
             )
         ) in 
         if List.exists (Result.is_error) ins then
@@ -334,7 +335,7 @@ let correspondence (({out; _}, _) as g) =
             ((>>==) (repeatcheck g') (fun g'' -> 
                 Ok (g'', None)
             ))
-        | Some (Shape _l) -> 
+        | Some (Shape (_l, _m)) -> 
             (* TODO: verify if this also checks within inputs - done in connect function ! *)
             (>>==) ((>>==) (verify _l g') (connect g')) (fun g'' -> 
             let g' = 
@@ -344,7 +345,7 @@ let correspondence (({out; _}, _) as g) =
                     (* NB: ensure dimens are updated later *)
                     { label; index; dimen=(-1); param=(-1); outlc=(-1); }
                 )
-                in Ok (g'', Some g')
+                in Ok (g'', (Some (g', _m)))
             )
     )
 ;;
@@ -376,12 +377,12 @@ let transform (e: formula)  =
     match e with 
     | Stmt (Ein _e) ->  (>>==) (correspondence _e) (fun (lin, lout) -> 
         match lout with 
-        | Some vout -> 
+        | Some (vout, maskl) -> 
             let upd = List.map (fun (x) -> { x with dimen = (find_dimen x.label lin) }) vout in
             let eq = List.map (fun x -> x.dimen) upd in
-            Ok ({ inps=lin; outs=(Some upd, eq); })
+            Ok ({ inps=lin; outs=(Some upd, eq, maskl); })
         | None -> 
-            Ok ({ inps=lin; outs=(lout, []); })
+            Ok ({ inps=lin; outs=(None, [], []); })
     )
     | _ -> 
         failwith "Unimplemented transform"

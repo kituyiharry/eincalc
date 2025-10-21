@@ -292,4 +292,5 @@ type source = {
     ;   consts: spinval array
     ;   mutable cursor: int
     ;   kernels: spinval array 
+    ;   pmasks:  Parser.mask list
 };;

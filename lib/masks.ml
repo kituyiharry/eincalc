@@ -100,6 +100,7 @@ let minmaxscale (type data) (module M: Ndarray.NDarray with type t = data) (d: d
     in d'
 ;;
 
+(* TODO: reshape of Genarray and Bigarray structures can be more efficient *)
 let reshape (type adata bdata) (module S1: Ndarray.NDarray with type t = adata) (module S2: Ndarray.NDarray with type t = bdata) (a: adata) (b: bdata) = 
     let (ashape, bshape) = (S1.shape a, S2.shape b) in 
     Seq.zip (Types.indexsequence ashape) (Types.indexsequence bshape)
