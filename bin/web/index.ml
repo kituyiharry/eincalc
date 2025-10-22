@@ -25,15 +25,25 @@ let _ =
                 (* TODO: use OptDef or Opt for null checks *)
                 method gridaddnumber row col (value: Js.number Js.t) = (
                     let vstr = Js.to_float value in
-                    (*let _ = Con.console##log (Format.sprintf "adding %f\n" vstr) in*)
+                    (*let _ = Con.console##log (Format.sprintf "adding %f to %d*)
+                    (*%d\n" vstr row col) in*)
                     Spinal.Ndmodel.Grid.add _g (row, col) (TNumber vstr)
                 )
 
                 (* TODO: use OptDef or Opt for null checks *)
                 method gridaddstring row col (value: Js.js_string Js.t) = (
                     let vstr = Js.to_string value in
-                    (*let _ = Con.console##log (Format.sprintf "adding %s\n" vstr)  in*)
+                    (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
+                    (*\n" vstr row col)  in*)
                     Spinal.Ndmodel.Grid.add _g (row, col) (TValue vstr)
+                )
+
+                (* TODO: use OptDef or Opt for null checks *)
+                method executecode (value: Js.js_string Js.t) = (
+                    let vstr = Js.to_string value in
+                    (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
+                    (*\n" vstr row col)  in*)
+                    Spinal.Repl.handle_scan_exp _g vstr
                 )
 
                 (*You can also write javascript within your OCaml code.

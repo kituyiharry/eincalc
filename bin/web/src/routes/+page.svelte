@@ -3,7 +3,7 @@
   // TODO: standardize controller so that we can type it
   import { default as controller } from '$lib/index';
 
-  let refresh = 0;
+  let refresh = $state(0);
 
   const CELL_WIDTH       = 120;
   const CELL_HEIGHT      = 30;
@@ -14,9 +14,9 @@
   const DRAWER           = 57; 
 
   // Scroll computation
-  let scrollX = 0;
-  let scrollY = 0;
-  let cellData = {}
+  let scrollX = $state(0);
+  let scrollY = $state(0);
+  let cellData = $state({})
 
   // cell selection
   let selectedCell   = null;
@@ -26,13 +26,36 @@
 
   // editing support via floating input 
   let editor
-  let editingCell = null;
-  let editValue = '';
+
+  /** 
+   * @typedef  EditingCell
+   * @type     {?object}
+   * @property {number} row 
+   * @property {number} col
+   * */
+
+  /** @type {EditingCell} */
+  let editingCell = $state(null);
+
+  let editValue = $state('');
 
   // prevent refetching data by caching values in a set
   let visibleCells = new Set();
 
-  $: editorStyle = editingCell ? {
+  let funcBudgetHeight = $state(0)
+  let funcBudgetWidth  = $state(0)
+  let funcBlockHeight  = $state(60);
+
+  let funcText  = $state('=(ij -> ji | zscore | write<A11>, @A1..J10)')
+  let funcStyle = $derived ({
+    position: 'fixed',
+    bottom: `0px`,
+    height: `${funcBlockHeight}px`,
+    width:  `${funcBudgetWidth}px`,
+    left:   `${DRAWER}px`
+  });
+
+  let editorStyle = $derived( editingCell ? {
     position: 'absolute',
     left:    `${editingCell.col * CELL_WIDTH  - scrollX + ROW_HEADER_WIDTH + DRAWER}px`,
     top:     `${editingCell.row * CELL_HEIGHT - scrollY + HEADER_HEIGHT}px`,
@@ -44,7 +67,7 @@
     fontFamily: 'sans-serif',
     outline: 'none',
     zIndex: '10'
-  } : { display: 'none' };
+  } : { display: 'none' });
 
   function getColumnLabel(col) {
     let label = [];
@@ -96,6 +119,9 @@
   }
 
 
+  /** 
+   * @param {number} row 
+   * @param {number} col */
   function isCellSelected(row, col) {
       const bounds = getSelectionBounds();
       if (!bounds) return false;
@@ -178,19 +204,21 @@
       if (editOut.startsWith('=')) {
         const num = parseFloat(editOut.substring(1));  
         controller.myLib.gridaddnumber(editingCell.row, editingCell.col, num);
-        console.log("was number");
       } else {
-        controller.myLib.gridaddstring(editingCell.row, editingCell.col, editOut);
-        console.log("was string");
+        const num = parseFloat(editOut.substring(1));  
+        if (num) {
+            controller.myLib.gridaddstring(editingCell.row, editingCell.col, editOut);
+        } else {
+            controller.myLib.gridaddnumber(editingCell.row, editingCell.col, num);
+        }
       }
-      visibleCells.delete(cellKey);
-      //cellData[cellKey] = editValue;
+      cellData[cellKey] = editValue;
       editingCell = null;
       refresh++;
     }
   }
 
-  
+  /** @param {KeyboardEvent} e  */
   function handleEditorKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -206,15 +234,15 @@
 </script>
 
 <!--<svelte:window />-->
-<div class='h-[100vh] w-[100vw]'>
+<div class='h-[90%] w-[100vw]'>
 
     <!--TODO: wheel and touch events may not work as well on layers - find out why ?? --->
     <input
         bind:this={editor}
         type="text"
         bind:value={editValue}
-        on:blur={handleEditorBlur}
-        on:keydown={handleEditorKeyDown}
+        onblur    ={handleEditorBlur}
+        onkeydown ={handleEditorKeyDown}
         class="bg-black text-white text-xs"
         style={Object.entries(editorStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}
     />
@@ -227,9 +255,13 @@
         layerEvents 
         style="display: block; cursor: cell;">
         {#key refresh}
-            <Layer render={ ({ context, width, height }) => { 
+            <Layer 
+                render={ ({ context, width, height }) => { 
                 // see: https://github.com/sveltejs/svelte/issues/15066
                 // see: https://github.com/sveltejs/svelte/issues/2068
+                console.log("draw");
+                funcBudgetHeight = height;
+                funcBudgetWidth  = width;
 
                 // Calculate visible range
                 const startCol = Math.floor(scrollX / CELL_WIDTH);
@@ -334,4 +366,26 @@
             }} />
         {/key}
     </Canvas>
+    <div class="flex flex-row bg-transparent backdrop-blur-sm border-t border-t-black" 
+        style={Object.entries(funcStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}>
+        <div class="flex bg-black items-center basis-4">
+            <span class="p-4 text-center text-white">ƒ𝑥</span>
+        </div>
+        <textarea  
+            class="font-thin basis-8 p-4 resize-none min-w-full text-black italic text-area rounded-none"
+            bind:value={funcText}
+            onkeydown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    if (funcText.startsWith('=')) {
+                    controller.myLib.executecode(funcText.substring(1));
+                    } else {
+                    controller.myLib.executecode(funcText);
+                    }
+                    // NB: this forces a refetch of data from the grid model
+                    visibleCells.clear();
+                    cellData = {};
+                }
+            }}
+        ></textarea>
+    </div>
 </div>
