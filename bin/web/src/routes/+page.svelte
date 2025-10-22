@@ -143,6 +143,7 @@
           selectionEnd = cell;
           isDragging = true;
           editingCell = null;
+          refresh++;
       }
   }
 
@@ -372,14 +373,15 @@
             <span class="p-4 text-center text-white">ƒ𝑥</span>
         </div>
         <textarea  
-            class="font-thin basis-8 p-4 resize-none min-w-full text-black italic text-area rounded-none"
+            class="font-thin basis-8 p-4 text-[14px] resize-none min-w-full 
+            text-black italic text-area rounded-none"
             bind:value={funcText}
             onkeydown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     if (funcText.startsWith('=')) {
-                    controller.myLib.executecode(funcText.substring(1));
+                        controller.myLib.executecode(funcText.substring(1));
                     } else {
-                    controller.myLib.executecode(funcText);
+                        controller.myLib.executecode(funcText);
                     }
                     // NB: this forces a refetch of data from the grid model
                     visibleCells.clear();
