@@ -206,7 +206,7 @@
         controller.myLib.gridaddnumber(editingCell.row, editingCell.col, num);
       } else {
         const num = parseFloat(editOut.substring(1));  
-        if (num) {
+        if (isNaN(num)) {
             controller.myLib.gridaddstring(editingCell.row, editingCell.col, editOut);
         } else {
             controller.myLib.gridaddnumber(editingCell.row, editingCell.col, num);
