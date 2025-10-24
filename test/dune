@@ -1,29 +1,29 @@
 (test
-  (name test_spinal_lexer)
-  (modules test_spinal_lexer)
-  (libraries spinal ounit2)
+  (name test_eincalc_lexer)
+  (modules test_eincalc_lexer)
+  (libraries eincalc ounit2)
 )
 
 (test
-  (name test_spinal_parser)
-  (modules test_spinal_parser)
-  (libraries spinal ounit2)
+  (name test_eincalc_parser)
+  (modules test_eincalc_parser)
+  (libraries eincalc ounit2)
 )
 
 (test
-  (name test_spinal_eval)
-  (modules test_spinal_eval)
-  (libraries spinal ounit2)
+  (name test_eincalc_eval)
+  (modules test_eincalc_eval)
+  (libraries eincalc ounit2)
 )
 
 (test
-  (name test_spinal_genfunc)
-  (modules test_spinal_genfunc)
-  (libraries spinal ounit2)
+  (name test_eincalc_genfunc)
+  (modules test_eincalc_genfunc)
+  (libraries eincalc ounit2)
 )
 
 (test
-  (name test_spinal_ndarray)
-  (modules test_spinal_ndarray)
-  (libraries spinal ounit2)
+  (name test_eincalc_ndarray)
+  (modules test_eincalc_ndarray)
+  (libraries eincalc ounit2)
 )

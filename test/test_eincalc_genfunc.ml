@@ -1,5 +1,5 @@
 open OUnit;;
-open Spinal;;
+open Eincalc;;
 
 let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
     match (fst @@ Result.get_ok res).prog with 

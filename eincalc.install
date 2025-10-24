@@ -1,0 +1,11 @@
+lib: [
+  "_build/install/default/lib/eincalc/META"
+  "_build/install/default/lib/eincalc/dune-package"
+  "_build/install/default/lib/eincalc/opam"
+]
+bin: [
+  "_build/install/default/bin/eincalc"
+]
+doc: [
+  "_build/install/default/doc/eincalc/README.md"
+]

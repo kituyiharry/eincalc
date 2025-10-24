@@ -1,5 +1,5 @@
 open OUnit;;
-open Spinal;;
+open Eincalc;;
 
 let list_prnt l = 
     let buf = Buffer.create 64 in

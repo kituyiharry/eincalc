@@ -1,7 +1,7 @@
 open OUnit;;
-open Spinal;;
-open Spinal.Eval;;
-open Spinal.Types;;
+open Eincalc;;
+open Eincalc.Eval;;
+open Eincalc.Types;;
 
 let execute grid src = 
     match (Lexer.runall src) with

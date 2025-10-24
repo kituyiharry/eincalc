@@ -1,5 +1,5 @@
 open OUnit;;
-open Spinal;;
+open Eincalc;;
 
 let fetch_program (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
    match (fst @@ Result.get_ok res).prog with 
@@ -19,7 +19,7 @@ let tests = "Parser unit tests" >::: [
     );
     "simple summation" >:: (fun _ -> 
         assert_equal { 
-            Parser.inp=[ Spinal.Parser.Shape ([('i', 0);], []); ]; 
+            Parser.inp=[ Eincalc.Parser.Shape ([('i', 0);], []); ]; 
             out=None 
         } (fetch_program @@ Parser.parse @@ Result.get_ok @@ Lexer.run 0 "(i -> )")
     );

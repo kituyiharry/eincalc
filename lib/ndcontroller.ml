@@ -1,5 +1,5 @@
 (*
- *   Copyright (C) Spinal 2025. All Rights Reserved.
+ *   Copyright (C) Eincalc 2025. All Rights Reserved.
  *   For internal use only. Do not redistribute.
  *
  *   Copyright laws and international treaties protect this app. Unauthorized 
@@ -7,4 +7,9 @@
  *   department may entail severe civil or criminal penalties.
  *
  *)
-(* reader and writer interfaces for cells between graphs *)
+
+(* 
+ * -Track updated cell locations (track write calls and adds along with shapes)
+ * -Run event callbacks e.g. at parsing to suggest stuff
+ * -Notify view of errors
+ *)

@@ -1,5 +1,5 @@
 (*
- *   Copyright (C) Spinal 2025. All Rights Reserved.
+ *   Copyright (C) Eincalc 2025. All Rights Reserved.
  *   For internal use only. Do not redistribute.
  *
  *   Copyright laws and international treaties protect this app. Unauthorized 
@@ -42,11 +42,11 @@ and mask =
     | Mode
     (* stddev *)
     | Stddev
-    (* reshape<[x,y]> *)
+    (* reshape<[x,y,...]> *)
     | Reshape of int list
     (* write<A100> *)
     | Write   of cell             (* executes an effect to the grid *)           
-    (* axis<'j', mean> *)
+    (* axis<'j', mean | ...> *)
     | Axis    of int * mask list (* apply mask along an axis *)
     (*| Unbox                     (* undo top dimension maybe by running a function over it ?? *) *)
     (*| Partition                 (* break into groups *) *)

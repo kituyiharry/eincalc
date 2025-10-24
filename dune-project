@@ -1,26 +1,26 @@
 (lang dune 3.20)
 
-(name spinal)
+(name eincalc)
 
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github kituyiharry/eincalc))
 
-(authors "Author Name <author@example.com>")
+(authors "Harry K <kituyiharry+github@gmail.com>")
 
-(maintainers "Maintainer Name <maintainer@example.com>")
+(maintainers "Harry K <kituyiharry+github@gmail.com>")
 
 (license LICENSE)
 
 (documentation https://url/to/documentation)
 
 (package
- (name spinal)
+ (name eincalc)
  (synopsis "A Sheet for Shape Rotators")
- (description "A longer description")
+ (description "A sheet for shape rotators")
  (tags
-  ("add topics" "to describe" your project))
+  ("spreadsheet" "ndarray"))
 
  (depends
    ; Required dependencies
@@ -30,7 +30,7 @@
 
    ; Optional dependencies with versions
    ; base
-   (spinal          :with-test)
+   (eincalc          :with-test)
    (ounit2          :with-test)
    (qcheck-core     :with-test)
    (core_bench      :with-test)

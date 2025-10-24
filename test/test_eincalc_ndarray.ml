@@ -1,5 +1,5 @@
 open OUnit;;
-open Spinal;;
+open Eincalc;;
 
 
 let _tests = "Ndarray unit tests" >::: [

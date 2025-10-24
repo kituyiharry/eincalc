@@ -1,5 +1,5 @@
 (*
- *   Copyright (C) Spinal 2025. All Rights Reserved.
+ *   Copyright (C) Eincalc 2025. All Rights Reserved.
  *   For internal use only. Do not redistribute.
  *
  *   Copyright laws and international treaties protect this app. Unauthorized 
