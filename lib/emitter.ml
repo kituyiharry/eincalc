@@ -119,7 +119,97 @@ let oplen ps =
     List.length ps.oprtns
 ;;
 
-let rec range_to_ndarray _grid n shp =
+let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray with type t = data) (data: data) =
+
+    (* a way to squish axes like mean *)
+    let collapse os ns len = 
+        for i = 0 to (axis - 1) do 
+            ns.(i) <- os.(i);
+        done;
+        for i = (axis + 1) to (len - 1) do 
+            ns.(i-1) <- os.(i);
+        done;
+        ndarray_of_dimshape ns
+    in
+
+    match masks with 
+    | [] -> 
+        acc 
+    | hd :: [] -> 
+        let shp   = M.shape data in
+        let len   = Array.length shp in
+        (match hd with
+            | Parser.Mean -> 
+                let ns = Array.make (len - 1) 0 in
+                (match collapse shp ns len with 
+                    | SNdim ((module M'), _data') as acc' -> 
+                        let _ = Masks.meanaxis axis (module M') (_data') (module M) (data)in
+                        acc'
+                    | _ -> 
+                        failwith "axis collapse failure"
+                )
+            | Parser.Mode -> 
+                let ns = Array.make (len - 1) 0 in
+                (match collapse shp ns len with 
+                    | SNdim ((module M'), _data') as acc' -> 
+                        let _ = Masks.modeaxis axis (module M') (_data') (module M) (data)in
+                        acc'
+                    | _ -> 
+                        failwith "axis collapse failure"
+                )
+            | Parser.Stddev -> 
+                let ns = Array.make (len - 1) 0 in
+                (match collapse shp ns len with 
+                    | SNdim ((module M'), _data') as acc' -> 
+                        let _ = Masks.stddevaxis axis (module M') (_data') (module M) (data)in
+                        acc'
+                    | _ -> 
+                        failwith "axis collapse failure"
+                )
+            (* we will rewrite over the data to save some memory *)
+            | Parser.MinMax (a, b) -> 
+                let ns = Array.make (len - 1) 0 in
+                (match collapse shp ns len with 
+                    | SNdim ((module M'), _data') -> 
+                        let  _data'' = M'.make ns 0. in
+                        let _ = Masks.minmaxscaleaxis axis 
+                            (module M') (_data') 
+                            (module M') (_data'') 
+                            (module M)  (data) (a, b)
+                        in acc
+                    | _ -> 
+                        failwith "minmax axis collapse failure"
+                )
+            | Parser.ZScore -> 
+                let ns = Array.make (len - 1) 0 in
+                (match collapse shp ns len with 
+                    | SNdim ((module M'), _data') -> 
+                        let  _data'' = M'.make ns 0. in
+                        let _ = Masks.zscoreaxis axis 
+                            (module M') (_data') 
+                            (module M') (_data'') 
+                            (module M)  (data)
+                        in acc
+                    | _ -> 
+                        failwith "minmax axis collapse failure"
+                )
+            | Parser.Write _cell -> 
+                let start = key_of_ref _cell in
+                let _ = Masks.writeaxis axis (module M) start data _grid in
+                acc
+            | Parser.Reshape _ -> 
+                failwith "reshape not supported atm!!"
+            | Parser.Axis (_, _) -> 
+                failwith "nested axis operations not allowed!!"
+        )
+    | _hd :: _rest -> 
+        let _ = List.fold_left (fun acc _mask -> 
+            acc
+        ) acc masks in 
+        acc
+;;
+
+let rec range_to_ndarray _grid n _cl shp =
     (* spreadsheet cell *)
     match n with 
     | Parser.NdArray (_ndfl) -> (
@@ -188,16 +278,16 @@ let rec range_to_ndarray _grid n shp =
                 ) 
     )
     | Mask (_cr, _ml) -> 
-        masked_to_ndarray _grid _ml _cr
+        masked_to_ndarray _grid _ml _cl _cr
     | _ -> failwith "not implemented"
     (*| Relative (_motion, _crange) -> () *)
     (*| Refer    (_referral) -> () *)
     (*| Void ->  ()*)
-and masked_to_ndarray _grid _masks range = 
+and masked_to_ndarray _grid _masks _cl range = 
     (* TODO: we may not need to recalculate *)
-    match calcshape range with 
+    match calcshape _cl range with 
     | Ok ishp -> 
-        let ndarr = range_to_ndarray _grid range ishp in
+        let ndarr = range_to_ndarray _grid range _cl ishp in
         List.fold_left (fun acc mask -> 
             (match acc with
             | SNdim ((module M), data) ->
@@ -233,6 +323,8 @@ and masked_to_ndarray _grid _masks range =
                         let start = key_of_ref _cell in
                         let _ = Masks.write (module M) start data _grid in
                         acc
+                    | Parser.Axis (axis, masks) -> 
+                        handle_masks _grid axis masks acc (module M) data
                 )
             | _ -> 
                 failwith "Invalid mask argument!!"
@@ -277,6 +369,8 @@ and transform_mask _grid ndarr masks =
                         let start = key_of_ref _cell in
                         let _ = Masks.write (module M) start data _grid in
                         acc
+                    | Parser.Axis (axis, masks) -> 
+                        handle_masks _grid axis masks acc (module M) data
                 )
             | _ -> 
                 failwith "Invalid mask argument!!"
@@ -285,16 +379,16 @@ and transform_mask _grid ndarr masks =
 ;;
 
 (* generates nested loops from a list of variable matches *)
-let genloop grid ps (parms: (int list * Parser.crange * Parser.mask list) list) (out: int list) =
+let genloop grid ps (parms: (int list * Parser.crange * Parser.mask list * (char * int) list) list) (out: int list) =
     (* load params into the  stack frame first as if they were function call arguments *)
     (* create the output kernel first *)
     let outkern    = ndarray_of_dim    out in
     let outidx, ps = add_kernel outkern ps in 
 
-    let (_idxs, ps) = List.fold_left (fun (kidxs, ps') (_shp, _cr, _msks) -> 
-        let  _ndim      = range_to_ndarray grid _cr   _shp in
+    let (_idxs, ps) = List.fold_left (fun (kidxs, ps') (_shp, _cr, _msks, _cl) -> 
+        let  _ndim      = range_to_ndarray grid _cr _cl _shp in
         let  _ndim'     = transform_mask   grid _ndim _msks in
-        let (_kdx, ps') = add_kernel     _ndim' ps' in
+        let (_kdx, ps') = add_kernel       _ndim' ps' in
         (_kdx :: kidxs , ps')
     ) ([ ], ps) parms in
 

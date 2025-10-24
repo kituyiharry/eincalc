@@ -67,7 +67,7 @@ let peek s =
 
 
 let apply_masks pr = 
-    let _ = Format.printf "applying %d masks\n" (List.length pr.source.pmasks) in
+    (*let _ = Format.printf "applying %d masks\n" (List.length pr.source.pmasks) in*)
     let s = Emitter.transform_mask pr.sheet (pr.source.kernels.(0)) pr.source.pmasks
     in pr.source.kernels.(0) <- s
 ;;
@@ -242,7 +242,12 @@ let tosource (grid) (vw: program) =
 
         (* TODO: represent param as shape transformation types so we don't need
            to recalculate it while masking! *)
-        let (_outkidx, _kidxs, gl) = Emitter.genloop grid (presempty "") (List.map (fun y -> (y.shape, y.param, y.masks) ) x.inps) out in 
+        let (_outkidx, _kidxs, gl) = Emitter.genloop grid (presempty "") 
+            (List.map (fun y ->
+                (*FIXME: redundant restore char indexes for mask check AGAIN. can be cached in genfunc *)
+                let cl = List.map (fun c -> (c.label, c.index)) y.elems in
+                (y.shape, y.param, y.masks, cl) 
+            ) x.inps) out in 
 
         (* each parameter input with its associated kernel index added by genloop *)
         let  _mapidx = List.of_seq @@ Seq.zip (x.inps |> List.to_seq) (List.to_seq _kidxs)  in

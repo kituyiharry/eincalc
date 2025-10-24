@@ -14,8 +14,8 @@
   const DRAWER           = 57; 
 
   // Scroll computation
-  let scrollX = $state(0);
-  let scrollY = $state(0);
+  let scrollX =  $state(0);
+  let scrollY =  $state(0);
   let cellData = $state({})
 
   // cell selection
@@ -29,7 +29,7 @@
 
   /** 
    * @typedef  EditingCell
-   * @type     {?object}
+   * @type     {object}
    * @property {number} row 
    * @property {number} col
    * */
@@ -42,9 +42,8 @@
   // prevent refetching data by caching values in a set
   let visibleCells = new Set();
 
-  let funcBudgetHeight = $state(0)
   let funcBudgetWidth  = $state(0)
-  let funcBlockHeight  = $state(60);
+  let funcBlockHeight  = $state(40);
 
   let funcText  = $state('=(ij -> ji | zscore | write<A11>, @A1..J10)')
   let funcStyle = $derived ({
@@ -235,159 +234,229 @@
 </script>
 
 <!--<svelte:window />-->
-<div class='h-[90%] w-[100vw]'>
+<div class="drawer fixed mt-26 drawer-open">
+    <input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
+    <div class="drawer-content">
 
-    <!--TODO: wheel and touch events may not work as well on layers - find out why ?? --->
-    <input
-        bind:this={editor}
-        type="text"
-        bind:value={editValue}
-        onblur    ={handleEditorBlur}
-        onkeydown ={handleEditorKeyDown}
-        class="bg-black text-white text-xs"
-        style={Object.entries(editorStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}
-    />
-    <Canvas 
-        ondblclick ={handleDoubleClick} 
-        onmousedown={handleMouseDown} 
-        onmouseup  ={handleMouseUp}
-        onmousemove={handleMouseMove}
-        onwheel={handleWheel} 
-        layerEvents 
-        style="display: block; cursor: cell;">
-        {#key refresh}
-            <Layer 
-                render={ ({ context, width, height }) => { 
-                // see: https://github.com/sveltejs/svelte/issues/15066
-                // see: https://github.com/sveltejs/svelte/issues/2068
-                console.log("draw");
-                funcBudgetHeight = height;
-                funcBudgetWidth  = width;
+        <div class='h-[90%] w-[100vw]'>
 
-                // Calculate visible range
-                const startCol = Math.floor(scrollX / CELL_WIDTH);
-                const endCol   = Math.ceil((scrollX + width) / CELL_WIDTH);
-                const startRow = Math.floor(scrollY / CELL_HEIGHT);
-                const endRow   = Math.ceil((scrollY + height) / CELL_HEIGHT);
+            <!--TODO: wheel and touch events may not work as well on layers - find out why ?? --->
+            <input
+                bind:this={editor}
+                type="text"
+                bind:value={editValue}
+                onblur    ={handleEditorBlur}
+                onkeydown ={handleEditorKeyDown}
+                class="bg-black text-white text-xs"
+                style={Object.entries(editorStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}
+            />
+            <Canvas 
+                ondblclick ={handleDoubleClick} 
+                onmousedown={handleMouseDown} 
+                onmouseup  ={handleMouseUp}
+                onmousemove={handleMouseMove}
+                onwheel={handleWheel} 
+                layerEvents 
+                style="display: block; cursor: cell;">
+                {#key refresh}
+                    <Layer 
+                        render={ ({ context, width, height }) => { 
+                            // see: https://github.com/sveltejs/svelte/issues/15066
+                            // see: https://github.com/sveltejs/svelte/issues/2068
+                            funcBudgetWidth  = width;
 
-                const bounds = getSelectionBounds();
+                            // Calculate visible range
+                            const startCol = Math.floor(scrollX / CELL_WIDTH);
+                            const endCol   = Math.ceil((scrollX + width) / CELL_WIDTH);
+                            const startRow = Math.floor(scrollY / CELL_HEIGHT);
+                            const endRow   = Math.ceil((scrollY + height) / CELL_HEIGHT);
 
-                // Draw cells
-                context.strokeStyle = '#ddd';
-                context.fillStyle   = '#000';
-                context.font        = '12px sans-serif';
+                            const bounds = getSelectionBounds();
 
-                for (let row = startRow; row <= endRow; row++) {
-                    for (let col = startCol; col <= endCol; col++) {
-                        const x = col * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
-                        const y = row * CELL_HEIGHT - scrollY + HEADER_HEIGHT;
+                            // Draw cells
+                            context.strokeStyle = '#ddd';
+                            context.fillStyle   = '#000';
+                            context.font        = '12px sans-serif';
 
-                        // Call visibility callback
-                        onCellVisible(row, col);
+                            for (let row = startRow; row <= endRow; row++) {
+                                for (let col = startCol; col <= endCol; col++) {
+                                    const x = col * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
+                                    const y = row * CELL_HEIGHT - scrollY + HEADER_HEIGHT;
 
-                        // Highlight selected cells
-                        if (isCellSelected(row, col)) {
-                            context.fillStyle = '#e3f2fd';
-                            context.fillRect(x, y, CELL_WIDTH, CELL_HEIGHT);
+                                    // Call visibility callback
+                                    onCellVisible(row, col);
+
+                                    // Highlight selected cells
+                                    if (isCellSelected(row, col)) {
+                                        context.fillStyle = '#e3f2fd';
+                                        context.fillRect(x, y, CELL_WIDTH, CELL_HEIGHT);
+                                        context.fillStyle = '#000';
+                                    }
+
+                                    // Draw cell border
+                                    context.strokeRect(x, y, CELL_WIDTH, CELL_HEIGHT);
+
+                                    // Draw cell content
+                                    const cellKey = `${row},${col}`;
+                                    const cellValue = cellData[cellKey] || '';
+                                    if (cellValue) {
+                                        context.fillStyle = '#000';
+                                        context.fillText(cellValue, x + 5, y + 20);
+                                    }
+                                }
+                            }
+
+                            // Draw selection border
+                            if (bounds) {
+                                const x =  bounds.startCol * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
+                                const y =  bounds.startRow * CELL_HEIGHT - scrollY + HEADER_HEIGHT;
+                                const w = (bounds.endCol - bounds.startCol + 1) * CELL_WIDTH;
+                                const h = (bounds.endRow - bounds.startRow + 1) * CELL_HEIGHT;
+
+                                context.strokeStyle = '#1976d2';
+                                context.lineWidth = 2;
+                                context.strokeRect(x, y, w, h);
+                                context.lineWidth = 1;
+                            }
+
+                            // Draw column headers
+                            context.fillStyle = '#f5f5f5';
+                            context.fillRect(ROW_HEADER_WIDTH, 0, width - ROW_HEADER_WIDTH, HEADER_HEIGHT);
                             context.fillStyle = '#000';
+                            context.font = 'bold 12px sans-serif';
+                            context.strokeStyle = '#ddd';
+
+                            for (let col = startCol; col <= endCol; col++) {
+                                const x = col * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
+
+                                // Highlight selected column headers
+                                const bounds = getSelectionBounds();
+                                if (bounds && col >= bounds.startCol && col <= bounds.endCol) {
+                                    context.fillStyle = '#cce5ff';
+                                    context.fillRect(x, 0, CELL_WIDTH, HEADER_HEIGHT);
+                                    context.fillStyle = '#000';
+                                }
+
+                                context.strokeRect(x, 0, CELL_WIDTH, HEADER_HEIGHT);
+                                context.fillText(getColumnLabel(col), x + 5, 20);
+                            }
+
+                            // Draw row headers
+                            context.fillStyle = '#f5f5f5';
+                            context.fillRect(0, HEADER_HEIGHT, ROW_HEADER_WIDTH, height - HEADER_HEIGHT);
+                            context.fillStyle = '#000';
+
+                            for (let row = startRow; row <= endRow; row++) {
+                                const y = row * CELL_HEIGHT - scrollY + HEADER_HEIGHT;
+
+                                // Highlight selected row headers
+                                //const bounds = getSelectionBounds();
+                                if (bounds && row >= bounds.startRow && row <= bounds.endRow) {
+                                    context.fillStyle = '#cce5ff';
+                                    context.fillRect(0, y, ROW_HEADER_WIDTH, CELL_HEIGHT);
+                                    context.fillStyle = '#000';
+                                }
+
+                                context.strokeRect(0, y, ROW_HEADER_WIDTH, CELL_HEIGHT);
+                                context.fillText(`${(row + 1)}`, 5, y + 20);
+                            }
+
+                            // Draw corner
+                            context.fillStyle = '#f5f5f5';
+                            context.fillRect(0, 0, ROW_HEADER_WIDTH, HEADER_HEIGHT);
+                            context.strokeRect(0, 0, ROW_HEADER_WIDTH, HEADER_HEIGHT);
+                        }} />
+                {/key}
+            </Canvas>
+            <div class="flex flex-row bg-transparent backdrop-blur-sm border-t border-t-black" 
+                style={Object.entries(funcStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}>
+                <div class="flex bg-black items-center basis-4">
+                    <span class="p-4 text-center text-white">ƒ𝑥</span>
+                </div>
+                <textarea  
+                    class="font-light basis-8 px-4 py-2 text-[14px] resize-none min-w-full 
+                    text-black italic text-area textarea-neutral rounded-none"
+                    bind:value={funcText}
+                    onkeydown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            if (funcText.startsWith('=')) {
+                                controller.myLib.executecode(funcText.substring(1));
+                            } else {
+                                controller.myLib.executecode(funcText);
+                            }
+                            // NB: this forces a refetch of data from the grid model
+                            visibleCells.clear();
+                            cellData = {};
                         }
-
-                        // Draw cell border
-                        context.strokeRect(x, y, CELL_WIDTH, CELL_HEIGHT);
-
-                        // Draw cell content
-                        const cellKey = `${row},${col}`;
-                        const cellValue = cellData[cellKey] || '';
-                        if (cellValue) {
-                          context.fillStyle = '#000';
-                          context.fillText(cellValue, x + 5, y + 20);
-                        }
-                    }
-                }
-
-                // Draw selection border
-                if (bounds) {
-                    const x = bounds.startCol * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
-                    const y = bounds.startRow * CELL_HEIGHT - scrollY + HEADER_HEIGHT;
-                    const w = (bounds.endCol - bounds.startCol + 1) * CELL_WIDTH;
-                    const h = (bounds.endRow - bounds.startRow + 1) * CELL_HEIGHT;
-
-                    context.strokeStyle = '#1976d2';
-                    context.lineWidth = 2;
-                    context.strokeRect(x, y, w, h);
-                    context.lineWidth = 1;
-                }
-
-                // Draw column headers
-                context.fillStyle = '#f5f5f5';
-                context.fillRect(ROW_HEADER_WIDTH, 0, width - ROW_HEADER_WIDTH, HEADER_HEIGHT);
-                context.fillStyle = '#000';
-                context.font = 'bold 12px sans-serif';
-                context.strokeStyle = '#ddd';
-
-                for (let col = startCol; col <= endCol; col++) {
-                    const x = col * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
-
-                    // Highlight selected column headers
-                    const bounds = getSelectionBounds();
-                    if (bounds && col >= bounds.startCol && col <= bounds.endCol) {
-                        context.fillStyle = '#cce5ff';
-                        context.fillRect(x, 0, CELL_WIDTH, HEADER_HEIGHT);
-                        context.fillStyle = '#000';
-                    }
-
-                    context.strokeRect(x, 0, CELL_WIDTH, HEADER_HEIGHT);
-                    context.fillText(getColumnLabel(col), x + 5, 20);
-                }
-
-                // Draw row headers
-                context.fillStyle = '#f5f5f5';
-                context.fillRect(0, HEADER_HEIGHT, ROW_HEADER_WIDTH, height - HEADER_HEIGHT);
-                context.fillStyle = '#000';
-
-                for (let row = startRow; row <= endRow; row++) {
-                    const y = row * CELL_HEIGHT - scrollY + HEADER_HEIGHT;
-
-                    // Highlight selected row headers
-                    //const bounds = getSelectionBounds();
-                    if (bounds && row >= bounds.startRow && row <= bounds.endRow) {
-                        context.fillStyle = '#cce5ff';
-                        context.fillRect(0, y, ROW_HEADER_WIDTH, CELL_HEIGHT);
-                        context.fillStyle = '#000';
-                    }
-
-                    context.strokeRect(0, y, ROW_HEADER_WIDTH, CELL_HEIGHT);
-                    context.fillText(`${(row + 1)}`, 5, y + 20);
-                }
-
-                // Draw corner
-                context.fillStyle = '#f5f5f5';
-                context.fillRect(0, 0, ROW_HEADER_WIDTH, HEADER_HEIGHT);
-                context.strokeRect(0, 0, ROW_HEADER_WIDTH, HEADER_HEIGHT);
-            }} />
-        {/key}
-    </Canvas>
-    <div class="flex flex-row bg-transparent backdrop-blur-sm border-t border-t-black" 
-        style={Object.entries(funcStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}>
-        <div class="flex bg-black items-center basis-4">
-            <span class="p-4 text-center text-white">ƒ𝑥</span>
+                    }}
+                ></textarea>
+            </div>
         </div>
-        <textarea  
-            class="font-thin basis-8 p-4 text-[14px] resize-none min-w-full 
-            text-black italic text-area rounded-none"
-            bind:value={funcText}
-            onkeydown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    if (funcText.startsWith('=')) {
-                        controller.myLib.executecode(funcText.substring(1));
-                    } else {
-                        controller.myLib.executecode(funcText);
-                    }
-                    // NB: this forces a refetch of data from the grid model
-                    visibleCells.clear();
-                    cellData = {};
-                }
-            }}
-        ></textarea>
+
+    </div>
+
+    <div class="drawer-side is-drawer-close:overflow-visible  border-r border-r-black">
+        <label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
+        <div class="is-drawer-close:w-14 is-drawer-open:w-64 bg-base-200 
+            flex flex-col items-start min-h-full">
+            <!-- Sidebar content here -->
+            <ul class="menu w-full grow gap-2">
+
+                <!-- list item -->
+                <li class="">
+                    <button class="text-md is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Homepage">
+                        <i class="fa fa-th" aria-hidden="true"></i>
+                        <span class="is-drawer-close:hidden">Help</span>
+                    </button>
+                </li>
+
+                <!-- list item -->
+                <li >
+                    <button class="text-md is-drawer-close:tooltip
+                        is-drawer-close:tooltip-right" data-tip="Info">
+                        <i class="fa fa-question-circle" aria-hidden="true"></i>
+                        <span class="is-drawer-close:hidden">Help</span>
+                    </button>
+                </li>
+
+                <li>
+                    <button class="text-md is-drawer-close:tooltip
+                        is-drawer-close:tooltip-right" data-tip="Clear">
+                        <i class="fa fa-eraser fa" aria-hidden="true"></i>
+                        <span class="is-drawer-close:hidden">Clear</span>
+                    </button>
+                </li>
+
+
+                <li>
+                    <button class="text-md is-drawer-close:tooltip
+                        is-drawer-close:tooltip-right" data-tip="Font">
+                        <i class="fa fa-font" aria-hidden="true"></i>
+                        <span class="is-drawer-close:hidden">Font</span>
+                    </button>
+                </li>
+
+
+                <li>
+                    <button class="text-md is-drawer-close:tooltip
+                        is-drawer-close:tooltip-right" data-tip="Import">
+                        <i class="fa fa-upload" aria-hidden="true"></i>
+                        <span class="is-drawer-close:hidden">Import</span>
+                    </button>
+                </li>
+
+
+                <li>
+                    <button class="text-md is-drawer-close:tooltip
+                        is-drawer-close:tooltip-right" data-tip="Style">
+                        <i class="fa fa-paint-brush " aria-hidden="true"></i>
+                        <span class="is-drawer-close:hidden">Style</span>
+                    </button>
+                </li>
+
+            </ul>
+        </div>
     </div>
 </div>
+
+

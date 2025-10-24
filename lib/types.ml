@@ -154,6 +154,41 @@ let iterndarray f nda =
     iternd [] f nda
 ;;
 
+let ndarray_of_dimshape shp =  
+    match shp with 
+    | [||] -> 
+        let _scal = (module Scalar: NDarray with type t = float ref) in 
+        let (module Scalar) = _scal in
+        let _sdat = Scalar.make [||] 0. in
+        (SNdim (_scal, _sdat))
+    (* All ones is a scalar! *)
+    | shp when (Array.for_all (Int.equal 1) shp) -> 
+        let _scal = (module Scalar: NDarray with type t = float ref) in 
+        let (module Scalar) = _scal in
+        let _sdat = Scalar.make [||] (0.) in
+        (SNdim (_scal, _sdat))
+    | [|_hd|] -> 
+        let _scal = (module Vector: NDarray with type t = float vector) in 
+        let (module Vector) = _scal in
+        let _sdat = Vector.make shp 0. in
+        (SNdim (_scal, _sdat))
+    | [|_hd;_hd1;|] -> 
+        let _scal = (module Matrix: NDarray with type t = float matrix) in 
+        let (module Matrix) = _scal in
+        let _sdat = Matrix.make shp 0. in
+        (SNdim (_scal, _sdat))
+    | [|_hd;_hd1;_hd2|] -> 
+        let _scal = (module BatchMatrix: NDarray with type t = batches) in 
+        let (module BatchMatrix) = _scal in
+        let _sdat = BatchMatrix.make shp 0. in
+        (SNdim (_scal, _sdat))
+    | rem -> 
+        let _scal = (module MulDim: NDarray with type t = bigfloatarray) in 
+        let (module MulDim) = _scal in
+        let _sdat = MulDim.make rem 0. in
+        (SNdim (_scal, _sdat))
+;;
+
 let ndarray_of_dim shp =  
     match shp with 
     | [] -> 

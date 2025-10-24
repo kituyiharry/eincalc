@@ -35,6 +35,7 @@ module type NDarray = sig
     val  iteri:   (int array -> float -> unit) -> t -> unit
     val  shape:   t -> int array
     val  iteris:  (unit -> unit) -> (int array -> float -> unit) -> (unit -> unit) -> t -> unit
+    val  iteriaxis: int -> (unit -> unit) -> (int array -> float -> unit) -> (unit -> unit) -> t -> unit
     val  init:    int array -> (int array -> float) -> t
 end
 
@@ -60,6 +61,12 @@ module Scalar: NDarray with type t = float ref = struct
     ;;
 
     let iteris (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
+        let _ = onbeginslice () in 
+        let _ = apply [|0|] !_cont in 
+        onendslice ()
+    ;;
+
+    let iteriaxis (_axisid) (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
         let _ = onbeginslice () in 
         let _ = apply [|0|] !_cont in 
         onendslice ()
@@ -101,6 +108,12 @@ module Vector: NDarray with type t = (float array wrap) = struct
     ;;
 
     let iteris (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
+        let _ = onbeginslice () in
+        let _ = Array.iteri (fun i v -> apply [|i|] v) (_cont.cont) in
+        onendslice ()
+    ;;
+
+    let iteriaxis (_axisid) (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
         let _ = onbeginslice () in
         let _ = Array.iteri (fun i v -> apply [|i|] v) (_cont.cont) in
         onendslice ()
@@ -155,6 +168,42 @@ module Matrix: NDarray with type t = float array array wrap = struct
 
     let shape _c =
         _c.dims
+    ;;
+
+
+    let iteriaxis axis (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
+        let shp   = shape _cont in 
+        let axisid = axis in
+        let bound  = (Array.get shp axisid) - 1 in
+        let start = [|0;0|] in 
+        (* increase dimension while ignoring axis. len is number of dimensions,
+           dims is the final shape, indx is the current indexing values *)
+        let incrindex len indx dims = 
+            let brk = ref false in
+            for i = (len - 1) downto 0 do
+                (if !brk then () else if i = axisid then () else 
+                    (if indx.(i) = (dims.(i) - 1) then 
+                        indx.(i) <- 0
+                        else
+                            let _ = indx.(i) <- ((indx.(i)) + 1) in 
+                            let _ = brk := true in 
+                            ()
+                    )
+                )
+            done
+        in
+        start.(axisid) <- bound;
+        while (not (Array.for_all (fun x -> x = 0) start))  do 
+            onbeginslice ();
+            start.(axisid) <- 0;
+            for _i = 0 to bound do
+                let _ = apply start (get _cont start) in
+                start.(axisid) <- (start.(axisid) + 1)
+            done;
+            incrindex 2 start shp;
+            start.(axisid) <- 0;
+            onendslice ()
+        done
     ;;
 
     let init (_dims: int array) (f) =
@@ -232,6 +281,41 @@ module BatchMatrix: NDarray with type t = batches = struct
         in iterate_genarray_recursive _cont
     ;;
 
+    let iteriaxis axisid (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
+        let shp   = shape _cont in 
+        let bound  = (Array.get shp axisid) - 1 in
+        let start = [|0;0;0|] in 
+        (* increase dimension while ignoring axis. len is number of dimensions,
+           dims is the final shape, indx is the current indexing values *)
+        let incrindex len indx dims = 
+            let brk = ref false in
+            for i = (len - 1) downto 0 do
+                (if !brk then () else if i = axisid then () else 
+                    (if indx.(i) = (dims.(i) - 1) then 
+                        indx.(i) <- 0
+                        else
+                            let _ = indx.(i) <- ((indx.(i)) + 1) in 
+                            let _ = brk := true in 
+                            ()
+                    )
+                )
+            done
+        in
+        start.(axisid) <- bound;
+        while (not (Array.for_all (fun x -> x = 0) start))  do 
+            onbeginslice ();
+            start.(axisid) <- 0;
+            for _i = 0 to bound do
+                let _ = apply start (get _cont start) in
+                start.(axisid) <- (start.(axisid) + 1)
+            done;
+            incrindex 3 start shp;
+            start.(axisid) <- 0;
+            onendslice ()
+        done
+    ;;
+  
+
     let init (_dims: int array) (f) =
         let () = assert (Array.length _dims > 1) in
         Bigarray.Array3.init Bigarray.Float64 Bigarray.c_layout (_dims.(0)) (_dims.(1)) (_dims.(2))
@@ -304,6 +388,40 @@ module MulDim: NDarray with type t = bigfloatarray = struct
             let _ = iterate_recursive arr indices ndims 0 in 
             onendslice ()
         in iterate_genarray_recursive _cont
+    ;;
+
+    let iteriaxis axisid (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
+        let shp   = shape _cont in 
+        let bound  = (Array.get shp axisid) - 1 in
+        let start =  (Array.make (Array.length shp) 0) in 
+        (* increase dimension while ignoring axis. len is number of dimensions,
+           dims is the final shape, indx is the current indexing values *)
+        let incrindex len indx dims = 
+            let brk = ref false in
+            for i = (len - 1) downto 0 do
+                (if !brk then () else if i = axisid then () else 
+                    (if indx.(i) = (dims.(i) - 1) then 
+                        indx.(i) <- 0
+                        else
+                            let _ = indx.(i) <- ((indx.(i)) + 1) in 
+                            let _ = brk := true in 
+                            ()
+                    )
+                )
+            done
+        in
+        start.(axisid) <- bound;
+        while (not (Array.for_all (fun x -> x = 0) start))  do 
+            onbeginslice ();
+            start.(axisid) <- 0;
+            for _i = 0 to bound do
+                let _ = apply start (get _cont start) in
+                start.(axisid) <- (start.(axisid) + 1)
+            done;
+            incrindex 3 start shp;
+            start.(axisid) <- 0;
+            onendslice ()
+        done
     ;;
 
     let init (_dims: int array) (f) =

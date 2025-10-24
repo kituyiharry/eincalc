@@ -138,30 +138,78 @@ let compfromshape param pidx einchars masks dimens =
         Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" l' (pidx+1) g')
 ;;
 
-let shape_of_mask m map = 
-    match m with
-    | MinMax (_, _) -> 
-        map
-    | ZScore -> 
-        map
-    | Mean ->
-        []
-    | Mode -> 
-        []
-    | Stddev ->
-        []
-    | Reshape shp -> 
-        shp
-    | Write _cell -> 
-        map
-    (*| Determ -> *)
-        (*[]*)
-    (*| Cumulative -> *)
-        (*map*)
+let shape_of_mask (l: (char * int) list) m map = 
+    let rec findshape l m map nest =
+        match m with
+        | MinMax (_, _) -> 
+            Ok map
+        | ZScore -> 
+            Ok map
+        | Mean ->
+            Ok []
+        | Mode -> 
+            Ok []
+        | Stddev ->
+            Ok []
+        | Reshape shp -> 
+            if nest > 0 then Error "reshape not currently supported with axis"
+            else Ok shp
+        | Write _cell -> 
+            Ok map
+        (* FIXME: find actual shape -> its like one axis should disappear *)
+        | Axis (_c, _masks) -> 
+            if nest > 0 then Error "axis mask cannot be nested in another axis mask due to ambiguity!" else  
+            (* TODO: verify semantics of axis with reshapes - it may be incoherent *)
+            (match List.nth_opt map _c with
+                | Some dimsize -> 
+                        (*let dimsize = List.nth map idx in*)
+                        (>>==) (List.fold_left (fun acc maskval -> 
+                            match acc with 
+                            | Ok a ->
+                                (>>==) (findshape l maskval a (nest + 1)) (fun rshp ->
+                                    (match (Types.cardinal_of_shp rshp, Types.cardinal_of_shp a) with
+                                        | (l, r) when l = r -> 
+                                            Ok rshp 
+                                        | (l, _d) when l = 1 -> 
+                                            Ok rshp
+                                        | _ -> 
+                                            Error (Format.sprintf "improperly structured shape transformation: %s to %s!" 
+                                                (Types.string_of_shape a) (Types.string_of_shape rshp)
+                                            )
+                                    )
+                                )
+                            | _ -> 
+                                acc
+                    ) (Ok [dimsize]) _masks) (fun idim -> 
+                        match idim with 
+                        | [] -> 
+                            (* same effect as being summed over where the dimension disappears - nullify that dimension *)
+                            List.mapi (fun i v -> if i = _c then -1 else v) map
+                            |> List.filter (fun i -> i > 0)
+                            |> Result.ok
+                        | _vec :: []  ->
+                            (* TODO: is this ok - it assumes the axis is wholly mapped in some sort ?? *)
+                            let nmap =  List.mapi (fun i v ->
+                                if i = _c then 
+                                    _vec 
+                                else
+                                    v
+                            ) map in
+                            Ok nmap
+                        | _ ->
+                            Ok idim
+                    )
+                | None -> Error "missing axis dimension index!"
+            ) 
+        (*| Determ -> *)
+            (*[]*)
+        (*| Cumulative -> *)
+            (*map*)
+    in findshape l m map 0
 ;;
 
 (* calculate shape from checking parameter structure *)
-let rec calcshape c = 
+let rec calcshape l c = 
     match c with 
     | Range (_cellstart, _cellend) -> 
         (* get the grid indexes for the references e.g A10 -> (9, 0) *)
@@ -177,19 +225,27 @@ let rec calcshape c =
     | NdArray n ->
         (homogenous (metashape n))
     | Mask (r, m) -> 
-        (>>==) (calcshape r) (fun lshp -> 
+        (>>==) (calcshape l r) (fun lshp -> 
             List.fold_left (fun acc maskval -> 
                 match acc with 
                 | Ok a ->
-                    let rshp = shape_of_mask maskval a in
-                    (match (Types.cardinal_of_shp rshp, Types.cardinal_of_shp a) with
-                    | (l, r) when l = r -> 
-                        Ok rshp 
-                    | (l, _d) when l = 1 -> 
-                        Ok rshp
-                    | _ -> 
-                        Error (Format.sprintf "improperly structured shape transformation: %s to %s!" 
-                            (Types.string_of_shape a) (Types.string_of_shape rshp)
+                    (>>==) (shape_of_mask l maskval a) (fun rshp -> 
+                        (match (Types.cardinal_of_shp rshp, Types.cardinal_of_shp a) with
+                            | (l, r) when l = r -> 
+                                Ok rshp 
+                            | (l, _d) when l = 1 -> 
+                                Ok rshp
+                            | _ -> 
+                                (match maskval with 
+                                | Axis (_, _) ->  
+                                    (* allow axis transformation that can
+                                       disappear a dimension *)
+                                    Ok rshp
+                                | _ ->
+                                    Error (Format.sprintf "improperly structured shape transformation: %s to %s!" 
+                                        (Types.string_of_shape a) (Types.string_of_shape rshp)
+                                    )
+                                )
                         )
                     )
                 | _ -> 
@@ -231,7 +287,7 @@ let parammatch ({ inp; _ }, par) =
             List.combine inp par
             |> List.mapi (fun pidx ((Shape (l, _m)), param) ->
                 (* TODO: use Disjoint Set *)
-                (>>==) (calcshape (Mask (param, _m))) (compfromshape param pidx l _m)
+                (>>==) (calcshape (l) (Mask (param, _m))) (compfromshape param pidx l _m)
             )
         ) in 
         if List.exists (Result.is_error) ins then

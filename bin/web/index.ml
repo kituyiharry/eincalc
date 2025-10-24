@@ -7,10 +7,10 @@ module Js   = Js_of_ocaml.Js
 module Con  = Js_of_ocaml.Console
 
 let js_str  = Js.string
-let js_num  = Js.number_of_float
+(*let js_num  = Js.number_of_float*)
 
 let _ =
-    let _g = Spinal.Ndmodel.enum_grid (10, 10) in
+    let _g = Spinal.Ndmodel.plain_grid 100 in
     (*  TODO: come up with a better controller interface *)
     let _ = Js.export "myLib"
             (object%js (_self)
@@ -18,7 +18,7 @@ let _ =
                 method get row col = (
                     match Spinal.Ndmodel.Grid.find_opt _g (row, col) with 
                     | Some Spinal.Ndmodel.TValue  s -> (js_str s)
-                    | Some Spinal.Ndmodel.TNumber f -> (js_str (string_of_float f))
+                    | Some Spinal.Ndmodel.TNumber f -> (js_str (Format.sprintf "%.2f" f))
                     | None   -> js_str ""
                 )
 

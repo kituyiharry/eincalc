@@ -15,6 +15,7 @@ let (>>==) = Result.bind;;
 type lit     = 
     (* TODO: Does disjoint set make sense ?? *)
     (* evaluation of this mask is AFTER the parameter masks *)
+    (* variable and its index along a mask list *)
     | Shape of ((char * int) list * mask list)
 and referral = 
     | Self  (* the current cell *)
@@ -23,6 +24,7 @@ and call =
     | Zeros of int list     (* zero init with a shape  *)
     | Ones  of int list     (* ones init with a shape  *)
     | Fill  of float * int list (* fill shape with a certain value *)
+    (* @enum<0,1,[4,3]> *)
     | Enum  of float * float * int list (* enumerate from minvalue and increment with a shape *)
     | Rand  of float * int list (* random with bound and shape *)
     | Alt   of float list * int list (* alternate of values *)
@@ -30,13 +32,22 @@ and mask =
     (* TODO: support axis values for direction of application - default means
        flattening and applying over whole  *)
     (* TODO: robust scaling and unit vector norm *)
+    (* minmax<x,y> *)
     | MinMax of float * float     (* min max between a pair of values *)
+    (* zscore *)
     | ZScore                      (* z-score normalization *)
+    (* mean *)
     | Mean
+    (* mode *)
     | Mode
+    (* stddev *)
     | Stddev
+    (* reshape<[x,y]> *)
     | Reshape of int list
+    (* write<A100> *)
     | Write   of cell             (* executes an effect to the grid *)           
+    (* axis<'j', mean> *)
+    | Axis    of int * mask list (* apply mask along an axis *)
     (*| Unbox                     (* undo top dimension maybe by running a function over it ?? *) *)
     (*| Partition                 (* break into groups *) *)
     (*| Determ                    (* determinant *) *)
@@ -978,6 +989,30 @@ let parse_ein_mask state =
                                 Error "reshape value should be in shape format"
                         else
                             Error "missing reshape values!"
+                    | TAlphaNum "axis" ->
+                        let nxt = advance state in
+                        if check (TLeftAngle) (fst nxt) then
+                            let nxt' = advance nxt in
+                            (match (fst nxt').curr with
+                                | Some { tokn; _ } -> 
+                                    (match tokn with
+                                        | TNumeral axischar -> 
+                                            (>>==) (consume (advance nxt') TComma) (fun nxt'' -> 
+                                                (>>==) (masklist nxt'' []) 
+                                                    (fun (after, masks) ->
+                                                        (>>==) (consume after TRightAngle) (fun after' ->
+                                                            Ok (after', Axis (axischar, masks))
+                                                        )
+                                                    )
+                                            )
+                                        | _ -> 
+                                            Error "expected axis number first"
+                                    )
+                                | _ -> 
+                                    Error "axis description missing"
+                            )
+                        else
+                            Error "missing axis argument!"
                     (* reductions to Scalar *)
                     | TAlphaNum "mean" ->
                         Ok (advance state, Mean)
