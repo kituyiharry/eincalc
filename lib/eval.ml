@@ -16,6 +16,8 @@ open Ndmodel;;
 
 let (>>==) = Result.bind;;
 
+(* TODO: constant time VM operations *)
+
 type vm = {
         spine:  spinval array
     ;   source: source
@@ -227,8 +229,17 @@ let handle_op vm op =
     | IApplyMasks   -> let _ = apply_masks vm in 1
 ;;
 
+let timeonly f =
+    let t = Unix.gettimeofday () in
+    let _res = f () in
+    (Unix.gettimeofday () -. t)
+;;
+
+(* access grid via controller *)
 let eval (pr: vm) = 
-    consume pr.source (handle_op pr)
+    let tval = timeonly (fun _ -> 
+        consume pr.source (handle_op pr)
+    ) in Format.printf "\nexec %f secs\n" tval
 ;;
 
 let tosource (grid) (vw: program) = 

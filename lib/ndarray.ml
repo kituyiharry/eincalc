@@ -19,13 +19,22 @@ type 'a matrix     = 'a array array wrap
 type batches       = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Array3.t ;;
 type bigfloatarray = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t ;;
 
-(* TODO: define a tape protocol which describes the order of the elements when
+(*
+   TODO: define a tape protocol which describes the order of the elements when
    iterated over. implicit at the moment. can be useful once we allow for out of
-   order executions *)
+   order executions 
+*)
 (*
    TODO: try and implement a view-based layout which does not need to be copied
    over when certain masks are applied but simply reinterpreted. Bigarray and
    Genarray would be able to reshape efficiently via Bigarray.reshape
+*)
+(*
+   TODO: Remove asserts in production or profile releases using compile time
+  flag, see (:standard -noassert) https://github.com/ocaml/dune/issues/1569#issuecomment-441281312
+  (env
+    (release
+    (flags (:standard -noassert)))
 *)
 module type NDarray = sig 
     type t

@@ -86,25 +86,6 @@ let get_named_var vlue ps =
     Hashtbl.find_opt ps.nmdvar vlue 
 ;;
 
-let echoall vlist =
-    vlist
-    |> List.rev
-    |> List.map (fun (var, idx) -> 
-        [
-            IPush (SStr (Format.sprintf "%c" var));
-            IEcho;
-            IGetVar idx;
-            IEcho;
-            IPush (SStr " ");
-            IEchoNl;
-            IPop;
-            IPop;
-            IPop;
-        ]
-    ) 
-    |> List.concat
-;;
-
 (* 
    create a loop 
 
@@ -197,8 +178,20 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                 let start = key_of_ref _cell in
                 let _ = Masks.writeaxis axis (module M) start data _grid in
                 acc
+            | Parser.Cumsum -> 
+                let _ = Masks.cumsumaxis axis (module M) data in
+                acc
+            | Parser.Sum -> 
+                let ns = Array.make (len - 1) 0 in
+                (match collapse shp ns len with 
+                    | SNdim ((module M'), _data') as acc' -> 
+                        let _ = Masks.sumaxis axis (module M') (_data') (module M) (data)in
+                        acc'
+                    | _ -> 
+                        failwith "axis collapse failure"
+                )
             | Parser.Reshape _ -> 
-                failwith "reshape not supported atm!!"
+                failwith "axis reshape not supported atm!!"
             | Parser.Axis (_, _) -> 
                 failwith "nested axis operations not allowed!!"
         )
@@ -211,6 +204,7 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
 
 let rec range_to_ndarray _grid n _cl shp =
     (* spreadsheet cell *)
+    (* TODO: optimization to avoid having to create tensors for some functions  *)
     match n with 
     | Parser.NdArray (_ndfl) -> (
         match ndarray_of_dim shp with 
@@ -298,6 +292,10 @@ and masked_to_ndarray _grid _masks _cl range =
                     | Parser.ZScore ->
                         let data' = Masks.zscore (module M) data in
                         SNdim ((module M), data')
+                    | Parser.Sum ->
+                        let mnval = Masks.sum (module M) data in 
+                        let acc' = Ndarray.Scalar.make [||] mnval in
+                        SNdim ((module Ndarray.Scalar), acc')
                     | Parser.Mean ->
                         let mnval = Masks.mean (module M) data in 
                         let acc' = Ndarray.Scalar.make [||] mnval in
@@ -323,6 +321,9 @@ and masked_to_ndarray _grid _masks _cl range =
                         let start = key_of_ref _cell in
                         let _ = Masks.write (module M) start data _grid in
                         acc
+                    | Parser.Cumsum -> 
+                        let _ = Masks.cumsum (module M) data in
+                        acc
                     | Parser.Axis (axis, masks) -> 
                         handle_masks _grid axis masks acc (module M) data
                 )
@@ -333,6 +334,7 @@ and masked_to_ndarray _grid _masks _cl range =
     | Error s -> 
         failwith s
 and transform_mask _grid ndarr masks = 
+    (* TODO: optimization for rank 0 tensors which are just reflected *)
     List.fold_left (fun acc mask -> 
         (match acc with
             | SNdim ((module M), data) ->
@@ -343,6 +345,10 @@ and transform_mask _grid ndarr masks =
                     | Parser.ZScore ->
                         let data' = Masks.zscore (module M) data in
                         SNdim ((module M), data')
+                    | Parser.Sum ->
+                        let mnval = Masks.sum (module M) data in 
+                        let acc' = Ndarray.Scalar.make [||] mnval in
+                        SNdim ((module Ndarray.Scalar), acc')
                     | Parser.Mean ->
                         let mnval = Masks.mean (module M) data in 
                         let acc' = Ndarray.Scalar.make [||] mnval in
@@ -368,6 +374,10 @@ and transform_mask _grid ndarr masks =
                         (* execute an effect back to the grid *)
                         let start = key_of_ref _cell in
                         let _ = Masks.write (module M) start data _grid in
+                        acc
+                    | Parser.Cumsum -> 
+                        (* execute an effect back to the grid *)
+                        let _ = Masks.cumsum (module M) data in
                         acc
                     | Parser.Axis (axis, masks) -> 
                         handle_masks _grid axis masks acc (module M) data

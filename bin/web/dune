@@ -2,7 +2,7 @@
   (name index)
   (modes byte js)
   (preprocess (pps js_of_ocaml-ppx))
-  (libraries spinal js_of_ocaml js_of_ocaml-lwt js_of_ocaml-lwt.graphics)
+  (libraries eincalc js_of_ocaml js_of_ocaml-lwt js_of_ocaml-lwt.graphics)
   (js_of_ocaml 
     ; todo: maybe disable errors and exception. add effects support when needed ?
     (flags :standard --opt 3 --source-map --debug-info --disable staticeval --disable share --target-env browser --enable=with-js-error --enable=excwrap)

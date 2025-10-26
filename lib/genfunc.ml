@@ -147,10 +147,14 @@ let shape_of_mask (l: (char * int) list) m map =
             Ok map
         | Mean ->
             Ok []
+        | Sum ->
+            Ok []
         | Mode -> 
             Ok []
         | Stddev ->
             Ok []
+        | Cumsum ->
+            Ok map
         | Reshape shp -> 
             if nest > 0 then Error "reshape not currently supported with axis"
             else Ok shp
@@ -197,7 +201,8 @@ let shape_of_mask (l: (char * int) list) m map =
                             ) map in
                             Ok nmap
                         | _ ->
-                            Ok idim
+                            Error "reshape across multiple dimensions not supported"
+                            (*Ok idim*)
                     )
                 | None -> Error "missing axis dimension index!"
             ) 

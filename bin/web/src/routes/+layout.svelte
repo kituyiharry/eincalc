@@ -39,7 +39,7 @@
                         <div role="tab" class="outline-black tab tab-active px-2 border-x border-x-black">
                             <span class="badge text-sm badge-neutral badge-outline">
                                 <i class="fa fa-circle text-green-200"> </i>
-                                Sheet A
+                                Workspace A
                             </span>
                         </div>
                     </div>

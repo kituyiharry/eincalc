@@ -43,7 +43,7 @@
   let visibleCells = new Set();
 
   let funcBudgetWidth  = $state(0)
-  let funcBlockHeight  = $state(40);
+  let funcBlockHeight  = $state(80);
 
   let funcText  = $state('=(ij -> ji | zscore | write<A11>, @A1..J10)')
   let funcStyle = $derived ({
@@ -368,13 +368,15 @@
                         }} />
                 {/key}
             </Canvas>
-            <div class="flex flex-row bg-transparent backdrop-blur-sm border-t border-t-black" 
+            <div class="flex flex-row bg-transparent backdrop-blur-sm border-t
+                border-t-black resize-y" 
                 style={Object.entries(funcStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}>
                 <div class="flex bg-black items-center basis-4">
                     <span class="p-4 text-center text-white">ƒ𝑥</span>
                 </div>
                 <textarea  
-                    class="font-light basis-8 px-4 py-2 text-[14px] resize-none min-w-full 
+                    class="font-light basis-8 px-4 py-2 text-[14px] resize-none 
+                    min-w-full 
                     text-black italic text-area textarea-neutral rounded-none"
                     bind:value={funcText}
                     onkeydown={(e) => {

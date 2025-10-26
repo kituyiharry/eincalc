@@ -20,13 +20,20 @@ type lit     =
 and referral = 
     | Self  (* the current cell *)
 and call = 
+    (* @diag<2.,4> creates a 4x4 matrix with 2 along the diagonal *)
     | Diag  of float * int  (* square matrix with diagonal values *) 
+    (* @zeros<[x,y,...]>  shaped ndarray filled with zeros*)
     | Zeros of int list     (* zero init with a shape  *)
+    (* @ones<[x,y,...]>  shaped ndarray filled with ones *)
     | Ones  of int list     (* ones init with a shape  *)
+    (* @fill<x, [x,y,...]>  shaped ndarray filled with x *)
     | Fill  of float * int list (* fill shape with a certain value *)
     (* @enum<0,1,[4,3]> *)
     | Enum  of float * float * int list (* enumerate from minvalue and increment with a shape *)
+    (* @random<bound, [x,y,...]>  shaped ndarray filled with random values between 0 and bound *)
     | Rand  of float * int list (* random with bound and shape *)
+    (* @alt<[x,y,z,....], [x,y,...]>  shaped ndarray filled with alternating
+       values from the first argument *)
     | Alt   of float list * int list (* alternate of values *)
 and mask = 
     (* TODO: support axis values for direction of application - default means
@@ -40,6 +47,10 @@ and mask =
     | Mean
     (* mode *)
     | Mode
+    (* Sum *)
+    | Sum
+    (* cumulative sum *)
+    | Cumsum
     (* stddev *)
     | Stddev
     (* reshape<[x,y,...]> *)
@@ -1016,6 +1027,10 @@ let parse_ein_mask state =
                     (* reductions to Scalar *)
                     | TAlphaNum "mean" ->
                         Ok (advance state, Mean)
+                    | TAlphaNum "sum" ->
+                        Ok (advance state, Sum)
+                    | TAlphaNum "cumsum" ->
+                        Ok (advance state, Cumsum)
                     | TAlphaNum "stddev" ->
                         Ok (advance state, Stddev)
                     | TAlphaNum "mode" ->

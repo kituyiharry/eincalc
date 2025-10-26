@@ -10,15 +10,15 @@ let js_str  = Js.string
 (*let js_num  = Js.number_of_float*)
 
 let _ =
-    let _g = Spinal.Ndmodel.plain_grid 100 in
+    let _g = Eincalc.Ndmodel.plain_grid 100 in
     (*  TODO: come up with a better controller interface *)
     let _ = Js.export "myLib"
             (object%js (_self)
                 
                 method get row col = (
-                    match Spinal.Ndmodel.Grid.find_opt _g (row, col) with 
-                    | Some Spinal.Ndmodel.TValue  s -> (js_str s)
-                    | Some Spinal.Ndmodel.TNumber f -> (js_str (Format.sprintf "%.2f" f))
+                    match Eincalc.Ndmodel.Grid.find_opt _g (row, col) with 
+                    | Some Eincalc.Ndmodel.TValue  s -> (js_str s)
+                    | Some Eincalc.Ndmodel.TNumber f -> (js_str (Format.sprintf "%.2f" f))
                     | None   -> js_str ""
                 )
 
@@ -27,7 +27,7 @@ let _ =
                     let vstr = Js.to_float value in
                     (*let _ = Con.console##log (Format.sprintf "adding %f to %d*)
                     (*%d\n" vstr row col) in*)
-                    Spinal.Ndmodel.Grid.add _g (row, col) (TNumber vstr)
+                    Eincalc.Ndmodel.Grid.add _g (row, col) (TNumber vstr)
                 )
 
                 (* TODO: use OptDef or Opt for null checks *)
@@ -35,7 +35,7 @@ let _ =
                     let vstr = Js.to_string value in
                     (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
                     (*\n" vstr row col)  in*)
-                    Spinal.Ndmodel.Grid.add _g (row, col) (TValue vstr)
+                    Eincalc.Ndmodel.Grid.add _g (row, col) (TValue vstr)
                 )
 
                 (* TODO: use OptDef or Opt for null checks *)
@@ -43,7 +43,7 @@ let _ =
                     let vstr = Js.to_string value in
                     (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
                     (*\n" vstr row col)  in*)
-                    Spinal.Repl.handle_scan_exp _g vstr
+                    Eincalc.Repl.handle_scan_exp _g vstr
                 )
 
                 (*You can also write javascript within your OCaml code.

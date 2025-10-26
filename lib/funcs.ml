@@ -105,3 +105,23 @@ let write_arr_var _kern _addr =
         ISetKern; 
     ] 
 ;;
+
+(* print out a list of variables *)
+let echoall vlist =
+    vlist
+    |> List.rev
+    |> List.map (fun (var, idx) -> 
+        [
+            IPush (SStr (Format.sprintf "%c" var));
+            IEcho;
+            IGetVar idx;
+            IEcho;
+            IPush (SStr " ");
+            IEchoNl;
+            IPop;
+            IPop;
+            IPop;
+        ]
+    ) 
+    |> List.concat
+;;

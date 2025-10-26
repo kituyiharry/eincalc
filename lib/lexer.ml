@@ -20,6 +20,8 @@ type lexeme = {
 } [@@deriving show, eq]
 ;;
 
+(* TODO: track this along with other errors that may happen further down the
+   parser and execution stack *)
 let mktok line colm tokn = { tokn;  line; colm }
 ;;
 

@@ -8,8 +8,38 @@
  *
  *)
 
-(* TODO: support axis in the future - maybe add a 'sub' function like substring
-   in ndarray to select values between slice indices generically *)
+
+(* make a new array with zscore values *)
+let sum (type data) (module M: Ndarray.NDarray with type t = data) (d: data) =
+    let sum = ref 0. in
+    let _ = M.iteri (fun _dim v -> 
+        sum := !sum +. v
+    ) d in 
+    !sum
+;;
+
+let sumaxis (type data newdata) axis (module Mnew: Ndarray.NDarray with type t = newdata) (dnew: newdata) (module M: Ndarray.NDarray with type t = data) (d: data) = 
+
+    let sum   = ref 0. in
+    let shp   = Mnew.shape dnew in
+    let len   = Array.length shp in
+    let iseq  = Array.make len 0 in
+    M.iteriaxis axis
+        (fun _ -> 
+            sum   := 0.; 
+        )
+        (fun _dim v -> 
+            sum := !sum +. v 
+        ) 
+        (fun _ -> 
+            Mnew.set dnew iseq !sum;
+            Types.incrindex len iseq shp;
+        ) d 
+;;
+
+
+
+(* TODO: support slicing or partitioning along arbitrary axies *)
 let mean (type data) (module M: Ndarray.NDarray with type t = data) (d: data) = 
     let sum, count = ref 0., ref 0 in
     let _ = M.iteri (fun _dim v -> 
@@ -19,8 +49,6 @@ let mean (type data) (module M: Ndarray.NDarray with type t = data) (d: data) =
     !sum /. (float_of_int !count)
 ;;
 
-(* TODO: support axis in the future - maybe add a 'sub' function like substring
-   in ndarray to select values between slice indices generically *)
 let meanaxis (type data newdata) axis (module Mnew: Ndarray.NDarray with type t = newdata) (dnew: newdata) (module M: Ndarray.NDarray with type t = data) (d: data) = 
 
     let sum, count, mean = ref 0., ref 0, ref 0. in
@@ -184,6 +212,27 @@ let tendencies (type data) (module M: Ndarray.NDarray with type t = data) (d: da
     (mval, stddev, modval)
 ;;
 
+
+(* make a new array with zscore values *)
+let cumsum (type data) (module M: Ndarray.NDarray with type t = data) (d: data) =
+    let sum = ref 0. in
+    M.iteri (fun dim v -> 
+        sum := !sum +. v;
+        M.set d dim (!sum)
+    ) d
+;;
+
+let cumsumaxis (type data newdata) axis (module M: Ndarray.NDarray with type t = data) (d: data)  =
+    let sum = ref 0. in
+    M.iteriaxis axis 
+        (ignore) 
+        (fun dim v -> 
+            sum := !sum +. v;
+            M.set d dim (!sum)
+        )
+    (fun _ -> sum := 0.) d
+;;
+
 (* make a new array with zscore values *)
 let zscore (type data) (module M: Ndarray.NDarray with type t = data) (d: data) =
     let (mnv, std, _) = tendencies (module M) d in
@@ -191,7 +240,6 @@ let zscore (type data) (module M: Ndarray.NDarray with type t = data) (d: data) 
     let _ = M.iteri (fun dim v -> M.set d' dim ((v -. mnv) /. (std))) d in 
     d'
 ;;
-
 
 let zscoreaxis (type data newdata) axis 
     (module Meanbuf: Ndarray.NDarray with type t = newdata) (dmin: newdata) 
