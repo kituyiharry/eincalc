@@ -1,5 +1,4 @@
-(* TODO: eventually remove svelte canvas with preference to raw Canvas
-   manipulation  *)
+(* TODO: eventually remove svelte canvas with preference to raw Canvas manipulation  *)
 (*module Html = Js_of_ocaml.Dom_html*)
 (*module Dom  = Js_of_ocaml.Dom*)
 (*module G    = Graphics_js*)
