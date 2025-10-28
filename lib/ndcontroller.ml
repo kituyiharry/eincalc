@@ -56,3 +56,48 @@ let new_sheet controller label =
 let fetch_grid controller label = 
     GridTable.find_opt controller.sheets label 
 ;;
+
+let paste_values controller label separator (_row, _col) data = 
+    let _ = Format.printf "pasting values to %d,%d !\n" _row _col in
+
+    let buffer = Buffer.create 16 in
+
+    (*  aarrrgh!!! *)
+    let remove_char char_to_remove original_string =
+        let len = String.length original_string in
+        for i = 0 to len - 1 do
+            let current_char = String.get original_string i in
+            if current_char <> char_to_remove then
+                Buffer.add_char buffer current_char
+        done;
+        let word =  Buffer.contents buffer in 
+        let _ = Buffer.clear buffer in
+        word
+    in
+
+    match fetch_grid controller label with 
+    | Some { grid; _ } -> 
+        data 
+        |> String.split_on_char ('\n')
+        |> List.map (String.split_on_char (separator))
+        |> List.fold_left (fun offset line -> 
+            let _ = List.fold_left (fun acc word -> 
+                let word' = (if String.ends_with ~suffix:"%" word then 
+                        String.sub word 0 (String.length word - 1)
+                    else 
+                        remove_char ',' word
+                ) in
+                let _ =  (match Float.of_string_opt word' with 
+                    | Some v -> 
+                        Grid.add grid (offset, acc) (TNumber v)
+                    | None ->
+                        Grid.add grid (offset, acc) (TValue word)
+                ) in
+                acc + 1
+            ) _col line in 
+            offset + 1
+        ) _row
+        |> Result.ok
+    | None -> 
+        Error ""
+;;

@@ -9,16 +9,24 @@ let js_str  = Js.string
 (*let js_num  = Js.number_of_float*)
 
 let _ =
-    let _g = Eincalc.Ndmodel.plain_grid 100 in
-    (*  TODO: come up with a better controller interface *)
+    let controller = Eincalc.Ndcontroller.create_controller () in
+    let default    = "Default" in
+    let sheet      = Eincalc.Ndcontroller.new_sheet controller default in
+    (* NB: method names cant have underscores!! *)
+    (* TODO: use a view interface to manage this object and the controller *)
     let _ = Js.export "myLib"
             (object%js (_self)
                 
                 method get row col = (
-                    match Eincalc.Ndmodel.Grid.find_opt _g (row, col) with 
-                    | Some Eincalc.Ndmodel.TValue  s -> (js_str s)
-                    | Some Eincalc.Ndmodel.TNumber f -> (js_str (Format.sprintf "%.2f" f))
-                    | None   -> js_str ""
+                    match Eincalc.Ndcontroller.fetch_grid sheet default with
+                    | Some { grid=_g; _ } -> 
+                        (match Eincalc.Ndmodel.Grid.find_opt _g (row, col) with 
+                        | Some Eincalc.Ndmodel.TValue  s -> (js_str s)
+                        | Some Eincalc.Ndmodel.TNumber f -> (js_str (Format.sprintf "%.2f" f))
+                        | None   -> js_str "")
+                    | None -> 
+                        let _ = Con.console##error "Missing grid!!!" in
+                        js_str ""
                 )
 
                 (* TODO: use OptDef or Opt for null checks *)
@@ -26,7 +34,12 @@ let _ =
                     let vstr = Js.to_float value in
                     (*let _ = Con.console##log (Format.sprintf "adding %f to %d*)
                     (*%d\n" vstr row col) in*)
-                    Eincalc.Ndmodel.Grid.add _g (row, col) (TNumber vstr)
+                    (match Eincalc.Ndcontroller.fetch_grid controller default with
+                    | Some { grid=_g; _ } -> 
+                        Eincalc.Ndmodel.Grid.add _g (row, col) (TNumber vstr)
+                    | None ->
+                        Con.console##error "cant add number - Missing grid!!!"
+                    )
                 )
 
                 (* TODO: use OptDef or Opt for null checks *)
@@ -34,7 +47,12 @@ let _ =
                     let vstr = Js.to_string value in
                     (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
                     (*\n" vstr row col)  in*)
-                    Eincalc.Ndmodel.Grid.add _g (row, col) (TValue vstr)
+                    (match Eincalc.Ndcontroller.fetch_grid controller default with
+                    | Some { grid=_g; _ } -> 
+                        Eincalc.Ndmodel.Grid.add _g (row, col) (TValue vstr)
+                    | _ -> 
+                        Con.console##error "cant add value - Missing grid!!!"
+                    )
                 )
 
                 (* TODO: use OptDef or Opt for null checks *)
@@ -42,7 +60,30 @@ let _ =
                     let vstr = Js.to_string value in
                     (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
                     (*\n" vstr row col)  in*)
-                    Eincalc.Repl.handle_scan_exp _g vstr
+                    (match Eincalc.Ndcontroller.fetch_grid controller default with
+                    | Some { grid=_g; _ } -> 
+                        Eincalc.Repl.handle_scan_exp _g vstr
+                    | _ -> 
+                        Con.console##error "cant execute code - Missing grid!!!"
+                    )
+                )
+
+                (* TODO: use OptDef or Opt for null checks *)
+                method paste row col (value: Js.js_string Js.t) = (
+                    let vstr = Js.to_string value in
+                    (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
+                    (*\n" vstr row col)  in*)
+                    (match Eincalc.Ndcontroller.fetch_grid controller default with
+                    | Some { grid=_g; _ } ->
+                        (match Eincalc.Ndcontroller.paste_values controller default '\t' (row, col) vstr with 
+                        | Ok    v -> 
+                            Con.console##info "Paste values"
+                        | Error e ->
+                            Con.console##error (Format.sprintf "paste error - %s!!!" e)
+                        )
+                    | _ -> 
+                        Con.console##error "cant execute code - Missing grid!!!"
+                    )
                 )
 
                 (*You can also write javascript within your OCaml code.

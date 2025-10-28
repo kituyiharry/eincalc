@@ -222,7 +222,7 @@ let cumsum (type data) (module M: Ndarray.NDarray with type t = data) (d: data) 
     ) d
 ;;
 
-let cumsumaxis (type data newdata) axis (module M: Ndarray.NDarray with type t = data) (d: data)  =
+let cumsumaxis (type data) axis (module M: Ndarray.NDarray with type t = data) (d: data)  =
     let sum = ref 0. in
     M.iteriaxis axis 
         (ignore) 

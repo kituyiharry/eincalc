@@ -2,6 +2,7 @@
   import { Canvas, Layer } from 'svelte-canvas';
   // TODO: standardize controller so that we can type it
   import { default as controller } from '$lib/index';
+    import { onMount } from 'svelte';
 
   let refresh = $state(0);
 
@@ -179,6 +180,27 @@
   //     counter++;
   // }
 
+  /** @param {ClipboardEvent} e */
+  function handlePaste(e) {
+    // Stop data actually being pasted into div
+    e.stopPropagation();
+    e.preventDefault();
+    const data = e.clipboardData?.getData('Text');
+    if (selectedCell != null && selectedCell != undefined) {
+        visibleCells.clear();
+        cellData = {};
+        controller.myLib.paste(selectedCell.row, selectedCell.col, data);
+        if (editingCell != null) {
+            onCellVisible(selectedCell.row, selectedCell.col);
+            const key = `${selectedCell.row},${selectedCell.col}`;
+            editValue = cellData[key]
+        }
+        refresh++;
+    } else {
+        console.error("missing paste location!")
+    }
+  }
+
   function handleDoubleClick(e) {
       const rect = e.target.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -229,14 +251,12 @@
     }
   }
 
-  ;;
-
 </script>
 
 <!--<svelte:window />-->
 <div class="drawer fixed mt-26 drawer-open">
     <input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
-    <div class="drawer-content">
+    <div class="drawer-content" >
 
         <div class='h-[90%] w-[100vw]'>
 
@@ -247,16 +267,17 @@
                 bind:value={editValue}
                 onblur    ={handleEditorBlur}
                 onkeydown ={handleEditorKeyDown}
+                onpaste={handlePaste}
                 class="bg-black text-white text-xs"
                 style={Object.entries(editorStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}
             />
-            <Canvas 
+            <Canvas
                 ondblclick ={handleDoubleClick} 
                 onmousedown={handleMouseDown} 
                 onmouseup  ={handleMouseUp}
                 onmousemove={handleMouseMove}
                 onwheel={handleWheel} 
-                layerEvents 
+                layerEvents  
                 style="display: block; cursor: cell;">
                 {#key refresh}
                     <Layer 
