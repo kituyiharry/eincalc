@@ -8,23 +8,6 @@
  *
  *)
 
-(*
-    (I[3] -> K[3])
-    (i in 0..3) { K[i] = I[i] }
-
-    (I[3] -> K[1])
-    (i in 0..3) { K[i] += I[i] }
-
-    (I[3],I[3] -> II[3]) 
-    (i in 0..3) { II[i] += I[I] * I[i] }
-
-    - block scope
-    - declaration
-    - initialization
-    - condition
-    - increment
-*)
-
 open Genfunc;;
 open Ndmodel;;
 open Types;;
@@ -100,6 +83,49 @@ let oplen ps =
     List.length ps.oprtns
 ;;
 
+
+let as_slice (type adata) mask curshp curdim 
+    (module M : Ndarray.NDarray with type t = adata) 
+    data sl
+=
+    (match shape_of_mask mask curshp with 
+        | Ok sliceshp -> 
+            (match ndarray_of_dim sliceshp with 
+                | SNdim ((module M'), data') -> 
+                    let slarr = Array.of_list @@ List.mapi (fun i slice ->
+                        (match slice with 
+                            | Parser.Along index -> 
+                                (index, curdim.(i), 1)
+                            | Parser.Select {start;len;skip} -> 
+                                (match (start,len,skip) with 
+                                    | (None, None, None) -> 
+                                        (0,  curdim.(i) - 1, 1)
+                                    | (Some st, None, None) -> 
+                                        (st, curdim.(i) - 1, 1)
+                                    | (Some st, Some ln, None) -> 
+                                        (st, ln, 1)
+                                    | (Some st, Some ln, Some sk) -> 
+                                        (st, ln, sk)
+                                    | (None, Some ln, Some sk) -> 
+                                        (0, ln, sk)
+                                    | (None, None, Some sk) -> 
+                                        (0, curdim.(i) - 1, sk)
+                                    | (None, Some ln, None) -> 
+                                        (0, ln, 1)
+                                    | (Some st, None, Some sk) ->
+                                        (st, curdim.(i) - 1, sk)
+                                )
+                        )
+                    ) sl in 
+                    let _     = Masks.slice (module M) (module M') slarr data data' in
+                    SNdim ((module M'), data')
+                | _ -> failwith "reshape error!"
+            )
+        | Error e -> 
+            failwith (Format.sprintf "shouldn't fail here but got %s!!" e)
+    )
+;;
+
 let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray with type t = data) (data: data) =
 
     (* a way to squish axes like mean *)
@@ -117,12 +143,12 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
     | [] -> 
         acc 
     | hd :: [] -> 
-        let shp   = M.shape data in
-        let len   = Array.length shp in
+        let curdim= M.shape data in
+        let len   = Array.length curdim in
         (match hd with
             | Parser.Mean -> 
                 let ns = Array.make (len - 1) 0 in
-                (match collapse shp ns len with 
+                (match collapse curdim ns len with 
                     | SNdim ((module M'), _data') as acc' -> 
                         let _ = Masks.meanaxis axis (module M') (_data') (module M) (data)in
                         acc'
@@ -131,7 +157,7 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                 )
             | Parser.Mode -> 
                 let ns = Array.make (len - 1) 0 in
-                (match collapse shp ns len with 
+                (match collapse curdim ns len with 
                     | SNdim ((module M'), _data') as acc' -> 
                         let _ = Masks.modeaxis axis (module M') (_data') (module M) (data)in
                         acc'
@@ -140,7 +166,7 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                 )
             | Parser.Stddev -> 
                 let ns = Array.make (len - 1) 0 in
-                (match collapse shp ns len with 
+                (match collapse curdim ns len with 
                     | SNdim ((module M'), _data') as acc' -> 
                         let _ = Masks.stddevaxis axis (module M') (_data') (module M) (data)in
                         acc'
@@ -150,7 +176,7 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
             (* we will rewrite over the data to save some memory *)
             | Parser.MinMax (a, b) -> 
                 let ns = Array.make (len - 1) 0 in
-                (match collapse shp ns len with 
+                (match collapse curdim ns len with 
                     | SNdim ((module M'), _data') -> 
                         let  _data'' = M'.make ns 0. in
                         let _ = Masks.minmaxscaleaxis axis 
@@ -163,7 +189,7 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                 )
             | Parser.ZScore -> 
                 let ns = Array.make (len - 1) 0 in
-                (match collapse shp ns len with 
+                (match collapse curdim ns len with 
                     | SNdim ((module M'), _data') -> 
                         let  _data'' = M'.make ns 0. in
                         let _ = Masks.zscoreaxis axis 
@@ -183,13 +209,16 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                 acc
             | Parser.Sum -> 
                 let ns = Array.make (len - 1) 0 in
-                (match collapse shp ns len with 
+                (match collapse curdim ns len with 
                     | SNdim ((module M'), _data') as acc' -> 
                         let _ = Masks.sumaxis axis (module M') (_data') (module M) (data)in
                         acc'
                     | _ -> 
                         failwith "axis collapse failure"
                 )
+            | Parser.Slice sl -> 
+                let curshp = Array.to_seq curdim |> List.of_seq in
+                as_slice hd curshp curdim (module M) data sl
             | Parser.Reshape _ -> 
                 failwith "axis reshape not supported atm!!"
             | Parser.Axis (_, _) -> 
@@ -277,6 +306,7 @@ let rec range_to_ndarray _grid n _cl shp =
     (*| Relative (_motion, _crange) -> () *)
     (*| Refer    (_referral) -> () *)
     (*| Void ->  ()*)
+(* TODO: remove all failwith calls and replace with Result *)
 and masked_to_ndarray _grid _masks _cl range = 
     (* TODO: we may not need to recalculate *)
     match calcshape _cl range with 
@@ -316,6 +346,10 @@ and masked_to_ndarray _grid _masks _cl range =
                                 SNdim ((module M'), ndata)
                             | _ -> failwith "reshape error!"
                         )
+                    | Parser.Slice sl -> 
+                        let curdim = M.shape data in
+                        let curshp = Array.to_seq curdim |> List.of_seq in
+                        as_slice mask curshp curdim (module M) data sl
                     | Parser.Write _cell -> 
                         (* execute an effect back to the grid *)
                         let start = key_of_ref _cell in
@@ -375,6 +409,10 @@ and transform_mask _grid ndarr masks =
                         let start = key_of_ref _cell in
                         let _ = Masks.write (module M) start data _grid in
                         acc
+                    | Parser.Slice sl -> 
+                        let curdim = M.shape data in
+                        let curshp = Array.to_seq curdim |> List.of_seq in
+                        as_slice mask curshp curdim (module M) data sl
                     | Parser.Cumsum -> 
                         (* execute an effect back to the grid *)
                         let _ = Masks.cumsum (module M) data in

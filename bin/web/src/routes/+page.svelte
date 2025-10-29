@@ -322,6 +322,7 @@
                                     const cellValue = cellData[cellKey] || '';
                                     if (cellValue) {
                                         context.fillStyle = '#000';
+                                        // context.font = 'bold 16px sans-serif';
                                         context.fillText(cellValue, x + 5, y + 20);
                                     }
                                 }

@@ -8,6 +8,7 @@
     (flags :standard --opt 3 --source-map --debug-info --disable staticeval --disable share --target-env browser --enable=with-js-error --enable=excwrap)
     (build_runtime_flags (:standard --target-env browser))))
 
+(dirs :standard \ node_modules static src)
 ; generated inside the src/lib 
 ;(rule
  ;(mode promote)

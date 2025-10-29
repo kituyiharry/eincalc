@@ -1,3 +1,3 @@
-## Spinal Sheet
+## Eincalc Sheet
 
-Spinal spreadsheet engine based on einsum expressions.
+Eincalc spreadsheet engine based on einsum expressions.

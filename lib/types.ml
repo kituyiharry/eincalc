@@ -253,6 +253,7 @@ let ndarray_of_dim_init shp f =
         (SNdim (_scal, _sdat))
 ;;
 
+(* TODO: move to Ndarray *)
 let incrindex len indx dims = 
     let brk = ref false in
     for i = (len - 1) downto 0 do
@@ -263,6 +264,61 @@ let incrindex len indx dims =
                     let _ = indx.(i) <- ((indx.(i)) + 1) in 
                     let _ = brk := true in 
                     ()
+            )
+        )
+    done
+;;
+
+let decrindex len indx dims = 
+    let brk = ref false in
+    for i = (len - 1) downto 0 do
+        (if !brk then () else 
+            (if indx.(i) = 0 then 
+                indx.(i) <- (dims.(i) - 1)
+                else
+                    let _ = indx.(i) <- ((indx.(i)) - 1) in 
+                    let _ = brk := true in 
+                    ()
+            )
+        )
+    done
+;;
+
+(* direction based offset with negative values flipping the direction to offset
+   while maintaing bounds *)
+(* TODO: lastoffset dual for this which gets the final index along a dimension
+   for use in a decreasebyselection variant *)
+let offset indx i dims direc = 
+    if direc >= 0 then 
+        (indx.(i) + direc) mod (dims.(i) - 1)
+    else
+        (dims.(i) + direc) mod (dims.(i) - 1)
+;;
+
+(* TODO: needs testing!! *)
+(* TODO: decrease dual for this *)
+
+(* increase but within bounds in selections *)
+let incrbyselection len indx dims selec = 
+    let brk = ref false in
+    for i = (len - 1) downto 0 do
+        let (start, count, step) = selec.(i) in 
+        (if !brk then () else 
+            (if indx.(i) >= (start + count) then 
+                indx.(i) <- (offset indx i dims start) 
+                else
+                    (* check if we went past the bounds in which case we reset *)
+                    let n = ((indx.(i)) + step) in
+                    if n > (dims.(i) - 1) then 
+                        (* simulate a blank slate - otherwise the index gets
+                           stuck. we don't break to increase the next dimen *)
+                        let _ = indx.(i) <- 0 in
+                        let _ = indx.(i) <- (offset indx i dims start) in 
+                        ()
+                    else 
+                        let _ = indx.(i) <- (n) in 
+                        let _ = brk := true in 
+                        ()
             )
         )
     done

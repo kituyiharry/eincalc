@@ -27,6 +27,7 @@ type ttype =
     | TCaret              (* ^ *)
     | TAt                 (* @ *)
     | TPipe               (* | *)
+    | TColon              (* : *)
 
     | KFor                (* loop *)
     | KDecl               (* declaration *)

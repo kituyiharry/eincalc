@@ -138,8 +138,9 @@ let compfromshape param pidx einchars masks dimens =
         Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" l' (pidx+1) g')
 ;;
 
-let shape_of_mask (l: (char * int) list) m map = 
-    let rec findshape l m map nest =
+(* l holds the dimensions of the input, m is the mask and map is the infered shape *)
+let shape_of_mask m map = 
+    let rec findshape m map nest =
         match m with
         | MinMax (_, _) -> 
             Ok map
@@ -160,7 +161,89 @@ let shape_of_mask (l: (char * int) list) m map =
             else Ok shp
         | Write _cell -> 
             Ok map
-        (* FIXME: find actual shape -> its like one axis should disappear *)
+        | Slice _slices -> 
+            let sllen = List.length _slices in 
+            let mplen = List.length map in
+            (if (sllen != mplen) then 
+                Error (Format.sprintf "slice parameters do not correspond to input (slice: %d != inp: %d)!" sllen mplen)
+            else
+                let rec shapeslice cons slice shape =
+                    (match (slice, shape) with
+                    | ((hd :: rem),(hd' :: rem')) ->  
+                        (match hd with
+                        | (Along num) ->  
+                            (if (Int.abs num) > hd' then
+                                Error "index into slice exceeds dimension"
+                            else
+                                shapeslice (1 :: cons) rem rem'
+                            )
+                        | (Select {start;len;skip;}) -> 
+                            (match (start, len, skip) with 
+                            | (None, None, None) -> 
+                                shapeslice (hd' :: cons) rem rem'
+                            | (Some st, None, None) -> 
+                                if (Int.abs st) > hd' then 
+                                    Error "selection into slice exceeds dimension"
+                                else
+                                    (if st > 0 then
+                                        (* select everything items from st *)
+                                        shapeslice ((hd' - st) :: cons) rem rem'
+                                    else
+                                        (* TODO: numpy allows negative start to go beyond the dimension at which the whole slice! *)
+                                        shapeslice ((Int.abs st) :: cons) rem rem'
+                                    )
+                            | (Some st, Some ln, None) -> 
+                                if (Int.abs st) > hd' || (ln >= hd') then 
+                                    Error "selection or length into slice exceeds dimension"
+                                else
+                                    (if ln > 0 then
+                                        (* select ln items from st *)
+                                        shapeslice (ln :: cons) rem rem'
+                                    else
+                                        Error "must be at least 1 length selection!"
+                                    )
+                            | (Some st, Some ln, Some sk) -> 
+                                if (Int.abs st) > hd' || (ln >= hd') || (sk >= hd') then 
+                                    Error "selection or length or skip over slice exceeds dimension"
+                                else
+                                    (if ln > 0 && sk > 0 then
+                                        (* select alternating including start items from st *)
+                                        let sz = Int.div ln sk in
+                                        shapeslice (sz :: cons) rem rem'
+                                    else
+                                        Error "must be at least 1 length selection or step!"
+                                    )
+                            | (Some st, None, Some sk) -> 
+                                if (Int.abs st) > hd' || (sk >= hd') then 
+                                    Error "selection or length or skip over slice exceeds dimension"
+                                else
+                                    (if sk > 0 then
+                                        (* select alternating including start items from st *)
+                                        let sz = Int.div hd' sk in
+                                        shapeslice (sz :: cons) rem rem'
+                                    else
+                                        Error "must be at least 1 length selection!"
+                                    )
+                            | (_,  _, Some sk) -> 
+                                if (sk >= hd') then 
+                                    Error "selection skip over slice exceeds dimension"
+                                else
+                                    (if sk > 0 then
+                                        (* select alternating including start items from st *)
+                                        let sz = Int.div hd' sk in
+                                        shapeslice (sz :: cons) rem rem'
+                                    else
+                                        Error "must be at least 1 length selection!"
+                                    )
+                            | _ -> 
+                                Error "unhandled selection format!"
+                            )
+                        )
+                    | _ -> 
+                        Ok (List.rev cons)
+                    )
+                in shapeslice [] _slices map
+            )
         | Axis (_c, _masks) -> 
             if nest > 0 then Error "axis mask cannot be nested in another axis mask due to ambiguity!" else  
             (* TODO: verify semantics of axis with reshapes - it may be incoherent *)
@@ -170,7 +253,7 @@ let shape_of_mask (l: (char * int) list) m map =
                         (>>==) (List.fold_left (fun acc maskval -> 
                             match acc with 
                             | Ok a ->
-                                (>>==) (findshape l maskval a (nest + 1)) (fun rshp ->
+                                (>>==) (findshape maskval a (nest + 1)) (fun rshp ->
                                     (match (Types.cardinal_of_shp rshp, Types.cardinal_of_shp a) with
                                         | (l, r) when l = r -> 
                                             Ok rshp 
@@ -210,7 +293,7 @@ let shape_of_mask (l: (char * int) list) m map =
             (*[]*)
         (*| Cumulative -> *)
             (*map*)
-    in findshape l m map 0
+    in findshape m map 0
 ;;
 
 (* calculate shape from checking parameter structure *)
@@ -234,7 +317,7 @@ let rec calcshape l c =
             List.fold_left (fun acc maskval -> 
                 match acc with 
                 | Ok a ->
-                    (>>==) (shape_of_mask l maskval a) (fun rshp -> 
+                    (>>==) (shape_of_mask maskval a) (fun rshp -> 
                         (match (Types.cardinal_of_shp rshp, Types.cardinal_of_shp a) with
                             | (l, r) when l = r -> 
                                 Ok rshp 
@@ -242,9 +325,9 @@ let rec calcshape l c =
                                 Ok rshp
                             | _ -> 
                                 (match maskval with 
-                                | Axis (_, _) ->  
-                                    (* allow axis transformation that can
-                                       disappear a dimension *)
+                                | Axis (_, _) | Slice (_) ->  
+                                    (* allow these transformations that can
+                                       disappear or truncate a dimension *)
                                     Ok rshp
                                 | _ ->
                                     Error (Format.sprintf "improperly structured shape transformation: %s to %s!" 

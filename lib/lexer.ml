@@ -55,6 +55,7 @@ let rec scan_token (line, colm, sstr) index rest =
     | '_'  -> Ok ((mktok line colm TUnderscore),  index, rest)
     | '@'  -> Ok ((mktok line colm TAt),          index, rest)
     | '|'  -> Ok ((mktok line colm TPipe),        index, rest)
+    | ':'  -> Ok ((mktok line colm TColon),        index, rest)
     | '.'  -> 
         (match rest with
             |  ('.') :: rest' -> 

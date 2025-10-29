@@ -8,6 +8,7 @@
  *
  *)
 
+(* TODO: unit and property test these functions *)
 
 (* make a new array with zscore values *)
 let sum (type data) (module M: Ndarray.NDarray with type t = data) (d: data) =
@@ -36,8 +37,6 @@ let sumaxis (type data newdata) axis (module Mnew: Ndarray.NDarray with type t =
             Types.incrindex len iseq shp;
         ) d 
 ;;
-
-
 
 (* TODO: support slicing or partitioning along arbitrary axies *)
 let mean (type data) (module M: Ndarray.NDarray with type t = data) (d: data) = 
@@ -212,7 +211,6 @@ let tendencies (type data) (module M: Ndarray.NDarray with type t = data) (d: da
     (mval, stddev, modval)
 ;;
 
-
 (* make a new array with zscore values *)
 let cumsum (type data) (module M: Ndarray.NDarray with type t = data) (d: data) =
     let sum = ref 0. in
@@ -352,6 +350,26 @@ let writeaxis (type data) axis (module S: Ndarray.NDarray with type t = data) (r
             incr offsetrow;
             offsetcol := col;
         ) data
+;;
+
+let slice (type adata bdata) 
+    (module M: Ndarray.NDarray with type t = adata) 
+    (module S: Ndarray.NDarray with type t = bdata) 
+    (slicearr) (_maindata: adata) (_sliceddata: bdata) = 
+    let dmaindim = M.shape _maindata   in
+    let dlen = Array.length dmaindim in
+    let dmainidx = Array.make dlen 0 in
+    let _ =  
+        (* set the start offset for each dimension *)
+        Array.mapi_inplace (fun i _ -> 
+            let (start, _, _) = slicearr.(i) in 
+            Types.offset dmainidx i dmaindim start 
+        ) dmainidx
+    in
+    S.iteri (fun d _ -> 
+        S.set _sliceddata d (M.get _maindata dmainidx);
+        Types.incrbyselection dlen dmainidx dmaindim slicearr; 
+    ) _sliceddata
 ;;
 
 
