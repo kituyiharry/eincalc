@@ -138,6 +138,19 @@ let compfromshape param pidx einchars masks dimens =
         Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" l' (pidx+1) g')
 ;;
 
+let plot_shape_valid plt shp = 
+    match plt with 
+    | (Scatter { xidx; yidx; }) -> 
+        let maxidx = List.length shp in
+        (if xidx >= maxidx || yidx >= maxidx then 
+            Error "scatter axis exceeds data bounds"
+        else
+            Ok shp
+        )
+    | _ -> 
+        Error "Unhandled shape"
+;;
+
 (* l holds the dimensions of the input, m is the mask and map is the infered shape *)
 let shape_of_mask m map = 
     let rec findshape m map nest =
@@ -157,10 +170,14 @@ let shape_of_mask m map =
         | Cumsum ->
             Ok map
         | Reshape shp -> 
-            if nest > 0 then Error "reshape not currently supported with axis"
+            if nest > 0 then Error "reshape not currently supported within axis"
             else Ok shp
         | Write _cell -> 
             Ok map
+        | Plot { oftype=plt; _ } -> 
+            (* ideally the plot doesn't modify any data! *)
+            (* for each type of plot we need to verify some dimension *)
+            plot_shape_valid plt map
         | Slice _slices -> 
             let sllen = List.length _slices in 
             let mplen = List.length map in

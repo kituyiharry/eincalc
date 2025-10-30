@@ -221,6 +221,9 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                 as_slice hd curshp curdim (module M) data sl
             | Parser.Reshape _ -> 
                 failwith "axis reshape not supported atm!!"
+            (* FIXME: implement actual plotting *)
+            | Parser.Plot _pl -> 
+                acc
             | Parser.Axis (_, _) -> 
                 failwith "nested axis operations not allowed!!"
         )
@@ -358,6 +361,9 @@ and masked_to_ndarray _grid _masks _cl range =
                     | Parser.Cumsum -> 
                         let _ = Masks.cumsum (module M) data in
                         acc
+                    (* FIXME: implement actual plotting *)
+                    | Parser.Plot _pl -> 
+                        acc
                     | Parser.Axis (axis, masks) -> 
                         handle_masks _grid axis masks acc (module M) data
                 )
@@ -416,6 +422,9 @@ and transform_mask _grid ndarr masks =
                     | Parser.Cumsum -> 
                         (* execute an effect back to the grid *)
                         let _ = Masks.cumsum (module M) data in
+                        acc
+                    (* FIXME: implement actual plotting *)
+                    | Parser.Plot _pl -> 
                         acc
                     | Parser.Axis (axis, masks) -> 
                         handle_masks _grid axis masks acc (module M) data

@@ -44,6 +44,16 @@ and slice =
         ;   len:   int option 
         ;   skip:  int option
     }   (* start and length and skip *)
+and plot = 
+    | Line 
+    | Bar 
+    | Hist 
+    | Pie
+    | Scatter of { 
+            xidx: int 
+        ;   yidx: int
+        ;
+    }
 and mask = 
     (* TODO: robust scaling and unit vector norm *)
     (* minmax<x,y> *)
@@ -66,8 +76,14 @@ and mask =
     | Write   of cell             (* executes an effect to the grid *)           
     (* axis<'j', mean | ...> *)
     | Axis    of int * mask list  (* apply mask along an axis *)
-    (* slice<[1, -1:10]> *)        
+    (* slice<[1, -1:10:3]> *)        
     | Slice   of slice list       (* slice an array - np slice syntax *)
+    (* plot<title, line<...>> *)
+    | Plot    of { 
+            oftype: plot 
+        ;   title : string
+    }
+    (*| Binning *)
     (*| Unbox                     (* undo top dimension maybe by running a function over it ?? *) *)
     (*| Partition                 (* break into groups *) *)
     (*| Determ                    (* determinant *) *)
@@ -97,7 +113,7 @@ and  crange  =
     | Void
 and  params  = crange list       (* function parameters *)
 and  einsum  = { 
-        inp: dimnsn list         (* input  - at least one - likely in reverse order. should correspond to the number of params *)
+        inp: dimnsn list         (* input.  should correspond to the number of params *)
     ;   out: dimnsn option       (* output - can be empty *)
 }
 and expr     = 
@@ -207,6 +223,31 @@ let advance (state, rem) =
         ({ state with prev=state.curr; curr=(Some hd) }, rest)
 ;;
 
+let consume state tt  =
+    (match (fst state).curr with
+        | Some { tokn; _ } ->
+            (if equal_ttype tokn tt then 
+                (Ok (advance state)) 
+             else
+                (Error (Format.sprintf "Expected consume %s found %s" (show_ttype tt) (show_ttype tokn)))
+            )
+        | _ -> Error "failed consumption check"
+    )
+;;
+
+
+let enclosed opentok closetok apply state = 
+    (if check opentok (fst state) then 
+        let nxt' = advance state in
+        (>>==) (apply nxt') (fun (after, outcome) -> 
+            (>>==) (consume after closetok) (fun final -> 
+                Ok (final, outcome)
+            )
+        )
+        else Error "missing opening enclose token"
+    )
+;;
+
 (* --- *)
 
 (* valid strings are non empty ascii sequences *)
@@ -254,57 +295,53 @@ let as_cell w =
 (* return consumed state + extracted numerals forming the array *)
 let parse_static_array state = 
     let rec stack state' rows = 
-        ( 
-            (* collect an entire row first *)
-            (>>==) (collect state' []) (fun (after, toadd) -> 
-                (
-                    (* check for more rows *)
-                    if check TComma (fst after) then
-                        let next = advance after in
-                        (
-                            (* check if we are starting a new row *)
-                            if check TLeftBracket (fst next) then
-                                stack (advance next) (toadd :: rows)
-                            (* check if it was just a trailing comma *)
-                            else if check TRightBracket (fst next) then
-                                Ok (advance next, (toadd :: rows))
-                            (* weird state  *)
-                            else 
-                                Error (Format.sprintf "Unexpected token in stack: %s!" (show_prattstate (fst next)))
-                        )
-                    else if check TRightBracket (fst after) then 
-                        Ok (advance after, ((toadd :: rows)))
-                    else
-                        Ok (after, (toadd :: rows))
-                )
+        (* collect an entire row first *)
+        (>>==) (collect state' []) (fun (after, toadd) -> 
+            (
+                (* check for more rows *)
+                if check TComma (fst after) then
+                    let next = advance after in
+                    (
+                        (* check if we are starting a new row *)
+                        if check TLeftBracket (fst next) then
+                            stack (advance next) (toadd :: rows)
+                        (* check if it was just a trailing comma *)
+                        else if check TRightBracket (fst next) then
+                            Ok (advance next, (toadd :: rows))
+                        (* weird state  *)
+                        else 
+                            Error (Format.sprintf "Unexpected token in stack: %s!" (show_prattstate (fst next)))
+                    )
+                else if check TRightBracket (fst after) then 
+                    Ok (advance after, ((toadd :: rows)))
+                else
+                    Ok (after, (toadd :: rows))
             )
         )
     and collect state' numerals =  
-        (
-            match (fst state').curr with
-            | Some { tokn; _ } -> 
-                (match tokn with
-                    | TFloat value ->  
-                        collect (advance state') (value :: numerals)
-                    | TNumeral value ->  
-                        collect (advance state') ((float_of_int value) :: numerals)
-                    | TComma -> 
-                        (if past TComma (fst state') then
-                            Error "Missing value between commas!"
-                        else
-                            collect (advance state') (numerals))
-                    | TLeftBracket -> 
-                        (* collect remaining rows *)
-                        (>>==) (stack (advance state') []) (fun (fin, blk) -> 
-                            Ok (fin, Collect (List.rev blk))
-                        )
-                    | TRightBracket -> 
-                        Ok ((advance state'), (Itemize (List.rev numerals)))
-                    | _ ->
-                        Error "Unexpected token in static array - only floats supported"
-                ) 
-            | _ -> Error "Unexpected close - need static array"
-        )
+        match (fst state').curr with
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TFloat value ->  
+                    collect (advance state') (value :: numerals)
+                | TNumeral value ->  
+                    collect (advance state') ((float_of_int value) :: numerals)
+                | TComma -> 
+                    (if past TComma (fst state') then
+                        Error "Missing value between commas!"
+                    else
+                        collect (advance state') (numerals))
+                | TLeftBracket -> 
+                    (* collect remaining rows *)
+                    (>>==) (stack (advance state') []) (fun (fin, blk) -> 
+                        Ok (fin, Collect (List.rev blk))
+                    )
+                | TRightBracket -> 
+                    Ok ((advance state'), (Itemize (List.rev numerals)))
+                | _ ->
+                    Error "Unexpected token in static array - only floats supported"
+            ) 
+        | _ -> Error "Unexpected close - need static array"
     in (collect state [])
 ;;
 
@@ -349,23 +386,22 @@ let compass tokn motn =
 ;;
 
 let parse_extract_slice_indices state = 
-    (
-        let rec collect_rem next p = 
-            (match (fst next).curr with 
-                | Some { tokn; _ } -> 
-                    (match tokn with
-                        | TComma -> 
-                            collect_rem (advance next) p
-                        | TNumeral start -> 
-                            let next' = advance next in 
-                            (if check TColon (fst next') then 
-                                let next = advance next' in 
-                                (match (fst next).curr with
-                                    | Some ({ tokn =TNumeral len; _ }) -> 
+    let rec collect_rem next p = 
+        (match (fst next).curr with 
+            | Some { tokn; _ } -> 
+                (match tokn with
+                    | TComma -> 
+                        collect_rem (advance next) p
+                    | TNumeral start -> 
+                        let next' = advance next in 
+                        (if check TColon (fst next') then 
+                            let next = advance next' in 
+                            (match (fst next).curr with
+                                | Some ({ tokn =TNumeral len; _ }) -> 
+                                    let next = advance next in 
+                                    (if check TColon (fst next) then 
                                         let next = advance next in 
-                                        (if check TColon (fst next) then 
-                                            let next = advance next in 
-                                            (match (fst next).curr with
+                                        (match (fst next).curr with
                                             | Some ({ tokn =TNumeral skip; _ }) -> 
                                                 collect_rem (advance next) ((
                                                     Select { 
@@ -391,87 +427,11 @@ let parse_extract_slice_indices state =
                                                     skip =None;
                                                 }
                                             ) :: p)
-                                        )
-                                    | Some ({ tokn=TComma; _ }) -> 
-                                        collect_rem (advance next) ((
-                                            Select { 
-                                                start=(Some start);  
-                                                len=None;
-                                                skip=None;
-                                            }
-                                        ) :: p)
-                                    | Some ({ tokn=TColon; _ }) -> 
-                                        let next = advance next in 
-                                        (match (fst next).curr with 
-                                            | Some ({ tokn=(TNumeral skip); _ }) -> 
-                                                collect_rem (advance next) ((
-                                                    Select { 
-                                                        start=(Some start);  
-                                                        len  = None;
-                                                        skip =(Some skip);
-                                                    }
-                                                ) :: p)
-                                            | Some ({ tokn=(TComma); _ }) -> 
-                                                collect_rem (advance next) ((
-                                                    Select { 
-                                                        start=(Some start);  
-                                                        len  = None;
-                                                        skip =(None);
-                                                    }
-                                                ) :: p)
-                                            | _ -> 
-                                                Error "bad slice structure"
-                                        )
-                                    | _ -> 
-                                        collect_rem next ((
-                                            Select { 
-                                                start=(Some start);  
-                                                len  = None;
-                                                skip =(None);
-                                            }
-                                        ) :: p)
-                                )
-                            else 
-                                collect_rem next' ((Along start) :: p)
-                            )
-                        | TColon -> 
-                            let next = advance next in 
-                            (match (fst next).curr with
-                                | Some ({ tokn =TNumeral len; _ }) -> 
-                                    let next = advance next in 
-                                    (if check TColon (fst next) then 
-                                        let next = advance next in 
-                                        (match (fst next).curr with
-                                            | Some ({ tokn =TNumeral skip; _ }) -> 
-                                                collect_rem (advance next) ((
-                                                    Select { 
-                                                        start=None;
-                                                        len  =Some len;
-                                                        skip =Some skip;
-                                                    }
-                                                ) :: p)
-                                            | _ -> 
-                                                collect_rem (next) ((
-                                                    Select { 
-                                                        start=None;
-                                                        len  =Some len;
-                                                        skip =None;
-                                                    }
-                                                ) :: p)
-                                        ) 
-                                        else  
-                                            collect_rem (next) ((
-                                                Select { 
-                                                    start=None;
-                                                    len  =Some len;
-                                                    skip =None;
-                                                }
-                                            ) :: p)
                                     )
                                 | Some ({ tokn=TComma; _ }) -> 
                                     collect_rem (advance next) ((
                                         Select { 
-                                            start=None;  
+                                            start=(Some start);  
                                             len=None;
                                             skip=None;
                                         }
@@ -482,7 +442,7 @@ let parse_extract_slice_indices state =
                                         | Some ({ tokn=(TNumeral skip); _ }) -> 
                                             collect_rem (advance next) ((
                                                 Select { 
-                                                    start=(None);  
+                                                    start=(Some start);  
                                                     len  = None;
                                                     skip =(Some skip);
                                                 }
@@ -490,33 +450,116 @@ let parse_extract_slice_indices state =
                                         | Some ({ tokn=(TComma); _ }) -> 
                                             collect_rem (advance next) ((
                                                 Select { 
-                                                    start=(None);  
+                                                    start=(Some start);  
                                                     len  = None;
                                                     skip =(None);
+                                                }
+                                            ) :: p)
+                                        | Some _ -> 
+                                            collect_rem (next) ((
+                                                Select { 
+                                                    start=(Some start);  
+                                                    len  = None;
+                                                    skip =(None);
+                                                }
+                                            ) :: p)
+                                        | None -> 
+                                            Error "bad slice structure termination"
+                                    )
+                                | _ -> 
+                                    collect_rem next ((
+                                        Select { 
+                                            start=(Some start);  
+                                            len  = None;
+                                            skip =(None);
+                                        }
+                                    ) :: p)
+                            )
+                            else 
+                                collect_rem next' ((Along start) :: p)
+                        )
+                    | TColon -> 
+                        let next = advance next in 
+                        (match (fst next).curr with
+                            | Some ({ tokn =TNumeral len; _ }) -> 
+                                let next = advance next in 
+                                (if check TColon (fst next) then 
+                                    let next = advance next in 
+                                    (match (fst next).curr with
+                                        | Some ({ tokn =TNumeral skip; _ }) -> 
+                                            collect_rem (advance next) ((
+                                                Select { 
+                                                    start=None;
+                                                    len  =Some len;
+                                                    skip =Some skip;
                                                 }
                                             ) :: p)
                                         | _ -> 
                                             collect_rem (next) ((
                                                 Select { 
-                                                    start=(None);  
-                                                    len  = None;
-                                                    skip =(None);
+                                                    start=None;
+                                                    len  =Some len;
+                                                    skip =None;
                                                 }
                                             ) :: p)
-                                    )
-                                | _ -> 
-                                    Error "bad slice arg"
-                            )
-                        | TRightBracket -> 
-                            (* exit condition *)
-                            Ok (advance next, (List.rev p))
-                        |  _ -> Error ("bad slice value ")
-                    )
-                | None -> 
-                    (Error "slice indexes can only be integer number (including negative)")
-            )
-        in collect_rem state [ ]
-    )
+                                    ) 
+                                    else  
+                                        collect_rem (next) ((
+                                            Select { 
+                                                start=None;
+                                                len  =Some len;
+                                                skip =None;
+                                            }
+                                        ) :: p)
+                                )
+                            | Some ({ tokn=TComma; _ }) -> 
+                                collect_rem (advance next) ((
+                                    Select { 
+                                        start=None;  
+                                        len=None;
+                                        skip=None;
+                                    }
+                                ) :: p)
+                            | Some ({ tokn=TColon; _ }) -> 
+                                let next = advance next in 
+                                (match (fst next).curr with 
+                                    | Some ({ tokn=(TNumeral skip); _ }) -> 
+                                        collect_rem (advance next) ((
+                                            Select { 
+                                                start=(None);  
+                                                len  = None;
+                                                skip =(Some skip);
+                                            }
+                                        ) :: p)
+                                    | Some ({ tokn=(TComma); _ }) -> 
+                                        collect_rem (advance next) ((
+                                            Select { 
+                                                start=(None);  
+                                                len  = None;
+                                                skip =(None);
+                                            }
+                                        ) :: p)
+                                    | _ -> 
+                                        collect_rem (next) ((
+                                            Select { 
+                                                start=(None);  
+                                                len  = None;
+                                                skip =(None);
+                                            }
+                                        ) :: p)
+                                )
+                            | _ -> 
+                                Error "bad slice arg"
+                        )
+                    | TRightBracket -> 
+                        (* exit condition *)
+                        Ok (advance next, (List.rev p))
+                    |  _ -> Error ("bad slice value ")
+                )
+            | None -> 
+                (Error "slice indexes can only be integer number (including negative)")
+        )
+    in collect_rem state [ ]
 ;;
 
 
@@ -555,9 +598,9 @@ let parse_extract_range state =
                                 | TComma -> 
                                     collect_rem next p
                                 | TNumeral n -> 
-                                    collect_rem (next) ((float_of_int n) :: p)
+                                    collect_rem next ((float_of_int n) :: p)
                                 | TFloat f -> 
-                                    collect_rem (next) ((f) :: p)
+                                    collect_rem next (f :: p)
                                 | TRightBracket -> 
                                     (* exit condition *)
                                     Ok (advance next, (List.rev p))
@@ -607,15 +650,45 @@ let parse_extract_shape state =
         (Error "expected number in extraction")
 ;;
 
-let consume state tt  =
-    (match (fst state).curr with
-        | Some { tokn; _ } ->
-            (if equal_ttype tokn tt then 
-                (Ok (advance state)) 
-             else
-                (Error (Format.sprintf "Expected consume %s found %s" (show_ttype tt) (show_ttype tokn)))
+let parse_scatter_axes state = 
+    (match (fst state).curr with 
+    | Some ({ tokn=(TNumeral x);_ }) -> 
+        let nxt = advance state in
+        (>>==) (consume nxt TComma) (fun state' -> 
+            (match (fst state').curr with  
+            | Some ({ tokn=(TNumeral y);_ }) -> 
+                Ok ((advance state'), (x, y))
+            | _ -> 
+                Error "expected numeral scatter axes"
+            ) 
+        )
+    | _ -> 
+        Error "expected numeral scatter axes"
+    )
+;;
+
+let parse_plot_params state = 
+    (match (fst state).curr with 
+        | Some ({ tokn=(TAlphaNum plot) }) -> 
+            (match plot with 
+                | "scatter" -> 
+                    (>>==) (enclosed TLeftAngle TRightAngle (parse_scatter_axes) (advance state)) 
+                    (fun (state', (xidx, yidx)) -> 
+                        Ok (state', Scatter { xidx; yidx; })
+                    )
+                | "line" -> 
+                    Ok ((advance state), Line)
+                | "hist" -> 
+                    Ok ((advance state), Hist)
+                | "pie" -> 
+                    Ok ((advance state), Pie)
+                | "bar" -> 
+                    Ok ((advance state), Bar)
+                | _ -> 
+                    Error "unrecognized plot"
             )
-        | _ -> Error "failed consumption check"
+        | _ -> 
+            Error "expected a plot type"
     )
 ;;
 
@@ -1195,7 +1268,26 @@ let parse_ein_mask state =
                                 Error "expected slice parameters"
                             )
                         else Error "missing slice parameters!")
-                        
+                    | TAlphaNum "plot" ->
+                        let nxt = advance state in
+                        (if check TLeftAngle (fst nxt) then 
+                            let nxt' = advance nxt in
+                            (match (fst nxt').curr with 
+                                | Some ({ tokn=(TAlphaNum title); _ }) ->  
+                                    (>>==) (consume (advance nxt') TComma) 
+                                    (fun nxt' -> 
+                                        (>>==) (parse_plot_params nxt')
+                                        (fun (after, oftype) -> 
+                                            (>>==) (consume after TRightAngle) 
+                                            (fun after -> 
+                                                Ok (after, Plot { title; oftype; })
+                                            )
+                                        )
+                                    )
+                                | _ -> 
+                                    Error "expected plot title and parameters"
+                            )
+                        else Error "missing plot parameters!")
                     | TAlphaNum "axis" ->
                         let nxt = advance state in
                         if check (TLeftAngle) (fst nxt) then
