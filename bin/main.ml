@@ -1,3 +1,4 @@
 let () = 
-    let grid = Eincalc.Ndmodel.enum_grid (26, 26) in
+    let contr = Eincalc.Ndcontroller.create_controller () in
+    let grid = Eincalc.Ndcontroller.new_sheet contr "Default" in
     Eincalc.Repl.repl grid ()

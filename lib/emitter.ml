@@ -10,6 +10,7 @@
 
 open Genfunc;;
 open Ndmodel;;
+open Ndcontroller;;
 open Types;;
 
 (* TODO: unsafe assert *)
@@ -436,11 +437,12 @@ and transform_mask _grid ndarr masks =
 ;;
 
 (* generates nested loops from a list of variable matches *)
-let genloop grid ps (parms: (int list * Parser.crange * Parser.mask list * (char * int) list) list) (out: int list) =
+let genloop controller ps (parms: (int list * Parser.crange * Parser.mask list * (char * int) list) list) (out: int list) =
     (* load params into the  stack frame first as if they were function call arguments *)
     (* create the output kernel first *)
     let outkern    = ndarray_of_dim    out in
     let outidx, ps = add_kernel outkern ps in 
+    let grid       = (Ndcontroller.fetch_active_grid controller).grid in
 
     let (_idxs, ps) = List.fold_left (fun (kidxs, ps') (_shp, _cr, _msks, _cl) -> 
         let  _ndim      = range_to_ndarray grid _cr _cl _shp in

@@ -69,19 +69,14 @@ let peek s =
 
 
 let apply_masks pr = 
-    (*let _ = Format.printf "applying %d masks\n" (List.length pr.source.pmasks) in*)
     let s = Emitter.transform_mask pr.sheet (pr.source.kernels.(0)) pr.source.pmasks
     in pr.source.kernels.(0) <- s
 ;;
 
 let load_kernel_addr vm count = 
-    (*let _ = debug_stack vm in*)
-    (*let _ = Format.printf "collecting %d vars\n" count in *)
     let rec collect add indx = 
         if indx == count then 
             let add' = List.rev add in
-            (*let _ = Format.printf "load addr: %s\n" (Genfunc.string_of_shape add') in*)
-            (*let _ = Format.print_flush () in*)
             push vm (SAddr (Array.of_list add'))
         else
             (match pop vm with 
@@ -242,7 +237,7 @@ let eval (pr: vm) =
     ) in Format.printf "\nexec %f secs\n" tval
 ;;
 
-let tosource (grid) (vw: program) = 
+let tosource (controller) (vw: program) = 
     (>>==) (Genfunc.transform vw) (fun x -> 
 
         (* get the match and output shape and post execution masks *)
@@ -253,7 +248,7 @@ let tosource (grid) (vw: program) =
 
         (* TODO: represent param as shape transformation types so we don't need
            to recalculate it while masking! *)
-        let (_outkidx, _kidxs, gl) = Emitter.genloop grid (presempty "") 
+        let (_outkidx, _kidxs, gl) = Emitter.genloop controller (presempty "") 
             (List.map (fun y ->
                 (*FIXME: redundant restore char indexes for mask check AGAIN. can be cached in genfunc *)
                 let cl = List.map (fun c -> (c.label, c.index)) y.elems in
@@ -334,11 +329,11 @@ let tosource (grid) (vw: program) =
     )
 ;;
 
-let mkvm grid src = {
+let mkvm controller src = {
     spine  = Array.make 256 SNil
     ;   stkidx = 0
     ;   frmptr = 0 
     ;   source = src
-    ;   sheet  = grid
+    ;   sheet  = (Ndcontroller.fetch_active_grid controller).grid
 }
 

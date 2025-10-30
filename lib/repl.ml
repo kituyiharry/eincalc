@@ -51,7 +51,7 @@ let handle_scan_exp grid (_exp: string) =
 let mkbuf s = (let b = Buffer.create 64 in let _ = Buffer.add_string b s in b) ;;
 
 (* handles input -> return bool on whether to continue *)
-let handle_input (grid: Ndmodel.spinmodel Ndmodel.Grid.t) (data: Buffer.t) = 
+let handle_input grid (data: Buffer.t) = 
     let l = Buffer.length data in
     (if l > 0 then
         let o = Buffer.to_bytes data |> Bytes.trim |> Bytes.to_string in
@@ -77,7 +77,7 @@ let handle_input (grid: Ndmodel.spinmodel Ndmodel.Grid.t) (data: Buffer.t) =
         true)
 ;;
 
-let repl (grid: Ndmodel.spinmodel Ndmodel.Grid.t) () = 
+let repl (grid: Ndcontroller.gridcontroller) () = 
     let buf = Buffer.create 1024 in 
     let rec input_formula bufc = 
         let l = Buffer.length bufc in

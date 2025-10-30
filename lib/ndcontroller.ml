@@ -30,12 +30,14 @@ type gridmodel = {
 type gridcontroller = { 
         count: int                    (* count with new additional sheets *)
     ;   sheets: gridmodel GridTable.t (* Grids and their order and labels *)
+    ;   active: string
 };;
 
 let create_controller () = 
     { 
         count= 0 
     ;   sheets=GridTable.create 4 
+    ;   active=""
     }
 ;;
 
@@ -49,12 +51,17 @@ let new_sheet controller label =
     in
     {
         controller with 
-        count = controller.count+1
+            count = controller.count+1
+        ;   active=label
     }
 ;;
 
-let fetch_grid controller label = 
+let fetch_grid_label controller label = 
     GridTable.find_opt controller.sheets label 
+;;
+
+let fetch_active_grid controller = 
+    GridTable.find controller.sheets controller.active
 ;;
 
 let paste_values controller label separator (_row, _col) data = 
@@ -75,23 +82,34 @@ let paste_values controller label separator (_row, _col) data =
         word
     in
 
-    match fetch_grid controller label with 
+    match fetch_grid_label controller label with 
     | Some { grid; _ } -> 
         data 
         |> String.split_on_char ('\n')
         |> List.map (String.split_on_char (separator))
         |> List.fold_left (fun offset line -> 
             let _ = List.fold_left (fun acc word -> 
-                let word' = (if String.ends_with ~suffix:"%" word then 
-                        String.sub word 0 (String.length word - 1)
+                let word' = (
+                    if String.ends_with ~suffix:"%" word then 
+                        String.sub word 0 (String.length word - 2)
+                    else if String.ends_with ~suffix:"°" word then 
+                        String.sub word 0 (String.length word - 2)
+                    else if String.starts_with ~prefix:"$" word then 
+                        String.sub word 1 (String.length word - 1)
                     else 
                         remove_char ',' word
                 ) in
-                let _ =  (match Float.of_string_opt word' with 
+                let _ = ( 
+                    (match int_of_string_opt word' with 
                     | Some v -> 
-                        Grid.add grid (offset, acc) (TNumber v)
-                    | None ->
-                        Grid.add grid (offset, acc) (TValue word)
+                        Grid.add grid (offset, acc) (TNat v)
+                    | _ -> 
+                        (match Float.of_string_opt word' with 
+                        | Some v -> 
+                            Grid.add grid (offset, acc) (TNumber v)
+                        | None ->
+                            Grid.add grid (offset, acc) (TValue word))
+                    )
                 ) in
                 acc + 1
             ) _col line in 

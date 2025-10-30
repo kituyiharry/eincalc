@@ -44,7 +44,7 @@ let matrix_of_list l  =
 
 (* Assumption that the final result kernel is at position 0 *)
 
-let _test_grid = Ndmodel.rand_grid 100. (8, 8) ;;
+let _test_grid = Ndcontroller.create_controller () ;;
 
 let tests = "Eval unit tests" >::: [
     "simple vector identity"   >:: (fun _ -> 

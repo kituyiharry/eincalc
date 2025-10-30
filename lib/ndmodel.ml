@@ -12,6 +12,7 @@ open Types;;
 
 type spinmodel = 
     | TNumber   of float  (* = followed by number literal *)
+    | TNat      of int
     | TValue    of string (* all other values *)
 [@@deriving show];;
 
@@ -106,6 +107,8 @@ let collectrow g range r sparse apply =
                 (match v with 
                     | TNumber   f -> 
                         ((r, c''), f)
+                    | TNat   f -> 
+                        ((r, c''), float_of_int f)
                     | TValue    _s -> 
                         ((r, c''), sparse (r, c''))
                 )

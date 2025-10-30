@@ -18,11 +18,12 @@ let _ =
             (object%js (_self)
                 
                 method get row col = (
-                    match Eincalc.Ndcontroller.fetch_grid sheet default with
+                    match Eincalc.Ndcontroller.fetch_grid_label sheet default with
                     | Some { grid=_g; _ } -> 
                         (match Eincalc.Ndmodel.Grid.find_opt _g (row, col) with 
                         | Some Eincalc.Ndmodel.TValue  s -> (js_str s)
                         | Some Eincalc.Ndmodel.TNumber f -> (js_str (Format.sprintf "%.2f" f))
+                        | Some Eincalc.Ndmodel.TNat f    -> (js_str (string_of_int f))
                         | None   -> js_str "")
                     | None -> 
                         let _ = Con.console##error "Missing grid!!!" in
@@ -34,7 +35,7 @@ let _ =
                     let vstr = Js.to_float value in
                     (*let _ = Con.console##log (Format.sprintf "adding %f to %d*)
                     (*%d\n" vstr row col) in*)
-                    (match Eincalc.Ndcontroller.fetch_grid controller default with
+                    (match Eincalc.Ndcontroller.fetch_grid_label controller default with
                     | Some { grid=_g; _ } -> 
                         Eincalc.Ndmodel.Grid.add _g (row, col) (TNumber vstr)
                     | None ->
@@ -47,7 +48,7 @@ let _ =
                     let vstr = Js.to_string value in
                     (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
                     (*\n" vstr row col)  in*)
-                    (match Eincalc.Ndcontroller.fetch_grid controller default with
+                    (match Eincalc.Ndcontroller.fetch_grid_label controller default with
                     | Some { grid=_g; _ } -> 
                         Eincalc.Ndmodel.Grid.add _g (row, col) (TValue vstr)
                     | _ -> 
@@ -60,29 +61,22 @@ let _ =
                     let vstr = Js.to_string value in
                     (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
                     (*\n" vstr row col)  in*)
-                    (match Eincalc.Ndcontroller.fetch_grid controller default with
-                    | Some { grid=_g; _ } -> 
-                        Eincalc.Repl.handle_scan_exp _g vstr
-                    | _ -> 
-                        Con.console##error "cant execute code - Missing grid!!!"
-                    )
+                    Eincalc.Repl.handle_scan_exp { controller with active=default; } vstr
                 )
 
                 (* TODO: use OptDef or Opt for null checks *)
+                (* TODO: figuring out structure here is very rudimentary - make
+                   updates*)
                 method paste row col (value: Js.js_string Js.t) = (
                     let vstr = Js.to_string value in
+                    let sep = if String.contains vstr '\t' then '\t' else ',' in
                     (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
                     (*\n" vstr row col)  in*)
-                    (match Eincalc.Ndcontroller.fetch_grid controller default with
-                    | Some { grid=_g; _ } ->
-                        (match Eincalc.Ndcontroller.paste_values controller default '\t' (row, col) vstr with 
-                        | Ok    v -> 
-                            Con.console##info "Paste values"
-                        | Error e ->
-                            Con.console##error (Format.sprintf "paste error - %s!!!" e)
-                        )
-                    | _ -> 
-                        Con.console##error "cant execute code - Missing grid!!!"
+                    (match Eincalc.Ndcontroller.paste_values controller default sep (row, col) vstr with 
+                    | Ok    v -> 
+                        Con.console##info "Paste values"
+                    | Error e ->
+                        Con.console##error (Format.sprintf "paste error - %s!!!" e)
                     )
                 )
 
