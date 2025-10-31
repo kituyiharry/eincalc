@@ -6,7 +6,7 @@ b(){var
 b=this||self;b.globalThis=b;delete
 a.prototype._T_}}(Object));(function(t){"use strict";var
 AY=typeof
-module==="object"&&module.exports||t,kH="ENFILE",cc="(Some ",E=248,jn="selection or length or skip over slice exceeds dimension",ad="@]",aD=24029,jm=12520,ay=0xff,jl="line",kG="ENOSYS",jk="shapes can only be natural number (>= 0)",aY="))",kF="Match_failure",iM="EMLINK",jY="EINPROGRESS",fu="write",kE="%ni",iL="EDESTADDRREQ",fh=0x7ff00000,jj="ENOEXEC",ji=", characters ",iK=" doesn't exist",jh=0x3fffffff,jg="Stacktrace ============\n",bH="Expected shape filling spec",jX="Unable to load kernel using params %s and %s ",dC=0x7c00,ca="+",kD=">",jW=0x3f,fg=512,iJ="EACCES",am=0xffffff,fB=" and ",fC="nan",iI="canvas",jV="Not_found",jf=200.,dK="EEXIST",jd="%s\n",fn="open",je="ECONNABORTED",iH="ENOTTY",jc="Division_by_zero",ff="e",jU="Expected diagonal size spec, found: ",jS="@{",jT="EDEADLK",fA="jsError",ak=" =",jR="EDOM",b9="Expected shape spec, found: %s",jb=104,fe="invalid argument",ja="ENOTSOCK",iG="ENOLCK",i$="ECONNREFUSED",ft="Unix.Unix_error",dB=254,i_="improperly structured shape transformation: %s to %s!",bo=".",b7="Expected shape spec, found: ",kC=0x80000000,i8="Undefined_recursive_module",i9="EHOSTDOWN",fd="mkdir",i7="EAFNOSUPPORT",fm="ESPIPE",i6="EIO",n="@,",C=";@ ",iF=103,dA=127,jQ="Sys_error",b6=100,jP=" to ",cK="%S",dz="axis collapse failure",ac=",@ ",fs="@ }@]",kB="ENOMEM",fc="bad termination",kA="ENETDOWN",jO=101,jN="OCAMLRUNPARAM",kz="ENOSPC",fb="ENOTEMPTY",cH="invalid kernel!",dy="ENOTDIR",dJ="px",jL="ENOTCONN",jM="EPIPE",ky="E2BIG",bF="-",kx="expected numeral scatter axes",iE="Expected numeral value, found ",kw=250,iC="Pervasives.do_at_exit",iD=0x7f800000,v="@])",cb=128,iB="lseek",aW="%F",iA="EMFILE",i5="%u",jK="EPFNOSUPPORT",iz="%Li",jJ="Sys_blocked_io",kv="EFAULT",M="camlinternalFormat.ml",fa="%a",fl="must be at least 1 length selection!",bG=")",ku=-34,jI="2d",cG="Int64.of_string",kt=0x000000,jH=0.0009765625,dH="int_of_string",as="0",i4="EWOULDBLOCK",jG="ETIMEDOUT",ks="file already exists",fr=10.,jF="error",dG="no such file or directory",i3="ECHILD",fq="@]}",kr=": ",e$="reshape error!",bE=1024,b$=125,ix=255,iy=245,e_="@[<2>{ ",i2=0xfc00,iw="ESHUTDOWN",iu="ENETRESET",iv="ENODEV",fp="Missing shape spec",kq="EFBIG",aF=0xffff,ko="Unable to load kernel using params ",kp="ERANGE",dF='"',kn="EPROTOTYPE",a="<2>",dx="Set.bal",fz="Fatal error: exception ",kl="expected number in extraction",km="true",jE="EADDRNOTAVAIL",aS=0x8000,it="Expected numeral value, found %s",bC="EBADF",i1="grabbing",cF="bad file descriptor",jD="_",cJ="(@[",i0="ENAMETOOLONG",iZ="0x",jC="([^/]+)",b8=1000,fj="rmdir",fk="compare: functional value",aC="Expected shape spec",z="%d",is="EROFS",aE="lib/ndarray.ml",kk=122,iY="ENETUNREACH",iX="illegal operation on a directory",jB="EINTR",ir=4096,b="@ ",aX=0x100,iW="readdir",iq="ENXIO",jA="false",iV="expected range '..'",fi="Expected shape fill spec",kj="EADDRINUSE",ki="ELOOP",cE=", ",iU="EALREADY",jz=220.,cI="EINVAL",iT="ESRCH",ip="EXDEV",io="%li",dE="EISDIR",fo="Unterminated",kh="EOVERFLOW",dw="_bigarr02",kg="Assert_failure",dD="Expected fill value as float",kf="Expected range end",im="EAGAIN",jy="minmax axis collapse failure",iS=120,il="^",ke="EOPNOTSUPP",ik="EBUSY",kd=124,ij=0x0400,kc="Invalid range value",jx="b",kb="#333",jv="Stack_overflow",jw="Invalid_argument",ka="@[",ii="ECONNRESET",iR=0x7fffffff,ju="End_of_file",ih="read",j$="ENOPROTOOPT",fy="index out of bounds",ig="Invalid mask argument!!",b5="ENOENT",dI=252,fx="Failure",e9=-97,Z="@[<2>[",bc="/",j_="ESOCKTNOSUPPORT",ie="EISCONN",jt="Out_of_memory",bn=256,jr=-48,js="EHOSTUNREACH",bd=" ",fw=1255,iQ=-1.,_="@,]@]",iP="EMSGSIZE",fv="{ ",j9="ENOBUFS",bD="Expected shape spec in angle brackets",id="Printexc.handle_uncaught_exception",al="@[%s =@ ",j8="truncate",j7="grab",aZ="@,))@]",jq="EPERM",j6="/static/",b_="None",j5="infinity",iO="fd ",iN="Expected diagonal size spec, found: %s",j3="improperly structured shape transformation: ",j4="Fatal error: exception %s\n",jp="not a directory",j2="EPROTONOSUPPORT",jo="%i",j0="ring-2",j1="expected einsum arrow function '->'",e="",jZ="ETOOMANYREFS";function
+module==="object"&&module.exports||t,kH="ENFILE",cc="(Some ",E=248,jn="selection or length or skip over slice exceeds dimension",ad="@]",aD=24029,jm=12520,ay=0xff,jl="line",kG="ENOSYS",jk="shapes can only be natural number (>= 0)",aY="))",kF="Match_failure",iM="EMLINK",jY="EINPROGRESS",fu="write",kE="%ni",iL="EDESTADDRREQ",fh=0x7ff00000,jj="ENOEXEC",ji=", characters ",iK=" doesn't exist",jh=0x3fffffff,jg="Stacktrace ============\n",bG="Expected shape filling spec",jX="Unable to load kernel using params %s and %s ",dC=0x7c00,ca="+",kD=">",jW=0x3f,fg=512,iJ="EACCES",am=0xffffff,fB=" and ",fC="nan",iI="canvas",jV="Not_found",jf=200.,dK="EEXIST",jd="%s\n",fn="open",je="ECONNABORTED",iH="ENOTTY",jc="Division_by_zero",ff="e",jU="Expected diagonal size spec, found: ",jS="@{",jT="EDEADLK",fA="jsError",ak=" =",jR="EDOM",b9="Expected shape spec, found: %s",jb=104,fe="invalid argument",ja="ENOTSOCK",iG="ENOLCK",i$="ECONNREFUSED",ft="Unix.Unix_error",dB=254,i_="improperly structured shape transformation: %s to %s!",bo=".",b7="Expected shape spec, found: ",kC=0x80000000,i8="Undefined_recursive_module",i9="EHOSTDOWN",fd="mkdir",i7="EAFNOSUPPORT",fm="ESPIPE",i6="EIO",n="@,",C=";@ ",iF=103,dA=127,jQ="Sys_error",b6=100,jP=" to ",cK="%S",dz="axis collapse failure",ac=",@ ",fs="@ }@]",kB="ENOMEM",fc="bad termination",kA="ENETDOWN",jO=101,jN="OCAMLRUNPARAM",kz="ENOSPC",fb="ENOTEMPTY",cH="invalid kernel!",dy="ENOTDIR",dJ="px",jL="ENOTCONN",jM="EPIPE",ky="E2BIG",bE="-",kx="expected numeral scatter axes",iE="Expected numeral value, found ",kw=250,iC="Pervasives.do_at_exit",iD=0x7f800000,v="@])",cb=128,iB="lseek",aW="%F",iA="EMFILE",i5="%u",jK="EPFNOSUPPORT",iz="%Li",jJ="Sys_blocked_io",kv="EFAULT",M="camlinternalFormat.ml",fa="%a",fl="must be at least 1 length selection!",bF=")",ku=-34,jI="2d",cG="Int64.of_string",kt=0x000000,jH=0.0009765625,dH="int_of_string",as="0",i4="EWOULDBLOCK",jG="ETIMEDOUT",ks="file already exists",fr=10.,jF="error",dG="no such file or directory",i3="ECHILD",fq="@]}",kr=": ",e$="reshape error!",bD=1024,b$=125,ix=255,iy=245,e_="@[<2>{ ",i2=0xfc00,iw="ESHUTDOWN",iu="ENETRESET",iv="ENODEV",fp="Missing shape spec",kq="EFBIG",aF=0xffff,ko="Unable to load kernel using params ",kp="ERANGE",dF='"',kn="EPROTOTYPE",a="<2>",dx="Set.bal",fz="Fatal error: exception ",kl="expected number in extraction",km="true",jE="EADDRNOTAVAIL",aS=0x8000,it="Expected numeral value, found %s",bB="EBADF",i1="grabbing",cF="bad file descriptor",jD="_",cJ="(@[",i0="ENAMETOOLONG",iZ="0x",jC="([^/]+)",b8=1000,fj="rmdir",fk="compare: functional value",aC="Expected shape spec",z="%d",is="EROFS",aE="lib/ndarray.ml",kk=122,iY="ENETUNREACH",iX="illegal operation on a directory",jB="EINTR",ir=4096,b="@ ",aX=0x100,iW="readdir",iq="ENXIO",jA="false",iV="expected range '..'",fi="Expected shape fill spec",kj="EADDRINUSE",ki="ELOOP",cE=", ",iU="EALREADY",jz=220.,cI="EINVAL",iT="ESRCH",ip="EXDEV",io="%li",dE="EISDIR",fo="Unterminated",kh="EOVERFLOW",dw="_bigarr02",kg="Assert_failure",dD="Expected fill value as float",kf="Expected range end",im="EAGAIN",jy="minmax axis collapse failure",iS=120,il="^",ke="EOPNOTSUPP",ik="EBUSY",kd=124,ij=0x0400,kc="Invalid range value",jx="b",kb="#333",jv="Stack_overflow",jw="Invalid_argument",ka="@[",ii="ECONNRESET",iR=0x7fffffff,ju="End_of_file",ih="read",j$="ENOPROTOOPT",fy="index out of bounds",ig="Invalid mask argument!!",b5="ENOENT",dI=252,fx="Failure",e9=-97,Z="@[<2>[",bc="/",j_="ESOCKTNOSUPPORT",ie="EISCONN",jt="Out_of_memory",bn=256,jr=-48,js="EHOSTUNREACH",bd=" ",fw=1255,iQ=-1.,_="@,]@]",iP="EMSGSIZE",fv="{ ",j9="ENOBUFS",bC="Expected shape spec in angle brackets",id="Printexc.handle_uncaught_exception",al="@[%s =@ ",j8="truncate",j7="grab",aZ="@,))@]",jq="EPERM",j6="/static/",b_="None",j5="infinity",iO="fd ",iN="Expected diagonal size spec, found: %s",j3="improperly structured shape transformation: ",j4="Fatal error: exception %s\n",jp="not a directory",j2="EPROTONOSUPPORT",jo="%i",j0="ring-2",j1="expected einsum arrow function '->'",e="",jZ="ETOOMANYREFS";function
 zK(a,b,c,d,e){if(d<=b)for(var
 f=1;f<=e;f++)c[d+f]=a[b+f];else
 for(var
@@ -38,7 +38,7 @@ d=1;d<a;d++)c[d]=b;return c}function
 dM(a,b,c){if(a[1]===b){a[1]=c;return 1}return 0}function
 zM(a,b){var
 c=a[1];a[1]+=b;return c}function
-bJ(a){return a[1]}function
+bI(a){return a[1]}function
 kP(a){switch(a){case
 7:case
 10:case
@@ -204,7 +204,7 @@ kS(a,b,c,d,e){a.set(a.offset([b,c,d]),e);return 0}function
 kT(a,b,c){a.set(a.offset(d1(b)),c);return 0}function
 cS(a,b,c){var
 d=String.fromCharCode;if(b===0&&c<=ir&&c===a.length)return d.apply(null,a);var
-f=e;for(;0<c;b+=bE,c-=bE)f+=d.apply(null,a.subarray(b,b+Math.min(c,bE)));return f}function
+f=e;for(;0<c;b+=bD,c-=bD)f+=d.apply(null,a.subarray(b,b+Math.min(c,bD)));return f}function
 dT(a){var
 c=new
 Uint8Array(a.l),e=a.c,d=e.length,b=0;for(;b<d;b++)c[b]=e.charCodeAt(b);for(d=a.l;b<d;b++)c[b]=0;a.c=c;a.t=4;return c}function
@@ -224,7 +224,7 @@ a.c=cS(a.c,0,a.c.length);a.t=0}function
 f0(a){if(a.length<24){for(var
 b=0;b<a.length;b++)if(a.charCodeAt(b)>dA)return false;return true}else
 return!/[^\x00-\x7f]/.test(a)}class
-bI{constructor(a,b,c){this.t=a;this.c=b;this.l=c}toString(){switch(this.t){case
+bH{constructor(a,b,c){this.t=a;this.c=b;this.l=c}toString(){switch(this.t){case
 9:case
 8:return this.c;case
 4:case
@@ -233,12 +233,12 @@ bI{constructor(a,b,c){this.t=a;this.c=b;this.l=c}toString(){switch(this.t){case
 this.t=8;return this.c}}toUtf16(){if(this.t===9)return this.c;var
 a=d_(this);return ls.decode(a)}slice(){var
 a=this.t===4?this.c.slice():this.c;return new
-bI(this.t,a,this.l)}}function
+bH(this.t,a,this.l)}}function
 kU(a){return new
-bI(0,a,a.length)}function
+bH(0,a,a.length)}function
 bs(a){return a}function
 aG(a){return kU(bs(a))}function
-bK(a,b,c,d,e){bq(aG(a),b,c,d,e);return 0}function
+bJ(a,b,c,d,e){bq(aG(a),b,c,d,e);return 0}function
 dR(){H(fy)}function
 G(a,b){switch(a.t&6){case
 0:return a.c.charCodeAt(b);case
@@ -434,7 +434,7 @@ d0(a){return typeof
 a==="string"&&!/[^\x00-\xff]/.test(a)}function
 dZ(a){return a
 instanceof
-bI}function
+bH}function
 kX(a){if(typeof
 a==="number")return b8;else if(dZ(a))return dI;else if(d0(a))return 1252;else if(Array.isArray(a)&&a[0]===a[0]>>>0&&a[0]<=ix){var
 b=a[0]|0;return b===dB?0:b}else if(a
@@ -480,7 +480,7 @@ h=f.pop();b=f.pop();a=f.pop();if(h+1<a.length)f.push(a,b,h+1);a=a[h];b=b[h]}}fun
 br(a,b){return dS(a,b,true)}function
 z1(){return[0]}function
 P(a){if(a<0)H("Bytes.create");return new
-bI(a?2:9,e,a)}function
+bH(a?2:9,e,a)}function
 fF(a,b){if(b===0)d5();return a/b|0}var
 dU=[0];function
 z3(a,b){if(dU!==a)return 0;dU=b;return 1}function
@@ -494,14 +494,14 @@ c=/^ *([+-]?)0x([0-9a-f]+)\.?([0-9a-f]*)(p([+-]?[0-9]+))?$/i.exec(a);if(c){var
 d=c[3].replace(/0+$/,e),h=Number.parseInt(c[1]+c[2]+d,16),g=(+c[5]||0)-4*d.length;b=h*Math.pow(2,g);return b}if(/^\+?inf(inity)?$/i.test(a))return Number.POSITIVE_INFINITY;if(/^-inf(inity)?$/i.test(a))return Number.NEGATIVE_INFINITY;$("float_of_string")}function
 fV(a){a=bs(a);var
 e=a.length;if(e>31)H("format_int: format too long");var
-b={justify:ca,signstyle:bF,filler:bd,alternate:false,base:0,signedconv:false,width:0,uppercase:false,sign:1,prec:-1,conv:"f"};for(var
+b={justify:ca,signstyle:bE,filler:bd,alternate:false,base:0,signedconv:false,width:0,uppercase:false,sign:1,prec:-1,conv:"f"};for(var
 d=0;d<e;d++){var
-c=a.charAt(d);switch(c){case"-":b.justify=bF;break;case"+":case" ":b.signstyle=c;break;case"0":b.filler=as;break;case"#":b.alternate=true;break;case"1":case"2":case"3":case"4":case"5":case"6":case"7":case"8":case"9":b.width=0;while(c=a.charCodeAt(d)-48,c>=0&&c<=9){b.width=b.width*10+c;d++}d--;break;case".":b.prec=0;d++;while(c=a.charCodeAt(d)-48,c>=0&&c<=9){b.prec=b.prec*10+c;d++}d--;break;case"d":case"i":b.signedconv=true;b.base=10;break;case"u":b.base=10;break;case"x":b.base=16;break;case"X":b.base=16;b.uppercase=true;break;case"o":b.base=8;break;case"e":case"f":case"g":b.signedconv=true;b.conv=c;break;case"E":case"F":case"G":b.signedconv=true;b.uppercase=true;b.conv=c.toLowerCase();break}}return b}function
+c=a.charAt(d);switch(c){case"-":b.justify=bE;break;case"+":case" ":b.signstyle=c;break;case"0":b.filler=as;break;case"#":b.alternate=true;break;case"1":case"2":case"3":case"4":case"5":case"6":case"7":case"8":case"9":b.width=0;while(c=a.charCodeAt(d)-48,c>=0&&c<=9){b.width=b.width*10+c;d++}d--;break;case".":b.prec=0;d++;while(c=a.charCodeAt(d)-48,c>=0&&c<=9){b.prec=b.prec*10+c;d++}d--;break;case"d":case"i":b.signedconv=true;b.base=10;break;case"u":b.base=10;break;case"x":b.base=16;break;case"X":b.base=16;b.uppercase=true;break;case"o":b.base=8;break;case"e":case"f":case"g":b.signedconv=true;b.conv=c;break;case"E":case"F":case"G":b.signedconv=true;b.uppercase=true;b.conv=c.toLowerCase();break}}return b}function
 fG(a,b){if(a.uppercase)b=b.toUpperCase();var
-f=b.length;if(a.signedconv&&(a.sign<0||a.signstyle!==bF))f++;if(a.alternate){if(a.base===8)f+=1;if(a.base===16)f+=2}var
+f=b.length;if(a.signedconv&&(a.sign<0||a.signstyle!==bE))f++;if(a.alternate){if(a.base===8)f+=1;if(a.base===16)f+=2}var
 c=e;if(a.justify===ca&&a.filler===bd)for(var
-d=f;d<a.width;d++)c+=bd;if(a.signedconv)if(a.sign<0)c+=bF;else if(a.signstyle!==bF)c+=a.signstyle;if(a.alternate&&a.base===8)c+=as;if(a.alternate&&a.base===16)c+=a.uppercase?"0X":iZ;if(a.justify===ca&&a.filler===as)for(var
-d=f;d<a.width;d++)c+=as;c+=b;if(a.justify===bF)for(var
+d=f;d<a.width;d++)c+=bd;if(a.signedconv)if(a.sign<0)c+=bE;else if(a.signstyle!==bE)c+=a.signstyle;if(a.alternate&&a.base===8)c+=as;if(a.alternate&&a.base===16)c+=a.uppercase?"0X":iZ;if(a.justify===ca&&a.filler===as)for(var
+d=f;d<a.width;d++)c+=as;c+=b;if(a.justify===bE)for(var
 d=f;d<a.width;d++)c+=bd;return bf(c)}function
 fI(a,b){function
 j(a,b){if(Math.abs(a)<1.0)return a.toFixed(b);else{var
@@ -521,9 +521,9 @@ b>>>=0;var
 d=b.toString(c.base);if(c.prec>=0){c.filler=bd;var
 f=c.prec-d.length;if(f>0)d=bv(f,as)+d}return fG(c,d)}var
 AJ=0;function
-bL(){return AJ++}var
+bK(){return AJ++}var
 lt=new
-ArrayBuffer(bE);function
+ArrayBuffer(bD);function
 ae(a){if(f0(a))return a;var
 c=a.length<=lt.length?new
 Uint8Array(lt,0,a.length):new
@@ -547,13 +547,13 @@ AZ=new
 TextEncoder();function
 AU(a,b,c){var
 d=String.fromCharCode;if(b===0&&c<=ir&&c===a.length)return d.apply(null,a);var
-f=e;for(;0<c;b+=bE,c-=bE)f+=d.apply(null,a.slice(b,b+Math.min(c,bE)));return f}function
+f=e;for(;0<c;b+=bD,c-=bD)f+=d.apply(null,a.slice(b,b+Math.min(c,bD)));return f}function
 AS(a){return bf(AU(a,0,a.length))}function
 S(a){if(f0(a))return bf(a);var
 b=AZ.encode(a);return AS(b)}function
 at(a){lk(Q.Sys_error,S(a))}function
 AL(a,b){throw j([0,a].concat(b))}var
-A2=[ky,iJ,im,bC,ik,i3,jT,jR,dK,kv,kq,jB,cI,i6,dE,iA,iM,i0,kH,iv,b5,jj,iG,kB,kz,kG,dy,fb,iH,iq,jq,jM,kp,is,fm,iT,ip,i4,jY,iU,ja,iL,iP,kn,j$,j2,j_,ke,jK,i7,kj,jE,kA,iY,iu,je,ii,j9,ie,jL,iw,jZ,jG,i$,i9,js,ki,kh];function
+A2=[ky,iJ,im,bB,ik,i3,jT,jR,dK,kv,kq,jB,cI,i6,dE,iA,iM,i0,kH,iv,b5,jj,iG,kB,kz,kG,dy,fb,iH,iq,jq,jM,kp,is,fm,iT,ip,i4,jY,iU,ja,iL,iP,kn,j$,j2,j_,ke,jK,i7,kj,jE,kA,iY,iu,je,ii,j9,ie,jL,iw,jZ,jG,i$,i9,js,ki,kh];function
 A1(a,b,c,d){var
 f=A2.indexOf(a);if(f<0){if(d==null)d=-9999;f=[0,-d]}var
 g=[f,S(b||e),S(c||e)];return g}var
@@ -566,10 +566,10 @@ zY(a){if(!(a
 instanceof
 Uint8Array))a=new
 Uint8Array(a);return new
-bI(4,a,a.length)}function
+bH(4,a,a.length)}function
 fW(a,b){K(b,b5,dG,a)}function
 kV(a){return new
-bI(4,a,a.length)}function
+bH(4,a,a.length)}function
 an(a){return a.l}function
 zE(){}class
 bp
@@ -580,7 +580,7 @@ e=this.length();if(a+d>=e){var
 f=P(a+d),g=this.data;this.data=f;bq(g,0,this.data,0,e)}bq(kV(b),c,this.data,a,d);return d}read(a,b,c,d){var
 e=this.length();if(a+d>=e)d=e-a;if(d){var
 f=P(d|0);bq(this.data,a,f,0,d);b.set(d_(f),c)}return d}}class
-zC{constructor(a,b,c){this.file=b;this.name=a;this.flags=c;this.offset=0;this.seeked=false}err_closed(a,b){K(b,bC,a,cF)}length(){if(this.file)return this.file.length();this.err_closed("length")}truncate(a,b){if(this.file){if(!(this.flags.wronly||this.flags.rdwr))K(b,cI,j8,fe);return this.file.truncate(a)}this.err_closed(j8,b)}write(a,b,c,d){if(this.file&&(this.flags.wronly||this.flags.rdwr)){var
+zC{constructor(a,b,c){this.file=b;this.name=a;this.flags=c;this.offset=0;this.seeked=false}err_closed(a,b){K(b,bB,a,cF)}length(){if(this.file)return this.file.length();this.err_closed("length")}truncate(a,b){if(this.file){if(!(this.flags.wronly||this.flags.rdwr))K(b,cI,j8,fe);return this.file.truncate(a)}this.err_closed(j8,b)}write(a,b,c,d){if(this.file&&(this.flags.wronly||this.flags.rdwr)){var
 e=this.offset;c=this.file.write(e,a,b,c);this.offset+=c;return c}this.err_closed(fu,d)}read(a,b,c,d){if(this.file&&!this.flags.wronly){var
 e=this.offset;c=this.file.read(e,a,b,c);this.offset+=c;return c}this.err_closed(ih,d)}seek(a,b,c){switch(b){case
 0:break;case
@@ -612,8 +612,8 @@ f
 in
 this.content){var
 b=f.match(h);if(b&&!d[b[1]]){d[b[1]]=true;c.push(b[1])}}return c}opendir(a,b){var
-c=this.readdir(a),d=false,e=0;return{readSync:function(){if(d)K(b,bC,iW,cF);if(e===c.length)return null;var
-a=c[e];e++;return{name:a}},closeSync:function(){if(d)K(b,bC,iW,cF);d=true;c=[]}}}is_dir(a){if(a===e)return true;var
+c=this.readdir(a),d=false,e=0;return{readSync:function(){if(d)K(b,bB,iW,cF);if(e===c.length)return null;var
+a=c[e];e++;return{name:a}},closeSync:function(){if(d)K(b,bB,iW,cF);d=true;c=[]}}}is_dir(a){if(a===e)return true;var
 b=this.slash(a);return this.content[b]?1:0}unlink(a,b){if(!this.exists(a,true))K(b,b5,"unlink",dG,a);delete
 this.content[a];return 0}access(a,b,c){this.lookup(a);if(this.content[a]){if(this.is_dir(a))K(c,"EACCESS","access","permission denied,",this.nm(a))}else
 fW(this.nm(a),c);return 0}open(a,b,c,d){var
@@ -685,7 +685,7 @@ Ac(a,b,c){if(!Number.isFinite(a)){if(Number.isNaN(a))return S(fC);return S(a>0?j
 k=a===0&&1/a===Number.NEGATIVE_INFINITY?1:a>=0?0:1;if(k)a=-a;var
 f=0;if(a===0);else if(a<1)while(a<1&&f>-1022){a*=2;f--}else
 while(a>=2){a/=2;f++}var
-l=f<0?e:ca,g=e;if(k)g=bF;else
+l=f<0?e:ca,g=e;if(k)g=bE;else
 switch(c){case
 43:g=ca;break;case
 32:g=bd;break;default:break}if(b>=0&&b<13){var
@@ -739,7 +739,7 @@ Function?fR(b):b}}function
 Ar(a){return a.l>=0?a.l:a.l=a.length}function
 At(b){return function(...a){var
 c=Ar(b);a.length=c;return cd(b,a)}}function
-bM(c){return function(...a){a.unshift(this);var
+bL(c){return function(...a){a.unshift(this);var
 b=cd(c,a);return b
 instanceof
 Function?fR(b):b}}function
@@ -822,7 +822,7 @@ console.log==="function")this.log=console.log;else if(a===2&&typeof
 console.error==="function")this.log=console.error;else if(typeof
 console.log==="function")this.log=console.log;this.flags=b}length(){return 0}truncate(a,b){K(b,cI,"ftruncate",fe)}write(a,b,c,d){var
 f=c;if(this.log){if(c>0&&b>=0&&b+c<=a.length&&a[b+c-1]===10)c--;var
-e=P(c);bq(kV(a),b,e,0,c);this.log(e.toUtf16());return f}K(d,bC,fu,cF)}read(a,b,c,d){K(d,bC,ih,cF)}seek(a,b,c){K(c,fm,iB,"illegal seek")}close(){this.log=undefined}check_stream_semantics(a){}}function
+e=P(c);bq(kV(a),b,e,0,c);this.log(e.toUtf16());return f}K(d,bB,fu,cF)}read(a,b,c,d){K(d,bB,ih,cF)}seek(a,b,c){K(c,fm,iB,"illegal seek")}close(){this.log=undefined}check_stream_semantics(a){}}function
 d9(a,b){var
 c;if(b===undefined){b=ch.length;c=new
 kI(b)}else if(ch[b])c=ch[b].chanid;else
@@ -909,7 +909,7 @@ b=new
 Date().getTime(),c=b^0xffffffff*Math.random();return[0,c]}function
 fY(a){var
 b=1;while(a?.joo_tramp){a=a.joo_tramp.apply(null,a.joo_args);b++}return a}function
-bN(a,b,c){return{joo_tramp:a,joo_args:b,joo_direct:c}}function
+bM(a,b,c){return{joo_tramp:a,joo_args:b,joo_direct:c}}function
 lo(){return new
 Date().getTime()/b8}function
 aI(a,b){if(b.fun){a.fun=b.fun;return 0}if(typeof
@@ -936,9 +936,9 @@ d=g;d<f.length;d++){if(d>g)b+=cE;var
 c=f[d];if(typeof
 c==="number")b+=c.toString();else if(c
 instanceof
-bI)b+=dF+c.toString()+dF;else if(typeof
+bH)b+=dF+c.toString()+dF;else if(typeof
 c==="string")b+=dF+c.toString()+dF;else
-b+=jD}b+=bG}else if(a[0]===E)b+=a[1];return b}function
+b+=jD}b+=bF}else if(a[0]===E)b+=a[1];return b}function
 kZ(a){if(Array.isArray(a)&&(a[0]===0||a[0]===E)){var
 c=cR(id);if(c)cd(c,[a,false]);else{var
 d=z7(a),b=cR(iC);if(b)cd(b,[0]);console.error(fz+d);if(a.js_error)throw a.js_error}}else
@@ -953,7 +953,7 @@ aj(a,b,c,d,e,f){return(a.l>=0?a.l:a.l=a.length)===5?a(b,c,d,e,f):a0(a,[b,c,d,e,f
 zB(a,b,c,d,e,f,g){return(a.l>=0?a.l:a.l=a.length)===6?a(b,c,d,e,f,g):a0(a,[b,c,d,e,f,g])}function
 zA(a,b,c,d,e,f,g,h){return(a.l>=0?a.l:a.l=a.length)===7?a(b,c,d,e,f,g,h):a0(a,[b,c,d,e,f,g,h])}var
 A3=0;z8();var
-ea=[E,jt,-1],f4=[E,jQ,-2],cj=[E,fx,-3],d$=[E,jw,-4],ag=[E,jV,-7],f2=[E,kF,-8],f3=[E,jv,-9],r=[E,kg,-11],f5=[E,i8,-12],nA="%nd",nD=kE,nM="%nu",nn="%ld",nq=io,nz="%lu",na="%Ld",nd=iz,nm="%Lu",mZ=z,m2=jo,m$=i5,zy=[4,0,0,0,[12,45,[4,0,0,0,0]]],et=[0,[11,'File "',[2,0,[11,'", line ',[4,0,0,0,[11,ji,[4,0,0,0,[12,45,[4,0,0,0,[11,kr,[2,0,0]]]]]]]]]],'File "%s", line %d, characters %d-%d: %s'],gV=[0,e,0,e],b2=[1,"unreachable condition!!"],eS=[1,"expected plot title and parameters"],hH=[1,"expected axis number first"],hG=[1,kf],eR=[1,"expected slice parameters"],hE=[1,"expected a plot type"],hD=[1,kx],hC=[1,kx],hB=[1,fc],hA=[1,fc],hz=[1,jk],hv=[0,0,0],zz=[11," respectively",0],h8=[0,[7,0],0],h7=[2,0],bB="Default";aH(11,f5,i8);aH(10,r,kg);aH(9,[E,jJ,-10],jJ);aH(8,f3,jv);aH(7,f2,kF);aH(6,ag,jV);aH(5,[E,jc,-6],jc);aH(4,[E,ju,-5],ju);aH(3,d$,jw);aH(2,cj,fx);aH(1,f4,jQ);aH(0,ea,jt);function
+ea=[E,jt,-1],f4=[E,jQ,-2],cj=[E,fx,-3],d$=[E,jw,-4],ag=[E,jV,-7],f2=[E,kF,-8],f3=[E,jv,-9],r=[E,kg,-11],f5=[E,i8,-12],nA="%nd",nD=kE,nM="%nu",nn="%ld",nq=io,nz="%lu",na="%Ld",nd=iz,nm="%Lu",mZ=z,m2=jo,m$=i5,zy=[4,0,0,0,[12,45,[4,0,0,0,0]]],et=[0,[11,'File "',[2,0,[11,'", line ',[4,0,0,0,[11,ji,[4,0,0,0,[12,45,[4,0,0,0,[11,kr,[2,0,0]]]]]]]]]],'File "%s", line %d, characters %d-%d: %s'],gV=[0,e,0,e],b1=[1,"unreachable condition!!"],eS=[1,"expected plot title and parameters"],hH=[1,"expected axis number first"],hG=[1,kf],eR=[1,"expected slice parameters"],hE=[1,"expected a plot type"],hD=[1,kx],hC=[1,kx],hB=[1,fc],hA=[1,fc],hz=[1,jk],hv=[0,0,0],zz=[11," respectively",0],h8=[0,[7,0],0],h7=[2,0],bA="Default";aH(11,f5,i8);aH(10,r,kg);aH(9,[E,jJ,-10],jJ);aH(8,f3,jv);aH(7,f2,kF);aH(6,ag,jV);aH(5,[E,jc,-6],jc);aH(4,[E,ju,-5],ju);aH(3,d$,jw);aH(2,cj,fx);aH(1,f4,jQ);aH(0,ea,jt);function
 D(a){if(typeof
 a==="number")return 0;switch(a[0]){case
 0:return[0,D(a[1])];case
@@ -1058,7 +1058,7 @@ eb=[0,function(a){var
 b=AE(0);for(;;){if(!b)return 0;var
 c=b[2],e=b[1];try{aU(e);b=c}catch(f){var
 d=a1(f);if(d[1]!==f4)throw j(d,0);b=c}}}],f_=[0,function(a){}];function
-ec(a){g(f_[1],0);return g(bJ(eb),0)}fX(iC,ec);var
+ec(a){g(f_[1],0);return g(bI(eb),0)}fX(iC,ec);var
 ed=AV(0),cl=(4*ed|0)-1|0,lE="option is None",lF="result is Error _",lH="result is Ok _",lS="List.combine",lV="String.sub / Bytes.sub",lW="Bytes.blit",lX="String.blit / Bytes.blit_string",lY="String.concat",lZ=e,l0="String.contains_from / Bytes.contains_from";function
 f$(a){return 0}function
 ga(a,b,c){var
@@ -1102,7 +1102,7 @@ m=f[2],n=f[1],o=g(a,i),j=[0,g(a,n),aD],e=j,d=1,c=m;for(;;){if(c){var
 h=c[2],k=c[1];if(h){var
 p=h[2],q=h[1],r=g(a,k),l=[0,g(a,q),aD];e[d+1]=[0,r,l];e=l;d=1;c=p;continue}e[d+1]=[0,g(a,k),0]}else
 e[d+1]=0;return[0,o,j]}}function
-bO(a,b){var
+bN(a,b){var
 n=0;if(!b)return 0;var
 g=b[2],j=b[1];if(!g)return[0,h(a,n,j),0];var
 o=g[2],p=g[1],q=h(a,n,j),k=[0,h(a,1,p),aD],f=k,e=1,c=2,d=o;for(;;){if(d){var
@@ -1142,7 +1142,7 @@ gj(a,b,c){if(0<=b&&0<=c&&(an(a)-c|0)>=b){var
 d=P(c);bq(a,b,d,0,c);return d}return u(lV)}function
 ej(a,b,c){return ao(gj(a,b,c))}function
 gk(a,b,c,d,e){if(0<=e&&0<=b&&(an(a)-e|0)>=b&&0<=d&&(an(c)-e|0)>=d){bq(a,b,c,d,e);return}return u(lW)}function
-aV(a,b,c,d,e){if(0<=e&&0<=b&&(k(a)-e|0)>=b&&0<=d&&(an(c)-e|0)>=d){bK(a,b,c,d,e);return}return u(lX)}function
+aV(a,b,c,d,e){if(0<=e&&0<=b&&(k(a)-e|0)>=b&&0<=d&&(an(c)-e|0)>=d){bJ(a,b,c,d,e);return}return u(lX)}function
 az(a){return 2!==(a>>>6|0)?1:0}function
 co(a,b){return ao(bw(a,b))}function
 bh(a,b,c){return ao(gj(aG(a),b,c))}function
@@ -1155,7 +1155,7 @@ l=c[2],m=(k(j)+i|0)+d|0;if(d<=m){d=m;c=l}else{d=u(lY);c=l}}var
 n=k(j)+d|0}var
 h=P(n),g=p,f=b;for(;;){if(f){var
 e=f[1];if(f[2]){var
-o=f[2];bK(e,0,h,g,k(e));bK(a,0,h,g+k(e)|0,i);g=(g+k(e)|0)+i|0;f=o;continue}bK(e,0,h,g,k(e))}return ao(h)}}function
+o=f[2];bJ(e,0,h,g,k(e));bJ(a,0,h,g+k(e)|0,i);g=(g+k(e)|0)+i|0;f=o;continue}bJ(e,0,h,g,k(e))}return ao(h)}}function
 gm(a,b){var
 d=k(a),g=0;if(d<0)return u(l0);try{var
 c=g;for(;;){if(d<=c)throw j(ag,1);if(af(a,c)===b){var
@@ -1207,10 +1207,10 @@ gs(a,b){a:if(!(a<b)){if(!d8(b)&&d8(a))break a;return b!==b?b:a}return a!==a?a:b}
 cr(a){return[0,0,0]}function
 cs(a){a[1]=0;a[2]=0}function
 bx(a,b){b[1]=[0,a,b[1]];b[2]=b[2]+1|0;return 0}function
-bR(a){var
+bQ(a){var
 b=a[1];if(!b)return 0;var
 c=b[1];a[1]=b[2];a[2]=a[2]-1|0;return[0,c]}function
-bS(a){var
+bR(a){var
 b=a[1];return b?[0,b[1]]:0}var
 mg="Buffer.add: cannot grow buffer",mh="Buffer.add_substring";function
 em(a){a[1]=0;a[2]=0;a[3]=0}function
@@ -1233,14 +1233,14 @@ f=e;else
 var
 l=d<0?1:0,f=l||((k(b)-d|0)<c?1:0);if(f)u(mh);var
 g=a[2],h=a[1],i=g+d|0,j=h[1];if(h[2]<i){gy(a,d);aV(b,c,a[1][1],a[2],d)}else
-bK(b,c,j,g,d);a[2]=i;return 0}function
+bJ(b,c,j,g,d);a[2]=i;return 0}function
 a4(a,b){return en(a,b,0,k(b))}var
 c4=[0,0];z4(q(8,c4));var
 ic=[0,0],lD=[0,0],mi=[0,"domain.ml",184,13];function
 a5(a,b){var
 c=[0,zM(lD,1),b];if(a){var
 e=[0,c,a[1]];for(;;){var
-d=bJ(ic);if(!(1-dM(ic,d,[0,e,d])))break}}return c}function
+d=bI(ic);if(!(1-dM(ic,d,[0,e,d])))break}}return c}function
 gz(a){for(;;){var
 b=kY(0),d=b.length-1;if(a<d)return b;var
 c=d;for(;;){if(a<c){var
@@ -1261,7 +1261,7 @@ gB(a){return[0,0,P(a)]}function
 gC(a,b){var
 c=an(a[2]),d=a[1]+b|0;if(c<d){var
 e=P(lU(c*2|0,d));gk(a[2],0,e,0,c);a[2]=e}}function
-bT(a,b){gC(a,1);be(a[2],a[1],b);a[1]=a[1]+1|0}function
+bS(a,b){gC(a,1);be(a[2],a[1],b);a[1]=a[1]+1|0}function
 T(a,b){var
 c=k(b);gC(a,c);aV(b,0,a[2],a[1],c);a[1]=a[1]+c|0}function
 gD(a){return ej(a[2],0,a[1])}function
@@ -1501,7 +1501,7 @@ b==="number")return 0;switch(b[0]){case
 14:break e;case
 8:break f;case
 9:break;default:throw j([0,r,mI],1)}}throw j([0,r,mK],1)}throw j([0,r,mJ],1)}throw j([0,r,mP],1)}throw j([0,r,mO],1)}throw j([0,r,mN],1)}throw j([0,r,mM],1)}throw j([0,r,mL],1)}var
-O=[E,"CamlinternalFormat.Type_mismatch",bL(0)];function
+O=[E,"CamlinternalFormat.Type_mismatch",bK(0)];function
 lx(a){return a?ly:lz}var
 lK="\\\\",lL="\\'",lM="\\b",lN="\\t",lO="\\n",lP="\\r",m0="%+d",m1="% d",m3="%+i",m4="% i",m5="%x",m6="%#x",m7="%X",m8="%#X",m9="%o",m_="%#o",nb="%+Ld",nc="% Ld",ne="%+Li",nf="% Li",ng="%Lx",nh="%#Lx",ni="%LX",nj="%#LX",nk="%Lo",nl="%#Lo",no="%+ld",np="% ld",nr="%+li",ns="% li",nt="%lx",nu="%#lx",nv="%lX",nw="%#lX",nx="%lo",ny="%#lo",nB="%+nd",nC="% nd",nE="%+ni",nF="% ni",nG="%nx",nH="%#nx",nI="%nX",nJ="%#nX",nK="%no",nL="%#no",nN=[0,iF],nS="neg_infinity",nT=j5,nU=fC,nW=[0,M,1558,4],nX="Printf: bad conversion %[",nY=[0,M,1626,39],nZ=[0,M,1649,31],n0=[0,M,1650,31],n1="Printf: bad conversion %_",n2=jS,n3=ka,n4=jS,n5=ka,n7=[0,0,4],n8=[0,[11,"invalid box description ",[3,0,0]],"invalid box description %S"];function
 c5(a,b){if(typeof
@@ -1650,7 +1650,7 @@ d=k(c),g=0<=b?a:0,f=cU(b);if(f<=d)return c;var
 h=2===g?48:32,e=bw(f,h);switch(g){case
 0:aV(c,0,e,0,d);break;case
 1:aV(c,0,e,f-d|0,d);break;default:a:if(0<d){if(43!==X(c,0)&&45!==X(c,0)&&32!==X(c,0))break a;be(e,0,X(c,0));aV(c,1,e,(f-d|0)+1|0,d-1|0);break}a:if(1<d&&48===X(c,0)){if(iS!==X(c,1)&&88!==X(c,1))break a;be(e,1,X(c,1));aV(c,2,e,(f-d|0)+2|0,d-2|0);break}aV(c,0,e,f-d|0,d)}return ao(e)}function
-bU(a,b){var
+bT(a,b){var
 d=cU(a),c=k(b),e=X(b,0);a:{b:{if(58>e){if(32!==e){if(43>e)break a;switch(e-43|0){case
 5:if(c>=(d+2|0))break b;if(1>=c)break b;if(iS!==X(b,1)&&88!==X(b,1))break b;var
 g=bw(d+2|0,48);be(g,1,X(b,1));aV(b,2,g,(d-c|0)+4|0,c-2|0);return ao(g);case
@@ -1682,7 +1682,7 @@ d=G(e,g);a:{b:{c:{if(35<=d){if(92!==d){if(dA<=d)break b;break c}}else{if(32>d){i
 13:F(c,b[1],92);b[1]++;F(c,b[1],114);break a;default:break b}}if(34>d)break c}F(c,b[1],92);b[1]++;F(c,b[1],d);break a}F(c,b[1],d);break a}F(c,b[1],92);b[1]++;F(c,b[1],48+(d/b6|0)|0);b[1]++;F(c,b[1],48+((d/10|0)%10|0)|0);b[1]++;F(c,b[1],48+(d%10|0)|0)}b[1]++;var
 t=g+1|0;if(n===g){var
 i=c;break}g=t}}}var
-o=e===i?a:ao(i),p=k(o),q=bw(p+2|0,34);bK(o,0,q,1,p);return ao(q)}function
+o=e===i?a:ao(i),p=k(o),q=bw(p+2|0,34);bJ(o,0,q,1,p);return ao(q)}function
 gF(a,b){var
 g=cU(b),f=nN[1];switch(a[2]){case
 0:var
@@ -1702,9 +1702,9 @@ c=72;break;case
 8:var
 c=70;break;default:var
 c=f}var
-d=gB(16);bT(d,37);switch(a[1]){case
-1:bT(d,43);break;case
-2:bT(d,32);break}if(8<=a[2])bT(d,35);bT(d,46);T(d,e+g);bT(d,c);return gD(d)}function
+d=gB(16);bS(d,37);switch(a[1]){case
+1:bS(d,43);break;case
+2:bS(d,32);break}if(8<=a[2])bS(d,35);bS(d,46);T(d,e+g);bS(d,c);return gD(d)}function
 c6(a,b){if(13>a)return b;var
 h=[0,0],i=k(b)-1|0,o=0;if(i>=0){var
 d=o;for(;;){if(9>=af(b,d)+jr>>>0)h[1]++;var
@@ -1875,10 +1875,10 @@ b=f,c=i,d=e[2];i=function(a){return p(c,[1,b,[1,a]],d)};f=0;e=t[1][1]}break;case
 21:break j;case
 22:break k;case
 23:break l;default:var
-z=e[3],A=e[1],C=g(e[2],0);return a<50?e6(a+1|0,i,f,z,A,C):bN(e6,[0,i,f,z,A,C])}}var
+z=e[3],A=e[1],C=g(e[2],0);return a<50?e6(a+1|0,i,f,z,A,C):bM(e6,[0,i,f,z,A,C])}}var
 o=e[2],s=e[1];if(typeof
-s==="number"){if(2===s)throw j([0,r,nY],1);return a<50?b4(a+1|0,i,f,o):bN(b4,[0,i,f,o])}if(9!==s[0])return a<50?b4(a+1|0,i,f,o):bN(b4,[0,i,f,o]);var
-E=s[2];return a<50?e7(a+1|0,i,f,E,o):bN(e7,[0,i,f,E,o])}var
+s==="number"){if(2===s)throw j([0,r,nY],1);return a<50?b4(a+1|0,i,f,o):bM(b4,[0,i,f,o])}if(9!==s[0])return a<50?b4(a+1|0,i,f,o):bM(b4,[0,i,f,o]);var
+E=s[2];return a<50?e7(a+1|0,i,f,E,o):bM(e7,[0,i,f,E,o])}var
 V=e[1];return function(a){return p(i,[5,f,a],V)}}var
 U=e[2];return function(a){return p(i,[4,f,dV(i5,a)],U)}}var
 S=e[3],T=[8,f,nX];return function(a){return p(i,T,S)}}var
@@ -1914,11 +1914,11 @@ d=P(1);F(d,0,a);var
 b=ao(d);break a}var
 c=P(4);F(c,0,92);F(c,1,48+(a/b6|0)|0);F(c,2,48+((a/10|0)%10|0)|0);F(c,3,48+(a%10|0)|0);var
 b=ao(c)}var
-e=k(b),g=bw(e+2|0,39);bK(b,0,g,1,e);return p(i,[4,f,ao(g)],I)}}var
+e=k(b),g=bw(e+2|0,39);bJ(b,0,g,1,e);return p(i,[4,f,ao(g)],I)}}var
 H=e[1];return function(a){return p(i,[5,f,a],H)}}function
 p(a,b,c){return fY(cD(0,a,b,c))}function
 e7(a,f,c,d,e){if(typeof
-d==="number")return a<50?b4(a+1|0,f,c,e):bN(b4,[0,f,c,e]);switch(d[0]){case
+d==="number")return a<50?b4(a+1|0,f,c,e):bM(b4,[0,f,c,e]);switch(d[0]){case
 0:var
 b=d[1];return function(a){return aw(f,c,b,e)};case
 1:var
@@ -1948,24 +1948,24 @@ v=d[1];return function(a){return aw(f,c,v,e)};case
 13:throw j([0,r,nZ],1);default:throw j([0,r,n0],1)}}function
 aw(a,b,c,d){return fY(e7(0,a,b,c,d))}function
 b4(a,b,c,d){var
-e=[8,c,n1];return a<50?cD(a+1|0,b,e,d):bN(cD,[0,b,e,d])}function
+e=[8,c,n1];return a<50?cD(a+1|0,b,e,d):bM(cD,[0,b,e,d])}function
 es(h,f,c,d,e){if(typeof
 d==="number")return function(a){return p(h,[4,f,g(e,a)],c)};if(0===d[0]){var
 b=d[2],i=d[1];return function(a){return p(h,[4,f,ap(i,b,g(e,a))],c)}}var
 j=d[1];return function(a,b){return p(h,[4,f,ap(j,a,g(e,b))],c)}}function
 c7(k,j,i,d,e,f,g){if(typeof
 d==="number"){if(typeof
-e==="number")return e?function(a,b){return p(k,[4,j,bU(a,h(f,g,b))],i)}:function(a){return p(k,[4,j,h(f,g,a)],i)};var
-b=e[1];return function(a){return p(k,[4,j,bU(b,h(f,g,a))],i)}}if(0===d[0]){var
+e==="number")return e?function(a,b){return p(k,[4,j,bT(a,h(f,g,b))],i)}:function(a){return p(k,[4,j,h(f,g,a)],i)};var
+b=e[1];return function(a){return p(k,[4,j,bT(b,h(f,g,a))],i)}}if(0===d[0]){var
 c=d[2],l=d[1];if(typeof
-e==="number")return e?function(a,b){return p(k,[4,j,ap(l,c,bU(a,h(f,g,b)))],i)}:function(a){return p(k,[4,j,ap(l,c,h(f,g,a))],i)};var
-n=e[1];return function(a){return p(k,[4,j,ap(l,c,bU(n,h(f,g,a)))],i)}}var
+e==="number")return e?function(a,b){return p(k,[4,j,ap(l,c,bT(a,h(f,g,b)))],i)}:function(a){return p(k,[4,j,ap(l,c,h(f,g,a))],i)};var
+n=e[1];return function(a){return p(k,[4,j,ap(l,c,bT(n,h(f,g,a)))],i)}}var
 m=d[1];if(typeof
-e==="number")return e?function(a,b,c){return p(k,[4,j,ap(m,a,bU(b,h(f,g,c)))],i)}:function(a,b){return p(k,[4,j,ap(m,a,h(f,g,b))],i)};var
-o=e[1];return function(a,b){return p(k,[4,j,ap(m,a,bU(o,h(f,g,b)))],i)}}function
+e==="number")return e?function(a,b,c){return p(k,[4,j,ap(m,a,bT(b,h(f,g,c)))],i)}:function(a,b){return p(k,[4,j,ap(m,a,h(f,g,b))],i)};var
+o=e[1];return function(a,b){return p(k,[4,j,ap(m,a,bT(o,h(f,g,b)))],i)}}function
 e6(a,b,c,d,e,f){if(e){var
 i=e[1];return function(a){return nV(b,c,d,i,g(f,a))}}var
-h=[4,c,f];return a<50?cD(a+1|0,b,h,d):bN(cD,[0,b,h,d])}function
+h=[4,c,f];return a<50?cD(a+1|0,b,h,d):bM(cD,[0,b,h,d])}function
 nV(a,b,c,d,e){return fY(e6(0,a,b,c,d,e))}function
 a7(a,b){var
 c=b;for(;;){if(typeof
@@ -2037,7 +2037,7 @@ f=X(e,d);a:{if(48<=f){if(58<=f)break a}else if(45!==f)break a;d=d+1|0;continue}r
 gH(a,b){if(a.length-1<=b)return oa;var
 c=gH(a,b+1|0),d=eu(a,b);return h(aq(ob),d,c)}function
 c9(a){a:{b:{var
-b=bJ(e5);for(;;){if(!b)break;var
+b=bI(e5);for(;;){if(!b)break;var
 l=b[2],w=b[1];try{var
 m=g(w,a)}catch(f){b=l;continue}if(m)break b;b=l}var
 j=0;break a}var
@@ -2073,7 +2073,7 @@ v=j(0),e=[0,g(aq(ou),v)];if(e){var
 x=e[1];g(c8(a,ov),x)}var
 y=d+1|0;if(l===d)break;d=y}}}function
 ew(a){for(;;){var
-c=bJ(e5),b=1-dM(e5,c,[0,a,c]);if(!b)return b}}var
+c=bI(e5),b=1-dM(e5,c,[0,a,c]);if(!b)return b}}var
 ow=AI([0,e,"(Cannot print locations:\n bytecode executable program file not found)","(Cannot print locations:\n bytecode executable program file appears to be corrupt)","(Cannot print locations:\n bytecode executable program file has wrong magic number)","(Cannot print locations:\n bytecode executable program file cannot be opened;\n -- too many open files. Try running with OCAMLRUNPARAM=b=2)"]),ox=[0,[11,fz,[2,0,[12,10,0]]],j4],oy=[0],oz="Fatal error: out of memory in uncaught exception handler",oA=[0,[11,fz,[2,0,[12,10,0]]],j4],oB=[0,[11,"Fatal error in uncaught exception handler: exception ",[2,0,[12,10,0]]],"Fatal error in uncaught exception handler: exception %s\n"];fX(id,function(a,b){try{try{var
 h=b?oy:k1(0);try{ec(0)}catch(f){}try{var
 f=c9(a);g(c8(au,ox),f);ev(au,h);var
@@ -2086,7 +2086,7 @@ k=aU(au)}var
 l=k}catch(f){var
 e=a1(f);if(e!==ea)throw j(e,0);var
 l=f9(oz)}return l}catch(f){return 0}});var
-oC=[E,"Stdlib.Fun.Finally_raised",bL(0)];ew(function(a){return a[1]===oC?[0,"Fun.Finally_raised: "+c9(a[2])]:0});var
+oC=[E,"Stdlib.Fun.Finally_raised",bK(0)];ew(function(a){return a[1]===oC?[0,"Fun.Finally_raised: "+c9(a[2])]:0});var
 oD="Digest.BLAKE2: wrong hash size";function
 ex(a){var
 b=a[1]<1?1:0,c=b||(64<a[1]?1:0);if(c)u(oD)}ex([0,16]);ex([0,32]);ex([0,64]);function
@@ -2111,10 +2111,10 @@ e=gM(0);gN(e,a,b,c,d);return e}function
 gP(a){var
 b=a.length-1<4?1:0,c=b||(a[4]<0?1:0);return c}function
 ey(a){a[4]=-a[4]|0}var
-lI=km,lJ=jA,lR="List.drop",lQ="List.nth",l6="Array.fill",l5="Array.init_matrix",l4="Array.make_matrix",l3="Array.init",md=[0,0,0,0],l$=dx,ma=dx,mb=dx,mc=dx,mf="Buffer.sub",mj="first domain already spawned",oK=aT(0,0,0),oV="Hashtbl: unsupported hash table format",oU=[0,0],oQ=e,pc=[4,0,3],pd=bo,o$=e,o9=e,o7="\n",o3=e,o4=e,o5=e,o6=e,o2=[0,e],oY=e,oZ=e,o0=e,o1=e,oW="Stdlib.Format.String_tag",pm=ky,po=iJ,pp=im,pq=bC,pr=ik,ps=i3,pt=jT,pu=jR,pv=dK,pw=kv,px=kq,py=jB,pz=cI,pA=i6,pB=dE,pC=iA,pD=iM,pE=i0,pF=kH,pG=iv,pH=b5,pI=jj,pJ=iG,pK=kB,pL=kz,pM=kG,pN=dy,pO=fb,pP=iH,pQ=iq,pR=jq,pS=jM,pT=kp,pU=is,pV=fm,pW=iT,pX=ip,pY=i4,pZ=jY,p0=iU,p1=ja,p2=iL,p3=iP,p4=kn,p5=j$,p6=j2,p7=j_,p8=ke,p9=jK,p_=i7,p$=kj,qa=jE,qb=kA,qc=iY,qd=iu,qe=je,qf=ii,qg=j9,qh=ie,qi=jL,qj=iw,qk=jZ,ql=jG,qm=i$,qn=i9,qo=js,qp=ki,qq=kh,qr=[0,[11,"EUNKNOWNERR ",[4,0,0,0,0]],"EUNKNOWNERR %d"],pn=[0,[11,"Unix.Unix_error(Unix.",[2,0,[11,cE,[3,0,[11,cE,[3,0,[12,41,0]]]]]]],"Unix.Unix_error(Unix.%s, %S, %S)"],pi=ft,pj=e,pk=e,pl=ft,qs="Tokens.TArrow",qt="Tokens.TRange",qu="Tokens.TComma",qv="Tokens.TQuote",qw="Tokens.TLeftParen",qx="Tokens.TRightParen",qy="Tokens.TLeftBracket",qz="Tokens.TRightBracket",qA="Tokens.TLeftAngle",qB="Tokens.TRightAngle",qC="Tokens.TUnderscore",qD="Tokens.TCaret",qE="Tokens.TAt",qF="Tokens.TPipe",qG="Tokens.TColon",qH="Tokens.KFor",qI="Tokens.KDecl",qJ="Tokens.KEq",qK="Tokens.KGreater",qL="Tokens.KLess",qM="Tokens.KPlus",qN="Tokens.KMult",qO="Tokens.KBlockStart",qP="Tokens.KBlockEnd",qQ="Tokens.KAddAssign",qR=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Tokens.TNumeral",[17,[0,b,1,0],0]]]],"(@[<2>Tokens.TNumeral@ "],qS=[0,[4,0,0,0,0],z],qT=[0,[17,0,[12,41,0]],v],qU=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Tokens.TFloat",[17,[0,b,1,0],0]]]],"(@[<2>Tokens.TFloat@ "],qV=[0,[8,[0,0,5],0,0,0],aW],qW=[0,[17,0,[12,41,0]],v],qX=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Tokens.TAlphaNum",[17,[0,b,1,0],0]]]],"(@[<2>Tokens.TAlphaNum@ "],qY=[0,[3,0,0],cK],qZ=[0,[17,0,[12,41,0]],v],q0=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Tokens.KIdent",[17,[0,b,1,0],0]]]],"(@[<2>Tokens.KIdent@ "],q1=[0,[3,0,0],cK],q2=[0,[17,0,[12,41,0]],v],q3=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Tokens.KNum",[17,[0,b,1,0],0]]]],"(@[<2>Tokens.KNum@ "],q4=[0,[4,0,0,0,0],z],q5=[0,[17,0,[12,41,0]],v],q6=[0,[15,0],fa],rl="bad unary operation on token",rm=[0,[11,j1,0],j1],rn=[0,[11,iV,0],iV],rk=[0,[11,"unexpected token ",[0,0]],"unexpected token %c"],q7=[0,[18,[1,[0,[11,a,0],a]],[11,fv,0]],e_],q8="Lexer.tokn",q9=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],q_=[0,[17,0,0],ad],q$=[0,[12,59,[17,[0,b,1,0],0]],C],ra=jl,rb=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],rc=[0,[4,0,0,0,0],z],rd=[0,[17,0,0],ad],re=[0,[12,59,[17,[0,b,1,0],0]],C],rf="colm",rg=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],rh=[0,[4,0,0,0,0],z],ri=[0,[17,0,0],ad],rj=[0,[17,[0,b,1,0],[12,b$,[17,0,0]]],fs],rA=[0,aE,437,17],rz=[0,aE,346,17],ry=[0,aE,329,17],rx=[0,aE,235,17],rw=[0,aE,219,17],rv=[0,aE,160,17],ru=[0,aE,155,17],rt=[0,aE,148,17],rs=[0,aE,136,17],rr=[0,aE,111,17],rq=[0,aE,106,17],rp=[0,aE,jO,17],wT=[1,"Expected optional motion with cell spec but no tokens left"],wV=[1,kc],wU=[1,"Bad token"],wW=[1,"Missing einsum parameters"],xd=[0,[11,"Unclosed einsum formulae: ",[2,0,0]],"Unclosed einsum formulae: %s"],xc=[0,[11,"expected einsum expression at ",[2,0,0]],"expected einsum expression at %s"],w_=[0,[11,"Input indices invalid - please use at least one ascii chars at ",[2,0,0]],"Input indices invalid - please use at least one ascii chars at %s"],w$=[0,[11,"Unfinished einsum expression at ",[2,0,0]],"Unfinished einsum expression at %s"],xa=[1,"Unexpected einsum result"],w5=[1,"missing plot parameters!"],w6=[0,iQ,1.],w7=[1,"axis description missing"],w8=[1,"missing axis argument!"],w0=[1,"missing cell argument"],w1=[1,"expected write cell argument in angle brackets"],w2=[1,"missing slice parameters!"],w3=[1,"reshape value should be in shape format"],w4=[1,"missing reshape values!"],wZ=[0,[11,"Unknown mask function: ",[2,0,0]],"Unknown mask function: %s"],w9=[1,"expected mask function"],wX=[1,"expected number"],wY=[1,"expected number token"],wR=[4,0],wQ=[1,kc],wP=[1,"Unhandled reference"],wS=[1,"Unfinished reference"],wK=[1,aC],wL=[1,fp],wM=[1,bD],wN=[1,aC],wF=[1,aC],wG=[1,fp],wH=[1,bD],wI=[1,aC],wB=[1,aC],wC=[1,fp],wD=[1,bD],wE=[1,aC],wx=[0,[11,b7,[2,0,0]],b9],wy=[1,bH],wv=[1,aC],ww=[1,fi],wu=[1,dD],wz=[1,bD],wA=[1,aC],wq=[0,[11,jU,[2,0,0]],iN],wr=[1,bH],wo=[0,[11,jU,[2,0,0]],iN],wp=[1,fi],wn=[1,dD],ws=[1,bD],wt=[1,aC],wj=[0,[11,b7,[2,0,0]],b9],wk=[1,bH],wh=[1,aC],wi=[1,fi],wg=[1,dD],wl=[1,bD],wm=[1,aC],wc=[0,[11,b7,[2,0,0]],b9],wd=[1,bH],wa=[0,[11,b7,[2,0,0]],b9],wb=[1,bH],v$=[0,[11,iE,[2,0,0]],it],v9=[0,[11,b7,[2,0,0]],b9],v_=[1,bH],v7=[0,[11,b7,[2,0,0]],b9],v8=[1,bH],v6=[0,[11,iE,[2,0,0]],it],v5=[1,dD],we=[1,bD],wf=[1,aC],v4=[1,"Expected angle variable!"],v3=[1,"unrecognized plot"],v0=[1,"only numerals allowed in shape"],vZ=[1,fc],v1=[1,fo],vY=[1,jk],v2=[1,kl],vW=[1,fo],vV=[1,fo],vX=[1,kl],vQ=[1,0,0,0],vS=[1,0,0,0],vR=[1,0,0,0],vP=[1,"bad slice arg"],vT=[1,"bad slice structure termination"],vO=[1,"bad slice value "],vU=[1,"slice indexes can only be integer number (including negative)"],vM="invalid token in compass",vK=[1,kf],vL=[1,"Unclosed range"],vG=[0,[11,"Unexpected token in stack: ",[2,0,[12,33,0]]],"Unexpected token in stack: %s!"],vI=[1,"Missing value between commas!"],vH=[1,"Unexpected token in static array - only floats supported"],vJ=[1,"Unexpected close - need static array"],vE=[0,[11,"Invalid row value - should be a number: ",[2,0,0]],"Invalid row value - should be a number: %s"],vF=[1,"Row index not found??"],vD=[1,"missing opening enclose token"],vB=[0,[11,"Expected consume ",[2,0,[11," found ",[2,0,0]]]],"Expected consume %s found %s"],vC=[1,"failed consumption check"],vq=cc,vr=bG,vs=b_,vj=cc,vk=bG,vl=b_,vg=[0,[18,[1,[0,[11,a,0],a]],[11,fv,0]],e_],vh="Parser.curr",vi=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],vm=[0,[17,0,0],ad],vn=[0,[12,59,[17,[0,b,1,0],0]],C],vo="prev",vp=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],vt=[0,[17,0,0],ad],vu=[0,[12,59,[17,[0,b,1,0],0]],C],vv="prog",vw=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],vx=[0,[17,0,0],ad],vy=[0,[17,[0,b,1,0],[12,b$,[17,0,0]]],fs],vz=[0,[15,0],fa],rN=[0,[12,59,[17,[0,b,1,0],0]],C],rM=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],rO=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],rF=[0,[12,40,[18,[1,[0,0,e]],0]],cJ],rG=[0,[1,0],"%C"],rH=[0,[12,44,[17,[0,b,1,0],0]],ac],rI=[0,[4,0,0,0,0],z],rJ=[0,[17,0,[12,41,0]],v],rE=[0,[12,59,[17,[0,b,1,0],0]],C],rD=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],rK=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],rC=[0,[12,40,[18,[1,[0,0,e]],0]],cJ],rL=[0,[12,44,[17,[0,b,1,0],0]],ac],rP=[0,[17,0,[12,41,0]],v],rB=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Shape",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Shape@ "],rQ=[0,[17,0,[12,41,0]],v],rR="Parser.Self",sE=[0,[12,59,[17,[0,b,1,0],0]],C],sF=[0,[4,0,0,0,0],z],sD=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],sG=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],sz=[0,[12,59,[17,[0,b,1,0],0]],C],sA=[0,[8,[0,0,5],0,0,0],aW],sy=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],sB=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],st=[0,[12,59,[17,[0,b,1,0],0]],C],su=[0,[4,0,0,0,0],z],ss=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],sv=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],sl=[0,[12,59,[17,[0,b,1,0],0]],C],sm=[0,[4,0,0,0,0],z],sk=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],sn=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],sb=[0,[12,59,[17,[0,b,1,0],0]],C],sc=[0,[4,0,0,0,0],z],sa=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],sd=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],r5=[0,[12,59,[17,[0,b,1,0],0]],C],r6=[0,[4,0,0,0,0],z],r4=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],r7=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],rZ=[0,[12,59,[17,[0,b,1,0],0]],C],r0=[0,[4,0,0,0,0],z],rY=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],r1=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],rS=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Diag (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Diag (@,"],rT=[0,[8,[0,0,5],0,0,0],aW],rU=[0,[12,44,[17,[0,b,1,0],0]],ac],rV=[0,[4,0,0,0,0],z],rW=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],rX=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Zeros",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Zeros@ "],r2=[0,[17,0,[12,41,0]],v],r3=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Ones",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Ones@ "],r8=[0,[17,0,[12,41,0]],v],r9=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Fill (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Fill (@,"],r_=[0,[8,[0,0,5],0,0,0],aW],r$=[0,[12,44,[17,[0,b,1,0],0]],ac],se=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],sf=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Enum (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Enum (@,"],sg=[0,[8,[0,0,5],0,0,0],aW],sh=[0,[12,44,[17,[0,b,1,0],0]],ac],si=[0,[8,[0,0,5],0,0,0],aW],sj=[0,[12,44,[17,[0,b,1,0],0]],ac],so=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],sp=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Rand (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Rand (@,"],sq=[0,[8,[0,0,5],0,0,0],aW],sr=[0,[12,44,[17,[0,b,1,0],0]],ac],sw=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],sx=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Alt (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Alt (@,"],sC=[0,[12,44,[17,[0,b,1,0],0]],ac],sH=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],s4=cc,s5=[0,[4,0,0,0,0],z],s6=bG,s7=b_,sW=cc,sX=[0,[4,0,0,0,0],z],sY=bG,sZ=b_,sO=cc,sP=[0,[4,0,0,0,0],z],sQ=bG,sR=b_,sI=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Along",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Along@ "],sJ=[0,[4,0,0,0,0],z],sK=[0,[17,0,[12,41,0]],v],sL=[0,[18,[1,[0,[11,a,0],a]],[11,"Parser.Select {",[17,[0,n,0,0],0]]],"@[<2>Parser.Select {@,"],sM="start",sN=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],sS=[0,[17,0,0],ad],sT=[0,[12,59,[17,[0,b,1,0],0]],C],sU="len",sV=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],s0=[0,[17,0,0],ad],s1=[0,[12,59,[17,[0,b,1,0],0]],C],s2="skip",s3=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],s8=[0,[17,0,0],ad],s9=[0,[17,0,[12,b$,0]],fq],s_="Parser.Line",s$="Parser.Bar",ta="Parser.Hist",tb="Parser.Pie",tc=[0,[18,[1,[0,[11,a,0],a]],[11,"Parser.Scatter {",[17,[0,n,0,0],0]]],"@[<2>Parser.Scatter {@,"],td="xidx",te=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],tf=[0,[4,0,0,0,0],z],tg=[0,[17,0,0],ad],th=[0,[12,59,[17,[0,b,1,0],0]],C],ti="yidx",tj=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],tk=[0,[4,0,0,0,0],z],tl=[0,[17,0,0],ad],tm=[0,[17,0,[12,b$,0]],fq],tP=[0,[12,59,[17,[0,b,1,0],0]],C],tO=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],tQ=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],tK=[0,[12,59,[17,[0,b,1,0],0]],C],tJ=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],tL=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],tA=[0,[12,59,[17,[0,b,1,0],0]],C],tB=[0,[4,0,0,0,0],z],tz=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],tC=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],tn="Parser.ZScore",to="Parser.Mean",tp="Parser.Mode",tq="Parser.Sum",tr="Parser.Cumsum",ts="Parser.Stddev",tt=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.MinMax (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.MinMax (@,"],tu=[0,[8,[0,0,5],0,0,0],aW],tv=[0,[12,44,[17,[0,b,1,0],0]],ac],tw=[0,[8,[0,0,5],0,0,0],aW],tx=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],ty=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Reshape",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Reshape@ "],tD=[0,[17,0,[12,41,0]],v],tE=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Write",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Write@ "],tF=[0,[17,0,[12,41,0]],v],tG=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Axis (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Axis (@,"],tH=[0,[4,0,0,0,0],z],tI=[0,[12,44,[17,[0,b,1,0],0]],ac],tM=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],tN=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Slice",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Slice@ "],tR=[0,[17,0,[12,41,0]],v],tS=[0,[18,[1,[0,[11,a,0],a]],[11,"Parser.Plot {",[17,[0,n,0,0],0]]],"@[<2>Parser.Plot {@,"],tT="oftype",tU=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],tV=[0,[17,0,0],ad],tW=[0,[12,59,[17,[0,b,1,0],0]],C],tX="title",tY=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],tZ=[0,[3,0,0],cK],t0=[0,[17,0,0],ad],t1=[0,[17,0,[12,b$,0]],fq],t2=[0,[12,40,[18,[1,[0,0,e]],0]],cJ],t3=[0,[3,0,0],cK],t4=[0,[12,44,[17,[0,b,1,0],0]],ac],t5=[0,[4,0,0,0,0],z],t6=[0,[17,0,[12,41,0]],v],t7=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.North",[17,[0,b,1,0],0]]]],"(@[<2>Parser.North@ "],t8=[0,[4,0,0,0,0],z],t9=[0,[17,0,[12,41,0]],v],t_=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.South",[17,[0,b,1,0],0]]]],"(@[<2>Parser.South@ "],t$=[0,[4,0,0,0,0],z],ua=[0,[17,0,[12,41,0]],v],ub=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.East",[17,[0,b,1,0],0]]]],"(@[<2>Parser.East@ "],uc=[0,[4,0,0,0,0],z],ud=[0,[17,0,[12,41,0]],v],ue=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.West",[17,[0,b,1,0],0]]]],"(@[<2>Parser.West@ "],uf=[0,[4,0,0,0,0],z],ug=[0,[17,0,[12,41,0]],v],uo=[0,[12,59,[17,[0,b,1,0],0]],C],un=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],up=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],uj=[0,[12,59,[17,[0,b,1,0],0]],C],ui=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],uk=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],uh=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Itemize",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Itemize@ "],ul=[0,[17,0,[12,41,0]],v],um=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Collect",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Collect@ "],uq=[0,[17,0,[12,41,0]],v],uK=[0,[12,59,[17,[0,b,1,0],0]],C],uJ=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],uL=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],uy=[0,[8,[0,0,5],0,0,0],aW],ur="Parser.Void",us=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Range (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Range (@,"],ut=[0,[12,44,[17,[0,b,1,0],0]],ac],uu=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],uv=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Scalar",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Scalar@ "],uw=[0,[17,0,[12,41,0]],v],ux=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.NdArray",[17,[0,b,1,0],0]]]],"(@[<2>Parser.NdArray@ "],uz=[0,[17,0,[12,41,0]],v],uA=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Relative (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Relative (@,"],uB=[0,[12,44,[17,[0,b,1,0],0]],ac],uC=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],uD=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Refer",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Refer@ "],uE=[0,[17,0,[12,41,0]],v],uF=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Create",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Create@ "],uG=[0,[17,0,[12,41,0]],v],uH=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Mask (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Mask (@,"],uI=[0,[12,44,[17,[0,b,1,0],0]],ac],uM=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],uO=[0,[12,59,[17,[0,b,1,0],0]],C],uN=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],uP=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],u0=cc,u1=bG,u2=b_,uU=[0,[12,59,[17,[0,b,1,0],0]],C],uT=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],uV=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],uQ=[0,[18,[1,[0,[11,a,0],a]],[11,fv,0]],e_],uR="Parser.inp",uS=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],uW=[0,[17,0,0],ad],uX=[0,[12,59,[17,[0,b,1,0],0]],C],uY="out",uZ=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],u3=[0,[17,0,0],ad],u4=[0,[17,[0,b,1,0],[12,b$,[17,0,0]]],fs],u6=[0,[12,40,[18,[1,[0,0,e]],0]],cJ],u7=[0,[12,44,[17,[0,b,1,0],0]],ac],u8=[0,[17,0,[12,41,0]],v],u5=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Ein",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Ein@ "],u9=[0,[17,0,[12,41,0]],v],u$=[0,[12,40,[18,[1,[0,0,e]],0]],cJ],va=[0,[12,44,[17,[0,b,1,0],0]],ac],vb=[0,[17,0,[12,41,0]],v],u_=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Block",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Block@ "],vc=[0,[17,0,[12,41,0]],v],vd=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Stmt",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Stmt@ "],ve=[0,[17,0,[12,41,0]],v],xv=[0,[11,"Invalid greater operands: ",[2,0,[11," > ",[2,0,0]]]],"Invalid greater operands: %s > %s"],xu=[0,[11,"Invalid less operands: ",[2,0,[11," < ",[2,0,0]]]],"Invalid less operands: %s < %s"],xt="invalid boolean not operand",xs="Invalid mul operands",xr="Expected bool operand!",xq=[0,[11,"Invalid equality operands: ",[2,0,[11," = ",[2,0,0]]]],"Invalid equality operands: %s = %s"],xp=[0,[11,"Invalid add operands: ",[2,0,[11," + ",[2,0,0]]]],"Invalid add operands: %s + %s"],xk="nil",xl=[0,[11,"num: ",[8,[0,0,0],0,[0,2],0]],"num: %.2f"],xm=[0,[11,"idx: ",[4,0,0,0,0]],"idx: %d"],xn=[0,[11,"kern: ",[4,0,0,0,0]],"kern: %d"],xo=[0,[11,"addr: [ ",[2,0,[11," ]",0]]],"addr: [ %s ]"],xj=" x ",xe="bigarray ",xf="scalar ",xg="vector ",xh="matrix ",xi="batches ",xC=[0,10,0],xB=[0,9,0],xA=[0,11,[0,3,0]],xz=[0,3,0],xw=[0,[1,1]],xx=[1,6],xy=[0,[1,0]],xF=[0,"lib/ndmodel.ml",132,12],xE=[0,[11,"grid: ",[4,0,0,0,[12,45,[4,0,0,0,[12,10,0]]]]],"grid: %d-%d\n"],x$=[0,[11,j3,[2,0,[11,jP,[2,0,[12,33,0]]]]],i_],x9=[0,0],x_=[0,0],x8=[1,"unimplemented shape calculation!"],yg=[0,0,0,0],yf="Unimplemented transform",ye=[0,[11,"Repetition of ",[0,[11," with unequal dimensions (",[4,0,0,0,[11," != ",[4,0,0,0,[11,") for params: ",[4,0,0,0,[11,fB,[4,0,0,0,zz]]]]]]]]]],"Repetition of %c with unequal dimensions (%d != %d) for params: %d and %d respectively"],yd=[0,[11,"Duplicated label ",[0,[11," in output",0]]],"Duplicated label %c in output"],yc=[0,[11,"Output ",[0,[11," not reflected in input",0]]],"Output %c not reflected in input"],ya=", and ",yb=[1,"Inputs don't correspond to parameters provided"],xX=[1,"index into slice exceeds dimension"],xY=[1,jn],xZ=[1,"must be at least 1 length selection or step!"],x0=[1,"selection or length into slice exceeds dimension"],x1=[1,fl],x2=[1,jn],x3=[1,fl],x4=[1,"selection into slice exceeds dimension"],x5=[1,"selection skip over slice exceeds dimension"],x6=[1,fl],x7=[1,"unhandled selection format!"],xU=[0,[11,j3,[2,0,[11,jP,[2,0,[12,33,0]]]]],i_],xT=[1,"reshape across multiple dimensions not supported"],xN=[0,0],xO=[0,0],xP=[0,0],xQ=[0,0],xR=[1,"reshape not currently supported within axis"],xS=[1,"axis mask cannot be nested in another axis mask due to ambiguity!"],xV=[1,"missing axis dimension index!"],xW=[0,[11,"slice parameters do not correspond to input (slice: ",[4,0,0,0,[11," != inp: ",[4,0,0,0,[11,")!",0]]]]],"slice parameters do not correspond to input (slice: %d != inp: %d)!"],xL=[1,"Unhandled shape"],xM=[1,"scatter axis exceeds data bounds"],xJ=[0,1,0],xK=[0,[11,"dimension subscript requests ",[4,0,0,0,[11," dimensions but argument ",[4,0,0,0,[11," has ",[4,0,0,0,0]]]]]],"dimension subscript requests %d dimensions but argument %d has %d"],xH=[1,"Not homogenous"],xG=[0,0,0],yl="%",ym="\xc2\xb0",yk=[0,[11,"pasting values to ",[4,0,0,0,[12,44,[4,0,0,0,[11," !\n",0]]]]],"pasting values to %d,%d !\n"],yn=[1,e],yi=e,yh=e,yz="Unreachable in range conversion!",yy="not implemented",yB=e$,yA=ig,yD=e$,yC=ig,yE=[0,[0,[3,"    =====VM START====="]],[0,8,[0,3,0]]],yq=jy,yr=dz,ys=dz,yt=dz,yu=dz,yv=jy,yw="axis reshape not supported atm!!",yx="nested axis operations not allowed!!",yo=e$,yp=[0,[11,"shouldn't fail here but got ",[2,0,[11,"!!",0]]],"shouldn't fail here but got %s!!"],y3=[0,1,0],y2=e,y4=[0,12,0],y0=[0,[11,"\nexec ",[8,[0,0,0],0,0,[11," secs\n",0]]],"\nexec %f secs\n"],yY=[0,[12,32,[2,0,0]]," %s"],yZ=[0,[12,32,[2,0,[12,10,0]]]," %s\n"],yW="Unhandled binary op",yU=cH,yV=cH,yT=[0,[11,ko,[2,0,[11,fB,[2,0,[12,32,0]]]]],jX],yR=cH,yS=cH,yQ=[0,[11,ko,[2,0,[11,fB,[2,0,[12,32,0]]]]],jX],yP=[0,[11,"Unable to print kernel using ",[2,0,[12,32,0]]],"Unable to print kernel using %s "],yN="\r    ",yM=[0,[11," |",[8,[0,2,0],[0,1,7],[0,2],[12,kd,0]]]," |% 7.2f|"],yL="    \n",yO=[0,[2,0,[12,10,0]],jd],yK=cH,yJ=[0,[11,"Expected index, found ",[2,0,0]],"Expected index, found %s"],yI=[0,[4,0,0,0,[11," -> ",[2,0,[12,10,0]]]],"%d -> %s\n"],yH=[0,[11,jg,0],jg],y7=[0,[11,"Error: l:",[4,0,0,0,[11," c:",[4,0,0,0,[12,32,[2,0,0]]]]]],"Error: l:%d c:%d %s"],y6=[0,[11,"Parse Error: ",[2,0,[12,10,0]]],"Parse Error: %s\n"],y5=[0,[11,"Error: ",[2,0,[12,10,0]]],"Error: %s\n"],y8="Jsoo_runtime.Error.Exn",y9=fA,zd="Js_of_ocaml__Dom_html.Canvas_not_available",zk="green",zl="red",zm="blue",zn="Point,Line,Plane",zo="gray",zp="purple",zh="Not a canvas",zi="#4CAF50",zr=[0,[8,[0,0,0],0,[0,2],0],"%.2f"],zq=[0,[11,"paste error - ",[2,0,[11,"!!!",0]]],"paste error - %s!!!"],lw=2147483647;function
+lI=km,lJ=jA,lR="List.drop",lQ="List.nth",l6="Array.fill",l5="Array.init_matrix",l4="Array.make_matrix",l3="Array.init",md=[0,0,0,0],l$=dx,ma=dx,mb=dx,mc=dx,mf="Buffer.sub",mj="first domain already spawned",oK=aT(0,0,0),oV="Hashtbl: unsupported hash table format",oU=[0,0],oQ=e,pc=[4,0,3],pd=bo,o$=e,o9=e,o7="\n",o3=e,o4=e,o5=e,o6=e,o2=[0,e],oY=e,oZ=e,o0=e,o1=e,oW="Stdlib.Format.String_tag",pm=ky,po=iJ,pp=im,pq=bB,pr=ik,ps=i3,pt=jT,pu=jR,pv=dK,pw=kv,px=kq,py=jB,pz=cI,pA=i6,pB=dE,pC=iA,pD=iM,pE=i0,pF=kH,pG=iv,pH=b5,pI=jj,pJ=iG,pK=kB,pL=kz,pM=kG,pN=dy,pO=fb,pP=iH,pQ=iq,pR=jq,pS=jM,pT=kp,pU=is,pV=fm,pW=iT,pX=ip,pY=i4,pZ=jY,p0=iU,p1=ja,p2=iL,p3=iP,p4=kn,p5=j$,p6=j2,p7=j_,p8=ke,p9=jK,p_=i7,p$=kj,qa=jE,qb=kA,qc=iY,qd=iu,qe=je,qf=ii,qg=j9,qh=ie,qi=jL,qj=iw,qk=jZ,ql=jG,qm=i$,qn=i9,qo=js,qp=ki,qq=kh,qr=[0,[11,"EUNKNOWNERR ",[4,0,0,0,0]],"EUNKNOWNERR %d"],pn=[0,[11,"Unix.Unix_error(Unix.",[2,0,[11,cE,[3,0,[11,cE,[3,0,[12,41,0]]]]]]],"Unix.Unix_error(Unix.%s, %S, %S)"],pi=ft,pj=e,pk=e,pl=ft,qs="Tokens.TArrow",qt="Tokens.TRange",qu="Tokens.TComma",qv="Tokens.TQuote",qw="Tokens.TLeftParen",qx="Tokens.TRightParen",qy="Tokens.TLeftBracket",qz="Tokens.TRightBracket",qA="Tokens.TLeftAngle",qB="Tokens.TRightAngle",qC="Tokens.TUnderscore",qD="Tokens.TCaret",qE="Tokens.TAt",qF="Tokens.TPipe",qG="Tokens.TColon",qH="Tokens.KFor",qI="Tokens.KDecl",qJ="Tokens.KEq",qK="Tokens.KGreater",qL="Tokens.KLess",qM="Tokens.KPlus",qN="Tokens.KMult",qO="Tokens.KBlockStart",qP="Tokens.KBlockEnd",qQ="Tokens.KAddAssign",qR=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Tokens.TNumeral",[17,[0,b,1,0],0]]]],"(@[<2>Tokens.TNumeral@ "],qS=[0,[4,0,0,0,0],z],qT=[0,[17,0,[12,41,0]],v],qU=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Tokens.TFloat",[17,[0,b,1,0],0]]]],"(@[<2>Tokens.TFloat@ "],qV=[0,[8,[0,0,5],0,0,0],aW],qW=[0,[17,0,[12,41,0]],v],qX=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Tokens.TAlphaNum",[17,[0,b,1,0],0]]]],"(@[<2>Tokens.TAlphaNum@ "],qY=[0,[3,0,0],cK],qZ=[0,[17,0,[12,41,0]],v],q0=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Tokens.KIdent",[17,[0,b,1,0],0]]]],"(@[<2>Tokens.KIdent@ "],q1=[0,[3,0,0],cK],q2=[0,[17,0,[12,41,0]],v],q3=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Tokens.KNum",[17,[0,b,1,0],0]]]],"(@[<2>Tokens.KNum@ "],q4=[0,[4,0,0,0,0],z],q5=[0,[17,0,[12,41,0]],v],q6=[0,[15,0],fa],rl="bad unary operation on token",rm=[0,[11,j1,0],j1],rn=[0,[11,iV,0],iV],rk=[0,[11,"unexpected token ",[0,0]],"unexpected token %c"],q7=[0,[18,[1,[0,[11,a,0],a]],[11,fv,0]],e_],q8="Lexer.tokn",q9=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],q_=[0,[17,0,0],ad],q$=[0,[12,59,[17,[0,b,1,0],0]],C],ra=jl,rb=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],rc=[0,[4,0,0,0,0],z],rd=[0,[17,0,0],ad],re=[0,[12,59,[17,[0,b,1,0],0]],C],rf="colm",rg=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],rh=[0,[4,0,0,0,0],z],ri=[0,[17,0,0],ad],rj=[0,[17,[0,b,1,0],[12,b$,[17,0,0]]],fs],rA=[0,aE,437,17],rz=[0,aE,346,17],ry=[0,aE,329,17],rx=[0,aE,235,17],rw=[0,aE,219,17],rv=[0,aE,160,17],ru=[0,aE,155,17],rt=[0,aE,148,17],rs=[0,aE,136,17],rr=[0,aE,111,17],rq=[0,aE,106,17],rp=[0,aE,jO,17],wT=[1,"Expected optional motion with cell spec but no tokens left"],wV=[1,kc],wU=[1,"Bad token"],wW=[1,"Missing einsum parameters"],xd=[0,[11,"Unclosed einsum formulae: ",[2,0,0]],"Unclosed einsum formulae: %s"],xc=[0,[11,"expected einsum expression at ",[2,0,0]],"expected einsum expression at %s"],w_=[0,[11,"Input indices invalid - please use at least one ascii chars at ",[2,0,0]],"Input indices invalid - please use at least one ascii chars at %s"],w$=[0,[11,"Unfinished einsum expression at ",[2,0,0]],"Unfinished einsum expression at %s"],xa=[1,"Unexpected einsum result"],w5=[1,"missing plot parameters!"],w6=[0,iQ,1.],w7=[1,"axis description missing"],w8=[1,"missing axis argument!"],w0=[1,"missing cell argument"],w1=[1,"expected write cell argument in angle brackets"],w2=[1,"missing slice parameters!"],w3=[1,"reshape value should be in shape format"],w4=[1,"missing reshape values!"],wZ=[0,[11,"Unknown mask function: ",[2,0,0]],"Unknown mask function: %s"],w9=[1,"expected mask function"],wX=[1,"expected number"],wY=[1,"expected number token"],wR=[4,0],wQ=[1,kc],wP=[1,"Unhandled reference"],wS=[1,"Unfinished reference"],wK=[1,aC],wL=[1,fp],wM=[1,bC],wN=[1,aC],wF=[1,aC],wG=[1,fp],wH=[1,bC],wI=[1,aC],wB=[1,aC],wC=[1,fp],wD=[1,bC],wE=[1,aC],wx=[0,[11,b7,[2,0,0]],b9],wy=[1,bG],wv=[1,aC],ww=[1,fi],wu=[1,dD],wz=[1,bC],wA=[1,aC],wq=[0,[11,jU,[2,0,0]],iN],wr=[1,bG],wo=[0,[11,jU,[2,0,0]],iN],wp=[1,fi],wn=[1,dD],ws=[1,bC],wt=[1,aC],wj=[0,[11,b7,[2,0,0]],b9],wk=[1,bG],wh=[1,aC],wi=[1,fi],wg=[1,dD],wl=[1,bC],wm=[1,aC],wc=[0,[11,b7,[2,0,0]],b9],wd=[1,bG],wa=[0,[11,b7,[2,0,0]],b9],wb=[1,bG],v$=[0,[11,iE,[2,0,0]],it],v9=[0,[11,b7,[2,0,0]],b9],v_=[1,bG],v7=[0,[11,b7,[2,0,0]],b9],v8=[1,bG],v6=[0,[11,iE,[2,0,0]],it],v5=[1,dD],we=[1,bC],wf=[1,aC],v4=[1,"Expected angle variable!"],v3=[1,"unrecognized plot"],v0=[1,"only numerals allowed in shape"],vZ=[1,fc],v1=[1,fo],vY=[1,jk],v2=[1,kl],vW=[1,fo],vV=[1,fo],vX=[1,kl],vQ=[1,0,0,0],vS=[1,0,0,0],vR=[1,0,0,0],vP=[1,"bad slice arg"],vT=[1,"bad slice structure termination"],vO=[1,"bad slice value "],vU=[1,"slice indexes can only be integer number (including negative)"],vM="invalid token in compass",vK=[1,kf],vL=[1,"Unclosed range"],vG=[0,[11,"Unexpected token in stack: ",[2,0,[12,33,0]]],"Unexpected token in stack: %s!"],vI=[1,"Missing value between commas!"],vH=[1,"Unexpected token in static array - only floats supported"],vJ=[1,"Unexpected close - need static array"],vE=[0,[11,"Invalid row value - should be a number: ",[2,0,0]],"Invalid row value - should be a number: %s"],vF=[1,"Row index not found??"],vD=[1,"missing opening enclose token"],vB=[0,[11,"Expected consume ",[2,0,[11," found ",[2,0,0]]]],"Expected consume %s found %s"],vC=[1,"failed consumption check"],vq=cc,vr=bF,vs=b_,vj=cc,vk=bF,vl=b_,vg=[0,[18,[1,[0,[11,a,0],a]],[11,fv,0]],e_],vh="Parser.curr",vi=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],vm=[0,[17,0,0],ad],vn=[0,[12,59,[17,[0,b,1,0],0]],C],vo="prev",vp=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],vt=[0,[17,0,0],ad],vu=[0,[12,59,[17,[0,b,1,0],0]],C],vv="prog",vw=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],vx=[0,[17,0,0],ad],vy=[0,[17,[0,b,1,0],[12,b$,[17,0,0]]],fs],vz=[0,[15,0],fa],rN=[0,[12,59,[17,[0,b,1,0],0]],C],rM=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],rO=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],rF=[0,[12,40,[18,[1,[0,0,e]],0]],cJ],rG=[0,[1,0],"%C"],rH=[0,[12,44,[17,[0,b,1,0],0]],ac],rI=[0,[4,0,0,0,0],z],rJ=[0,[17,0,[12,41,0]],v],rE=[0,[12,59,[17,[0,b,1,0],0]],C],rD=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],rK=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],rC=[0,[12,40,[18,[1,[0,0,e]],0]],cJ],rL=[0,[12,44,[17,[0,b,1,0],0]],ac],rP=[0,[17,0,[12,41,0]],v],rB=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Shape",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Shape@ "],rQ=[0,[17,0,[12,41,0]],v],rR="Parser.Self",sE=[0,[12,59,[17,[0,b,1,0],0]],C],sF=[0,[4,0,0,0,0],z],sD=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],sG=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],sz=[0,[12,59,[17,[0,b,1,0],0]],C],sA=[0,[8,[0,0,5],0,0,0],aW],sy=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],sB=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],st=[0,[12,59,[17,[0,b,1,0],0]],C],su=[0,[4,0,0,0,0],z],ss=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],sv=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],sl=[0,[12,59,[17,[0,b,1,0],0]],C],sm=[0,[4,0,0,0,0],z],sk=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],sn=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],sb=[0,[12,59,[17,[0,b,1,0],0]],C],sc=[0,[4,0,0,0,0],z],sa=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],sd=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],r5=[0,[12,59,[17,[0,b,1,0],0]],C],r6=[0,[4,0,0,0,0],z],r4=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],r7=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],rZ=[0,[12,59,[17,[0,b,1,0],0]],C],r0=[0,[4,0,0,0,0],z],rY=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],r1=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],rS=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Diag (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Diag (@,"],rT=[0,[8,[0,0,5],0,0,0],aW],rU=[0,[12,44,[17,[0,b,1,0],0]],ac],rV=[0,[4,0,0,0,0],z],rW=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],rX=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Zeros",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Zeros@ "],r2=[0,[17,0,[12,41,0]],v],r3=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Ones",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Ones@ "],r8=[0,[17,0,[12,41,0]],v],r9=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Fill (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Fill (@,"],r_=[0,[8,[0,0,5],0,0,0],aW],r$=[0,[12,44,[17,[0,b,1,0],0]],ac],se=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],sf=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Enum (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Enum (@,"],sg=[0,[8,[0,0,5],0,0,0],aW],sh=[0,[12,44,[17,[0,b,1,0],0]],ac],si=[0,[8,[0,0,5],0,0,0],aW],sj=[0,[12,44,[17,[0,b,1,0],0]],ac],so=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],sp=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Rand (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Rand (@,"],sq=[0,[8,[0,0,5],0,0,0],aW],sr=[0,[12,44,[17,[0,b,1,0],0]],ac],sw=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],sx=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Alt (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Alt (@,"],sC=[0,[12,44,[17,[0,b,1,0],0]],ac],sH=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],s4=cc,s5=[0,[4,0,0,0,0],z],s6=bF,s7=b_,sW=cc,sX=[0,[4,0,0,0,0],z],sY=bF,sZ=b_,sO=cc,sP=[0,[4,0,0,0,0],z],sQ=bF,sR=b_,sI=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Along",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Along@ "],sJ=[0,[4,0,0,0,0],z],sK=[0,[17,0,[12,41,0]],v],sL=[0,[18,[1,[0,[11,a,0],a]],[11,"Parser.Select {",[17,[0,n,0,0],0]]],"@[<2>Parser.Select {@,"],sM="start",sN=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],sS=[0,[17,0,0],ad],sT=[0,[12,59,[17,[0,b,1,0],0]],C],sU="len",sV=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],s0=[0,[17,0,0],ad],s1=[0,[12,59,[17,[0,b,1,0],0]],C],s2="skip",s3=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],s8=[0,[17,0,0],ad],s9=[0,[17,0,[12,b$,0]],fq],s_="Parser.Line",s$="Parser.Bar",ta="Parser.Hist",tb="Parser.Pie",tc=[0,[18,[1,[0,[11,a,0],a]],[11,"Parser.Scatter {",[17,[0,n,0,0],0]]],"@[<2>Parser.Scatter {@,"],td="xidx",te=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],tf=[0,[4,0,0,0,0],z],tg=[0,[17,0,0],ad],th=[0,[12,59,[17,[0,b,1,0],0]],C],ti="yidx",tj=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],tk=[0,[4,0,0,0,0],z],tl=[0,[17,0,0],ad],tm=[0,[17,0,[12,b$,0]],fq],tP=[0,[12,59,[17,[0,b,1,0],0]],C],tO=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],tQ=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],tK=[0,[12,59,[17,[0,b,1,0],0]],C],tJ=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],tL=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],tA=[0,[12,59,[17,[0,b,1,0],0]],C],tB=[0,[4,0,0,0,0],z],tz=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],tC=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],tn="Parser.ZScore",to="Parser.Mean",tp="Parser.Mode",tq="Parser.Sum",tr="Parser.Cumsum",ts="Parser.Stddev",tt=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.MinMax (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.MinMax (@,"],tu=[0,[8,[0,0,5],0,0,0],aW],tv=[0,[12,44,[17,[0,b,1,0],0]],ac],tw=[0,[8,[0,0,5],0,0,0],aW],tx=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],ty=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Reshape",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Reshape@ "],tD=[0,[17,0,[12,41,0]],v],tE=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Write",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Write@ "],tF=[0,[17,0,[12,41,0]],v],tG=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Axis (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Axis (@,"],tH=[0,[4,0,0,0,0],z],tI=[0,[12,44,[17,[0,b,1,0],0]],ac],tM=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],tN=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Slice",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Slice@ "],tR=[0,[17,0,[12,41,0]],v],tS=[0,[18,[1,[0,[11,a,0],a]],[11,"Parser.Plot {",[17,[0,n,0,0],0]]],"@[<2>Parser.Plot {@,"],tT="oftype",tU=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],tV=[0,[17,0,0],ad],tW=[0,[12,59,[17,[0,b,1,0],0]],C],tX="title",tY=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],tZ=[0,[3,0,0],cK],t0=[0,[17,0,0],ad],t1=[0,[17,0,[12,b$,0]],fq],t2=[0,[12,40,[18,[1,[0,0,e]],0]],cJ],t3=[0,[3,0,0],cK],t4=[0,[12,44,[17,[0,b,1,0],0]],ac],t5=[0,[4,0,0,0,0],z],t6=[0,[17,0,[12,41,0]],v],t7=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.North",[17,[0,b,1,0],0]]]],"(@[<2>Parser.North@ "],t8=[0,[4,0,0,0,0],z],t9=[0,[17,0,[12,41,0]],v],t_=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.South",[17,[0,b,1,0],0]]]],"(@[<2>Parser.South@ "],t$=[0,[4,0,0,0,0],z],ua=[0,[17,0,[12,41,0]],v],ub=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.East",[17,[0,b,1,0],0]]]],"(@[<2>Parser.East@ "],uc=[0,[4,0,0,0,0],z],ud=[0,[17,0,[12,41,0]],v],ue=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.West",[17,[0,b,1,0],0]]]],"(@[<2>Parser.West@ "],uf=[0,[4,0,0,0,0],z],ug=[0,[17,0,[12,41,0]],v],uo=[0,[12,59,[17,[0,b,1,0],0]],C],un=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],up=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],uj=[0,[12,59,[17,[0,b,1,0],0]],C],ui=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],uk=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],uh=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Itemize",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Itemize@ "],ul=[0,[17,0,[12,41,0]],v],um=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Collect",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Collect@ "],uq=[0,[17,0,[12,41,0]],v],uK=[0,[12,59,[17,[0,b,1,0],0]],C],uJ=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],uL=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],uy=[0,[8,[0,0,5],0,0,0],aW],ur="Parser.Void",us=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Range (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Range (@,"],ut=[0,[12,44,[17,[0,b,1,0],0]],ac],uu=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],uv=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Scalar",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Scalar@ "],uw=[0,[17,0,[12,41,0]],v],ux=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.NdArray",[17,[0,b,1,0],0]]]],"(@[<2>Parser.NdArray@ "],uz=[0,[17,0,[12,41,0]],v],uA=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Relative (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Relative (@,"],uB=[0,[12,44,[17,[0,b,1,0],0]],ac],uC=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],uD=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Refer",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Refer@ "],uE=[0,[17,0,[12,41,0]],v],uF=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Create",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Create@ "],uG=[0,[17,0,[12,41,0]],v],uH=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Mask (",[17,[0,n,0,0],0]]]],"(@[<2>Parser.Mask (@,"],uI=[0,[12,44,[17,[0,b,1,0],0]],ac],uM=[0,[17,[0,n,0,0],[11,aY,[17,0,0]]],aZ],uO=[0,[12,59,[17,[0,b,1,0],0]],C],uN=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],uP=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],u0=cc,u1=bF,u2=b_,uU=[0,[12,59,[17,[0,b,1,0],0]],C],uT=[0,[18,[1,[0,[11,a,0],a]],[12,91,0]],Z],uV=[0,[17,[0,n,0,0],[12,93,[17,0,0]]],_],uQ=[0,[18,[1,[0,[11,a,0],a]],[11,fv,0]],e_],uR="Parser.inp",uS=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],uW=[0,[17,0,0],ad],uX=[0,[12,59,[17,[0,b,1,0],0]],C],uY="out",uZ=[0,[18,[1,[0,0,e]],[2,0,[11,ak,[17,[0,b,1,0],0]]]],al],u3=[0,[17,0,0],ad],u4=[0,[17,[0,b,1,0],[12,b$,[17,0,0]]],fs],u6=[0,[12,40,[18,[1,[0,0,e]],0]],cJ],u7=[0,[12,44,[17,[0,b,1,0],0]],ac],u8=[0,[17,0,[12,41,0]],v],u5=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Ein",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Ein@ "],u9=[0,[17,0,[12,41,0]],v],u$=[0,[12,40,[18,[1,[0,0,e]],0]],cJ],va=[0,[12,44,[17,[0,b,1,0],0]],ac],vb=[0,[17,0,[12,41,0]],v],u_=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Block",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Block@ "],vc=[0,[17,0,[12,41,0]],v],vd=[0,[12,40,[18,[1,[0,[11,a,0],a]],[11,"Parser.Stmt",[17,[0,b,1,0],0]]]],"(@[<2>Parser.Stmt@ "],ve=[0,[17,0,[12,41,0]],v],xv=[0,[11,"Invalid greater operands: ",[2,0,[11," > ",[2,0,0]]]],"Invalid greater operands: %s > %s"],xu=[0,[11,"Invalid less operands: ",[2,0,[11," < ",[2,0,0]]]],"Invalid less operands: %s < %s"],xt="invalid boolean not operand",xs="Invalid mul operands",xr="Expected bool operand!",xq=[0,[11,"Invalid equality operands: ",[2,0,[11," = ",[2,0,0]]]],"Invalid equality operands: %s = %s"],xp=[0,[11,"Invalid add operands: ",[2,0,[11," + ",[2,0,0]]]],"Invalid add operands: %s + %s"],xk="nil",xl=[0,[11,"num: ",[8,[0,0,0],0,[0,2],0]],"num: %.2f"],xm=[0,[11,"idx: ",[4,0,0,0,0]],"idx: %d"],xn=[0,[11,"kern: ",[4,0,0,0,0]],"kern: %d"],xo=[0,[11,"addr: [ ",[2,0,[11," ]",0]]],"addr: [ %s ]"],xj=" x ",xe="bigarray ",xf="scalar ",xg="vector ",xh="matrix ",xi="batches ",xC=[0,10,0],xB=[0,9,0],xA=[0,11,[0,3,0]],xz=[0,3,0],xw=[0,[1,1]],xx=[1,6],xy=[0,[1,0]],xF=[0,"lib/ndmodel.ml",132,12],xE=[0,[11,"grid: ",[4,0,0,0,[12,45,[4,0,0,0,[12,10,0]]]]],"grid: %d-%d\n"],x$=[0,[11,j3,[2,0,[11,jP,[2,0,[12,33,0]]]]],i_],x9=[0,0],x_=[0,0],x8=[1,"unimplemented shape calculation!"],yg=[0,0,0,0],yf="Unimplemented transform",ye=[0,[11,"Repetition of ",[0,[11," with unequal dimensions (",[4,0,0,0,[11," != ",[4,0,0,0,[11,") for params: ",[4,0,0,0,[11,fB,[4,0,0,0,zz]]]]]]]]]],"Repetition of %c with unequal dimensions (%d != %d) for params: %d and %d respectively"],yd=[0,[11,"Duplicated label ",[0,[11," in output",0]]],"Duplicated label %c in output"],yc=[0,[11,"Output ",[0,[11," not reflected in input",0]]],"Output %c not reflected in input"],ya=", and ",yb=[1,"Inputs don't correspond to parameters provided"],xX=[1,"index into slice exceeds dimension"],xY=[1,jn],xZ=[1,"must be at least 1 length selection or step!"],x0=[1,"selection or length into slice exceeds dimension"],x1=[1,fl],x2=[1,jn],x3=[1,fl],x4=[1,"selection into slice exceeds dimension"],x5=[1,"selection skip over slice exceeds dimension"],x6=[1,fl],x7=[1,"unhandled selection format!"],xU=[0,[11,j3,[2,0,[11,jP,[2,0,[12,33,0]]]]],i_],xT=[1,"reshape across multiple dimensions not supported"],xN=[0,0],xO=[0,0],xP=[0,0],xQ=[0,0],xR=[1,"reshape not currently supported within axis"],xS=[1,"axis mask cannot be nested in another axis mask due to ambiguity!"],xV=[1,"missing axis dimension index!"],xW=[0,[11,"slice parameters do not correspond to input (slice: ",[4,0,0,0,[11," != inp: ",[4,0,0,0,[11,")!",0]]]]],"slice parameters do not correspond to input (slice: %d != inp: %d)!"],xL=[1,"Unhandled shape"],xM=[1,"scatter axis exceeds data bounds"],xJ=[0,1,0],xK=[0,[11,"dimension subscript requests ",[4,0,0,0,[11," dimensions but argument ",[4,0,0,0,[11," has ",[4,0,0,0,0]]]]]],"dimension subscript requests %d dimensions but argument %d has %d"],xH=[1,"Not homogenous"],xG=[0,0,0],yl="%",ym="\xc2\xb0",yk=[0,[11,"pasting values to ",[4,0,0,0,[12,44,[4,0,0,0,[11," !\n",0]]]]],"pasting values to %d,%d !\n"],yn=[1,e],yi=e,yh=e,yz="Unreachable in range conversion!",yy="not implemented",yB=e$,yA=ig,yD=e$,yC=ig,yE=[0,[0,[3,"    =====VM START====="]],[0,8,[0,3,0]]],yq=jy,yr=dz,ys=dz,yt=dz,yu=dz,yv=jy,yw="axis reshape not supported atm!!",yx="nested axis operations not allowed!!",yo=e$,yp=[0,[11,"shouldn't fail here but got ",[2,0,[11,"!!",0]]],"shouldn't fail here but got %s!!"],y3=[0,1,0],y2=e,y4=[0,12,0],y0=[0,[11,"\nexec ",[8,[0,0,0],0,0,[11," secs\n",0]]],"\nexec %f secs\n"],yY=[0,[12,32,[2,0,0]]," %s"],yZ=[0,[12,32,[2,0,[12,10,0]]]," %s\n"],yW="Unhandled binary op",yU=cH,yV=cH,yT=[0,[11,ko,[2,0,[11,fB,[2,0,[12,32,0]]]]],jX],yR=cH,yS=cH,yQ=[0,[11,ko,[2,0,[11,fB,[2,0,[12,32,0]]]]],jX],yP=[0,[11,"Unable to print kernel using ",[2,0,[12,32,0]]],"Unable to print kernel using %s "],yN="\r    ",yM=[0,[11," |",[8,[0,2,0],[0,1,7],[0,2],[12,kd,0]]]," |% 7.2f|"],yL="    \n",yO=[0,[2,0,[12,10,0]],jd],yK=cH,yJ=[0,[11,"Expected index, found ",[2,0,0]],"Expected index, found %s"],yI=[0,[4,0,0,0,[11," -> ",[2,0,[12,10,0]]]],"%d -> %s\n"],yH=[0,[11,jg,0],jg],y7=[0,[11,"Error: l:",[4,0,0,0,[11," c:",[4,0,0,0,[12,32,[2,0,0]]]]]],"Error: l:%d c:%d %s"],y6=[0,[11,"Parse Error: ",[2,0,[12,10,0]]],"Parse Error: %s\n"],y5=[0,[11,"Error: ",[2,0,[12,10,0]]],"Error: %s\n"],y8="Jsoo_runtime.Error.Exn",y9=fA,zd="Js_of_ocaml__Dom_html.Canvas_not_available",zk="green",zl="red",zm="blue",zn="Point,Line,Plane",zo="gray",zp="purple",zh="Not a canvas",zi="#4CAF50",zr=[0,[8,[0,0,0],0,[0,2],0],"%.2f"],zq=[0,[11,"paste error - ",[2,0,[11,"!!!",0]]],"paste error - %s!!!"],lw=2147483647;function
 lA(a){return e+a}function
 lC(e){for(;;){var
-a=bJ(eb);let
+a=bI(eb);let
 c=[0,1],d=a;var
 b=1-dM(eb,a,function(a){if(dM(c,1,0))g(e,0);return g(d,0)});if(!b)return b}}function
 lG(a){return 0===a[0]?u(lH):a[1]}function
@@ -2123,7 +2123,7 @@ l1(a){return AR(0,a)}var
 l2=AQ;function
 l9(a,b){return 0===fH(a,b)?1:0}function
 l_(a){return fJ(10,b6,0,a)}var
-me=[E,"Stdlib.Queue.Empty",bL(0)],zx=[0,0];function
+me=[E,"Stdlib.Queue.Empty",bK(0)],zx=[0,0];function
 oJ(a){var
 j=AX(0),h=gM(0),d=j.length-1,c=P((d*8|0)+1|0),e=d-1|0,k=0;if(e>=0){var
 b=k;for(;;){zZ(c,b*8|0,cQ(i(j,b)[b+1]));var
@@ -2138,7 +2138,7 @@ gR=a1(f);if(gR!==ag)throw j(gR,0);var
 ez=oQ}}var
 zw=[0,gm(ez,82)],oR=a5(0,oJ);function
 eA(a,b){var
-d=a?a[1]:bJ(zw),c=16;for(;;){if(b>c&&ed>=(c*2|0)){c=c*2|0;continue}var
+d=a?a[1]:bI(zw),c=16;for(;;){if(b>c&&ed>=(c*2|0)){c=c*2|0;continue}var
 e=d?lb(cg(aM(oR)))&1073741823:0;return[0,0,q(c,0),e,c]}}function
 oS(a){var
 c=0<a[1]?1:0;if(!c)return c;a[1]=0;var
@@ -2196,7 +2196,7 @@ m=l}else
 var
 m=j;return m}},,,,oT]}function
 c$(a,b){return 4<=a.length-1?fJ(10,b6,a[3],b)&(a[2].length-2|0):u(oV)}var
-da=0,gS=-1,db=[E,oW,bL(0)];function
+da=0,gS=-1,db=[E,oW,bK(0)];function
 cv(a,b){a[13]=a[13]+b[3]|0;return gw(b,a[28])}var
 gT=1000000010;function
 eD(a,b){return y(a[17],b,0,k(b))}function
@@ -2211,13 +2211,13 @@ c=b[2],d=b[3];dd(a,b[1]);a[9]=a[9]-c|0;g(a[20],c);return dd(a,d)}function
 oX(a,b,c){if(typeof
 c==="number")switch(c){case
 0:var
-t=bS(a[3]);if(!t)return;var
+t=bR(a[3]);if(!t)return;var
 u=t[1][1],v=function(a,b){if(!b)return[0,a,0];var
 c=b[1],d=b[2];return Au(a,c)?[0,a,b]:[0,c,v(a,d)]};u[1]=v(a[6]-a[9]|0,u[1]);return;case
-1:bR(a[2]);return;case
-2:bR(a[3]);return;case
+1:bQ(a[2]);return;case
+2:bQ(a[3]);return;case
 3:var
-w=bS(a[2]);return w?by(a,gV,w[1][2]):dc(a);case
+w=bR(a[2]);return w?by(a,gV,w[1][2]):dc(a);case
 4:var
 x=a[10]!==(a[6]-a[9]|0)?1:0;if(!x)return x;var
 e=a[28],h=e[2];if(h){var
@@ -2228,19 +2228,19 @@ i=[0,o]}}else
 var
 i=0;if(!i)return;var
 s=i[1],M=s[1];a[12]=a[12]-s[3]|0;a[9]=a[9]+M|0;return;default:var
-z=bR(a[5]);if(z)return eD(a,g(a[25],z[1]));return}switch(c[0]){case
+z=bQ(a[5]);if(z)return eD(a,g(a[25],z[1]));return}switch(c[0]){case
 0:return gU(a,b,c[1]);case
 1:var
 N=c[3],O=c[2],P=c[1];a[9]=a[9]-b|0;y(a[17],P,O,N);a[11]=0;return;case
 2:var
-d=c[2],j=c[1],A=d[1],Q=d[2],B=bS(a[2]);if(!B)return;var
+d=c[2],j=c[1],A=d[1],Q=d[2],B=bR(a[2]);if(!B)return;var
 C=B[1],f=C[2];switch(C[1]){case
 3:return a[9]<(b+k(A)|0)?by(a,d,f):cw(a,j);case
 4:return a[11]?cw(a,j):a[9]<(b+k(A)|0)?by(a,d,f):((a[6]-f|0)+Q|0)<a[10]?by(a,d,f):cw(a,j);case
 0:case
 5:return cw(a,j);default:return by(a,d,f)}case
 3:var
-n=a[6]-a[9]|0,R=c[2],S=c[1],D=bS(a[3]);if(!D)return;var
+n=a[6]-a[9]|0,R=c[2],S=c[1],D=bR(a[3]);if(!D)return;var
 E=D[1][1],F=E[1];if(F){var
 l=E[1],T=F[1];for(;;){if(!l){var
 m=T;break}var
@@ -2251,7 +2251,7 @@ m=n;var
 H=m-n|0;return 0<=H?cw(a,[0,oZ,H+S|0,oY]):by(a,[0,o1,m+R|0,o0],a[6]);case
 4:var
 I=c[2],V=c[1];if(a[8]<(a[6]-a[9]|0)){var
-p=bS(a[2]);if(p){var
+p=bR(a[2]);if(p){var
 q=p[1],r=q[2],L=q[1];if(a[9]<r&&3>=L-1>>>0)by(a,gV,r)}else
 dc(a)}var
 W=a[9]-V|0,X=1===I?1:a[9]<b?I:5;return bx([0,X,W],a[2]);case
@@ -2268,13 +2268,13 @@ gX(a,b){cv(a,b);return gW(a)}function
 gY(a,b,c){return gX(a,[0,b,[0,c],b])}function
 eE(a){cs(a);return bx([0,-1,[0,gS,o2,0]],a)}function
 eF(a,b){var
-d=bS(a[1]);if(!d)return;var
+d=bR(a[1]);if(!d)return;var
 e=d[1],c=e[2],f=c[1];if(e[1]<a[12])return eE(a[1]);var
 g=c[2];if(typeof
 g!=="number")switch(g[0]){case
-4:if(1-b){c[1]=a[13]+f|0;bR(a[1])}return;case
+4:if(1-b){c[1]=a[13]+f|0;bQ(a[1])}return;case
 2:case
-3:if(b){c[1]=a[13]+f|0;bR(a[1])}return}}function
+3:if(b){c[1]=a[13]+f|0;bQ(a[1])}return}}function
 gZ(a,b,c){cv(a,c);if(b)eF(a,1);return bx([0,a[13],c],a[1])}function
 eG(a,b,c){a[14]=a[14]+1|0;if(a[14]<a[15])return gZ(a,0,[0,-a[13]|0,[4,b,c],0]);var
 d=a[14]===a[15]?1:0;if(!d)return d;var
@@ -2288,7 +2288,7 @@ g1(a,b){if(a[22]){bx(b,a[4]);g(a[26],b)}var
 c=a[23];return c?cv(a,[0,da,[6,b],0]):c}function
 g2(a,b){if(a[23])cv(a,[0,da,5,0]);var
 c=a[22];if(c){var
-d=bR(a[4]);if(d)return g(a[27],d[1]);var
+d=bQ(a[4]);if(d)return g(a[27],d[1]);var
 e=0}else
 var
 e=c;return e}function
@@ -2298,11 +2298,11 @@ d=c[2];g2(a,0);c=d}for(;;){if(1>=a[14])break;g0(a,0)}a[13]=gT;gW(a);if(b)dc(a);a
 bz(a,b,c){var
 d=a[14]<a[15]?1:0;return d?gY(a,b,c):d}function
 f(a,b){return bz(a,k(b),b)}function
-bV(a,b){return bz(a,1,co(1,b))}function
+bU(a,b){return bz(a,1,co(1,b))}function
 a9(a,b){eH(a,0);return g(a[18],0)}function
 eI(a,b){return y(a[17],o7,0,1)}var
 g3=co(80,32);function
-bW(a,b){var
+bV(a,b){var
 c=b;for(;;){var
 d=0<c?1:0;if(!d)return d;if(80>=c)return y(a[17],g3,0,c);y(a[17],g3,0,80);c=c-80|0}}function
 o8(a){return a[1]===db?"<"+a[2]+kD:o9}function
@@ -2314,17 +2314,17 @@ g=[0,0,0,0],h=[0,gS,pc,0];gw(h,g);var
 f=cr(0);eE(f);bx([0,1,h],f);var
 i=78,j=cr(0),k=cr(0),l=cr(0);return[0,f,cr(0),l,k,j,i,10,68,i,0,1,1,1,1,lw,pd,a,b,c,d,e,0,0,o8,o_,pa,pb,g]}function
 g4(a,b){var
-c=eJ(a,b,function(a){return 0},function(a){return 0},function(a){return 0});c[19]=function(a){return eI(c,a)};c[20]=function(a){return bW(c,a)};c[21]=function(a){return bW(c,a)};return c}function
+c=eJ(a,b,function(a){return 0},function(a){return 0},function(a){return 0});c[19]=function(a){return eI(c,a)};c[20]=function(a){return bV(c,a)};c[21]=function(a){return bV(c,a)};return c}function
 g5(d){return g4(function(a,b,c){return f8(d,a,b,c)},function(a){return aU(d)})}function
 cx(d){return g4(function(a,b,c){return en(d,a,b,c)},function(a){return 0})}var
-bX=fg,ib=aA(bX),pe=g5(f7),pf=g5(au),pg=cx(ib),g6=a5(0,function(a){return aA(bX)});ct(g6,ib);ct(a5(0,function(a){return cx(aM(g6))}),pg);function
+bW=fg,ib=aA(bW),pe=g5(f7),pf=g5(au),pg=cx(ib),g6=a5(0,function(a){return aA(bW)});ct(g6,ib);ct(a5(0,function(a){return cx(aM(g6))}),pg);function
 g7(a,b,c,d){return en(aM(a),b,c,d)}function
 g8(a,b,c){var
 d=aM(b),e=d[2];f8(a,aL(d),0,e);aU(a);return gx(d)}var
-g9=a5(0,function(a){return aA(bX)}),g_=a5(0,function(a){return aA(bX)}),de=a5(0,function(a){var
-b=eJ(function(a,b,c){return g7(g9,a,b,c)},function(a){return g8(f7,g9,a)},function(a){return 0},function(a){return 0},function(a){return 0});b[19]=function(a){return eI(b,a)};b[20]=function(a){return bW(b,a)};b[21]=function(a){return bW(b,a)};gA(function(a){return a9(b,a)});return b});ct(de,pe);var
+g9=a5(0,function(a){return aA(bW)}),g_=a5(0,function(a){return aA(bW)}),de=a5(0,function(a){var
+b=eJ(function(a,b,c){return g7(g9,a,b,c)},function(a){return g8(f7,g9,a)},function(a){return 0},function(a){return 0},function(a){return 0});b[19]=function(a){return eI(b,a)};b[20]=function(a){return bV(b,a)};b[21]=function(a){return bV(b,a)};gA(function(a){return a9(b,a)});return b});ct(de,pe);var
 g$=a5(0,function(a){var
-b=eJ(function(a,b,c){return g7(g_,a,b,c)},function(a){return g8(au,g_,a)},function(a){return 0},function(a){return 0},function(a){return 0});b[19]=function(a){return eI(b,a)};b[20]=function(a){return bW(b,a)};b[21]=function(a){return bW(b,a)};gA(function(a){return a9(b,a)});return b});ct(g$,pf);function
+b=eJ(function(a,b,c){return g7(g_,a,b,c)},function(a){return g8(au,g_,a)},function(a){return 0},function(a){return 0},function(a){return 0});b[19]=function(a){return eI(b,a)};b[20]=function(a){return bV(b,a)};b[21]=function(a){return bV(b,a)};gA(function(a){return a9(b,a)});return b});ct(g$,pf);function
 ha(a,b){eH(b,0);var
 c=aL(a);a[2]=0;a[1]=[0,a[3],an(a[3])];return c}function
 hb(a){return a9(aM(de),a)}function
@@ -2340,11 +2340,11 @@ b==="number")switch(b){case
 3:var
 d=a[14]<a[15]?1:0;return d?gX(a,[0,da,3,0]):d;case
 4:eH(a,1);return g(a[18],0);case
-5:return bV(a,64);default:return bV(a,37)}switch(b[0]){case
+5:return bU(a,64);default:return bU(a,37)}switch(b[0]){case
 0:var
 c=[0,o6,b[2],o5],e=a[14]<a[15]?1:0,j=[0,o4,b[3],o3],f=c[3],h=c[2],i=c[1];return e?gZ(a,1,[0,-a[13]|0,[2,c,j],(k(i)+h|0)+k(f)|0]):e;case
 1:return 0;default:var
-l=b[1];bV(a,64);return bV(a,l)}}function
+l=b[1];bU(a,64);return bU(a,l)}}function
 ai(a,b){if(typeof
 b==="number")return 0;a:{b:{c:{switch(b[0]){case
 0:var
@@ -2385,7 +2385,7 @@ w=b[2],v=h;break;case
 6:var
 D=b[2];ai(a,b[1]);return g(D,a);case
 7:ai(a,b[1]);return a9(a,0);default:var
-E=b[2];ai(a,b[1]);return u(E)}ai(a,v);return bV(a,w)}ai(a,x);return bz(a,y,co(1,z))}ai(a,p);return f(a,q)}ai(a,r);return bz(a,s,t)}function
+E=b[2];ai(a,b[1]);return u(E)}ai(a,v);return bU(a,w)}ai(a,x);return bz(a,y,co(1,z))}ai(a,p);return f(a,q)}ai(a,r);return bz(a,s,t)}function
 ar(a,b){if(typeof
 b==="number")return 0;a:{b:{c:{switch(b[0]){case
 0:var
@@ -2431,18 +2431,18 @@ o!=="number"&&1===o[0]){var
 G=b[2],H=o[2];ar(a,i[1]);return bz(a,H,g(G,0))}}var
 F=b[2];ar(a,i);return f(a,g(F,0));case
 7:ar(a,b[1]);return a9(a,0);default:var
-I=b[2];ar(a,b[1]);return u(I)}ar(a,x);return bV(a,y)}ar(a,z);return bz(a,A,co(1,B))}ar(a,r);return f(a,s)}ar(a,t);return bz(a,v,w)}function
+I=b[2];ar(a,b[1]);return u(I)}ar(a,x);return bU(a,y)}ar(a,z);return bz(a,A,co(1,B))}ar(a,r);return f(a,s)}ar(a,t);return bz(a,v,w)}function
 ph(d,b,c){return p(function(a){ai(b,a);return g(d,b)},0,c[1])}function
 d(c){function
 b(a){return 0}return function(a){return ph(b,c,a)}}function
 aN(a){return p(function(a){return ai(aM(de),a)},0,a[1])}function
 l(a){var
-d=a[1],c=aA(bX),b=cx(c);return p(function(a){ar(b,a);return ha(c,b)},0,d)}function
+d=a[1],c=aA(bW),b=cx(c);return p(function(a){ar(b,a);return ha(c,b)},0,d)}function
 hd(a){var
-d=a[1],c=aA(bX),b=cx(c);return p(function(a){ai(b,a);return ha(c,b)},0,d)}lC(function(a){a9(aM(de),0);return a9(aM(g$),0)});if(bJ(zx))throw j([0,d$,mj],1);function
+d=a[1],c=aA(bW),b=cx(c);return p(function(a){ai(b,a);return ha(c,b)},0,d)}lC(function(a){a9(aM(de),0);return a9(aM(g$),0)});if(bI(zx))throw j([0,d$,mj],1);function
 he(a,b){var
 c=d3(b)===E?b:b[1];fX(a,c)}var
-hf=[E,pi,bL(0)];he(pl,[0,hf,0,pk,pj]);ew(function(a){if(a[1]!==hf)return 0;var
+hf=[E,pi,bK(0)];he(pl,[0,hf,0,pk,pj]);ew(function(a){if(a[1]!==hf)return 0;var
 c=a[2],e=a[4],f=a[3];if(typeof
 c==="number"){var
 d=c;if(34<=d)switch(d){case
@@ -2685,10 +2685,10 @@ hi(a,b){d(a)(q7);g(d(a)(q9),q8);var
 c=b[1];g(g(hh[1],a),c);d(a)(q_);d(a)(q$);g(d(a)(rb),ra);var
 e=b[2];g(d(a)(rc),e);d(a)(rd);d(a)(re);g(d(a)(rg),rf);var
 f=b[3];g(d(a)(rh),f);d(a)(ri);return d(a)(rj)}aI(hh,[0,hg]);function
-bY(a){var
+bX(a){var
 b=48<=a?1:0,c=b?a<=57?1:0:b;return c}function
 hj(a){var
-f=bY(a);if(f)return f;var
+f=bX(a);if(f)return f;var
 b=97<=a?1:0,c=b?a<=kk?1:0:b;if(c)var
 d=c;else
 var
@@ -2701,7 +2701,7 @@ i=a[3],d=a[2],e=a[1];if(96<=i){if(kd===i)return[0,[0,[0,13,e,d],b,c]]}else if(34
 10:return[0,[0,[0,2,e,d],b,c]];case
 11:if(c){var
 s=c[1];if(62===s)return[0,[0,[0,0,e,d],b+1|0,c[2]]];var
-R=c[2];if(bY(s)){var
+R=c[2];if(bX(s)){var
 t=hk([0,e,d+1|0,s],b,R);if(0!==t[0])return t;var
 v=t[1],F=v[3],G=v[2],o=v[1][1];if(typeof
 o!=="number")switch(o[0]){case
@@ -2717,7 +2717,7 @@ o!=="number")switch(o[0]){case
 60:return[0,[0,[0,11,e,d],b,c]];case
 61:return[0,[0,[0,10,e,d],b,c]]}var
 h=aA(8);bj(h,i);var
-j=[0,0];if(!bY(i)){if(!hj(i))return[1,[0,e,d,g(l(rk),i)]];var
+j=[0,0];if(!bX(i)){if(!hj(i))return[1,[0,e,d,g(l(rk),i)]];var
 D=function(a){var
 b=hj(a);if(b){j[1]++;bj(h,a)}return b};if(c){var
 w=c[1],J=c[2];if(D(w)){var
@@ -2728,12 +2728,12 @@ Q=aL(h),E=j[1];if(E<0)u(lR);var
 p=0,m=c;for(;;){if(m){var
 I=m[2];if(p<E){p=p+1|0;m=I;continue}}return[0,[0,[0,[2,Q],e,d],b+j[1]|0,m]]}}var
 f=c;for(;;){if(!f)break;var
-z=f[1],L=f[2],A=bY(z);if(A){j[1]++;bj(h,z)}if(!A)break;f=L}if(!f){var
+z=f[1],L=f[2],A=bX(z);if(A){j[1]++;bj(h,z)}if(!A)break;f=L}if(!f){var
 P=dY(aL(h));return[0,[0,[0,[0,P],e,d],b+j[1]|0,f]]}var
 B=f[1],M=f[2];if(46!==B){var
 O=dY(aL(h));return[0,[0,[0,[0,O],e,d],b+j[1]|0,f]]}bj(h,B);var
 k=M;for(;;){if(k){var
-H=k[1],S=k[2],C=bY(H);if(C){j[1]++;bj(h,H)}if(C){k=S;continue}}var
+H=k[1],S=k[2],C=bX(H);if(C){j[1]++;bj(h,H)}if(C){k=S;continue}}var
 N=k0(aL(h));return[0,[0,[0,[1,N],e,d],b+j[1]|0,k]]}}var
 s=[0,function(a,b){return[0,b]},function(a,b,c){a[1]=c;return 0},function(a,b){return a[1]},function(a,b){return h(a,[0,0],b[1])},function(a){return[0]},function(a,b,c,d){g(a,0);h(b,[0,0],d[1]);return g(c,0)},function(a,b,c,d,e){g(b,0);h(c,[0,0],e[1]);return g(d,0)},function(a,b){return[0,g(b,a)]}],a_=[0,function(a,b){if(0<a.length-1)return[0,q(a[1],b),a];throw j([0,r,rp],1)},function(a,b,c){if(0<b.length-1&&cp(function(a,b){return a<b?1:0},b,a[2])){a[1][b[1]+1]=c;return 0}throw j([0,r,rq],1)},function(a,b){if(0<b.length-1&&cp(function(a,b){return a<b?1:0},b,a[2]))return a[1][b[1]+1];throw j([0,r,rr],1)},function(a,b){var
 d=b[1],e=d.length-2|0,g=0;if(e>=0){var
@@ -2798,7 +2798,7 @@ dg(a,b){var
 c=i(b,2)[3],d=i(b,1)[2];return zS(a,i(b,0)[1],d,c)}function
 dh(a){var
 b=zQ(a),c=zP(a);return[0,zO(a),c,b]}var
-bZ=[0,function(a,b){if(2>=a.length-1)throw j([0,r,rx],1);var
+bY=[0,function(a,b){if(2>=a.length-1)throw j([0,r,rx],1);var
 c=i(a,2)[3],d=i(a,1)[2];return gL(1,gJ,i(a,0)[1],d,c)},function(a,b,c){var
 d=i(b,2)[3],e=i(b,1)[2];return kS(a,i(b,0)[1],e,d,c)},dg,function(m,b){var
 a=dh(b);function
@@ -2831,7 +2831,7 @@ k=m-1|0,t=0;if(k>=0){var
 e=t;for(;;){kS(l,c,d,e,g(b,[0,c,d,e]));var
 v=e+1|0;if(k===e)break;e=v}}var
 u=d+1|0;if(h===d)break;d=u}}var
-s=c+1|0;if(f===c)break;c=s}}return l}],b0=[0,function(a,b){if(1<=a.length-1)return dN(1,0,a);throw j([0,r,rz],1)},kT,dP,function(m,b){var
+s=c+1|0;if(f===c)break;c=s}}return l}],bZ=[0,function(a,b){if(1<=a.length-1)return dN(1,0,a);throw j([0,r,rz],1)},kT,dP,function(m,b){var
 a=c_(b);function
 f(a,b,c,d){if(d===c.length-1){var
 j=dP(a,b);return g(g(m,b),j)}var
@@ -3020,7 +3020,7 @@ b=a[2];return[0,Y(a[1]),b]}function
 dn(a){var
 b=0,f=cY(a);for(;;){var
 c=g(f,0);if(c){var
-j=c[2];if(!bY(c[1])){b=b+1|0;f=j;continue}var
+j=c[2];if(!bX(c[1])){b=b+1|0;f=j;continue}var
 d=[0,b]}else
 var
 d=0;if(!d)return vF;var
@@ -3091,7 +3091,7 @@ j=Y(f);return[0,[0,c(b),j]];case
 switch(d[0]){case
 0:g=b;f=[0,d[1],f];continue;case
 1:return v0}return vZ}}return vY}function
-b1(a){var
+b0(a){var
 b=a[1][1];if(!b)return v4;var
 d=b[1][1];return[0,[0,c(a),d]]}function
 wJ(a){var
@@ -3147,12 +3147,12 @@ M!=="number"&&2===M[0]){var
 b=M[1];if(b==="alt")return wJ(a);if(b!=="diag"){if(b==="enum"){var
 P=c(a),Q=P[1][1];if(!Q)return wf;var
 R=Q[1][1];if(typeof
-R==="number"&&8===R)return gf(b1(c(P)),function(a){var
+R==="number"&&8===R)return gf(b0(c(P)),function(a){var
 e=a[2],C=a[1];if(typeof
 e!=="number")switch(e[0]){case
 0:var
 D=e[1],r=m(C,2);if(0!==r[0])return r;var
-q=b1(r[1]);if(0!==q[0])return q;var
+q=b0(r[1]);if(0!==q[0])return q;var
 P=q[1],b=P[2],E=P[1];if(typeof
 b!=="number")switch(b[0]){case
 0:var
@@ -3174,7 +3174,7 @@ $=ax(k);return[1,g(l(v9),$)]}var
 V=ax(b);return[1,g(l(v6),V)];case
 1:var
 H=e[1],B=m(C,2);if(0!==B[0])return B;var
-A=b1(B[1]);if(0!==A[0])return A;var
+A=b0(B[1]);if(0!==A[0])return A;var
 U=A[1],d=U[2],I=U[1];if(typeof
 d!=="number")switch(d[0]){case
 0:var
@@ -3197,7 +3197,7 @@ aa=ax(d);return[1,g(l(v$),aa)]}return v5});return we}if(b!=="eye"){if(b==="fill"
 af=c(a),ag=af[1][1];if(!ag)return wA;var
 ah=ag[1][1];if(typeof
 ah==="number"&&8===ah){var
-H=b1(c(af));if(0!==H[0])return H;var
+H=b0(c(af));if(0!==H[0])return H;var
 aN=H[1],i=aN[2],ai=aN[1];if(typeof
 i!=="number")switch(i[0]){case
 0:var
@@ -3234,7 +3234,7 @@ aE=L[1],a5=aE[2],K=m(aE[1],9);return 0===K[0]?[0,[0,K[1],[5,[2,a5]]]]:K}return w
 S=c(a),T=S[1][1];if(!T)return wm;var
 U=T[1][1];if(typeof
 U==="number"&&8===U){var
-s=b1(c(S));if(0!==s[0])return s;var
+s=b0(c(S));if(0!==s[0])return s;var
 aI=s[1],f=aI[2],V=aI[1];if(typeof
 f!=="number")switch(f[0]){case
 0:var
@@ -3255,7 +3255,7 @@ aS=ax(o);return[1,g(l(wj),aS)]}return wg}return wl}}var
 Z=c(a),_=Z[1][1];if(!_)return wt;var
 $=_[1][1];if(typeof
 $==="number"&&8===$){var
-z=b1(c(Z));if(0!==z[0])return z;var
+z=b0(c(Z));if(0!==z[0])return z;var
 aJ=z[1],h=aJ[2],aa=aJ[1];if(typeof
 h!=="number")switch(h[0]){case
 0:var
@@ -3407,11 +3407,11 @@ O=hF(P[1]);if(0!==O[0]){var
 d=O;break a}var
 aC=O[1],j=aC[2],r=aC[1];if(typeof
 q==="number"){var
-d=b2;break a}switch(q[0]){case
+d=b1;break a}switch(q[0]){case
 0:var
 ar=q[1];if(typeof
 j==="number"){var
-d=b2;break a}switch(j[0]){case
+d=b1;break a}switch(j[0]){case
 0:var
 aR=j[1],K=m(r,9);if(0===K[0]){var
 d=[0,[0,K[1],[0,ar,aR]]];break a}var
@@ -3420,11 +3420,11 @@ d=K;break a;case
 aS=j[1],L=m(r,9);if(0===L[0]){var
 d=[0,[0,L[1],[0,ar,aS]]];break a}var
 d=L;break a;default:var
-d=b2;break a}case
+d=b1;break a}case
 1:var
 as=q[1];if(typeof
 j==="number"){var
-d=b2;break a}switch(j[0]){case
+d=b1;break a}switch(j[0]){case
 0:var
 aT=j[1],M=m(r,9);if(0===M[0]){var
 d=[0,[0,M[1],[0,as,aT]]];break a}var
@@ -3433,8 +3433,8 @@ d=M;break a;case
 aU=j[1],N=m(r,9);if(0===N[0]){var
 d=[0,[0,N[1],[0,as,aU]]];break a}var
 d=N;break a;default:var
-d=b2;break a}default:var
-d=b2;break a}}if(f==="mode"){var
+d=b1;break a}default:var
+d=b1;break a}}if(f==="mode"){var
 d=[0,[0,c(e),2]];break a}if(f==="plot"){var
 an=c(e);if(!x(8,an[1])){var
 d=w5;break a}var
@@ -3522,18 +3522,18 @@ e=a[1];return g(l(xn),e);case
 5:var
 f=hI(a[1]);return g(l(xo),f);default:var
 b=a[1];return hI(g(b[1][5],b[2]))}}function
-b3(a){a:{if(!a)return[6,[0,s,h(s[1],[0],0.)]];var
+b2(a){a:{if(!a)return[6,[0,s,h(s[1],[0],0.)]];var
 b=a;for(;;){if(!b)break;var
 i=1===b[1]?1:0,j=b[2];if(!i){var
 f=i;break a}b=j}var
 f=1}if(f)return[6,[0,s,h(s[1],[0],0.)]];var
 c=a[2],d=a[1];if(!c)return[6,[0,a_,h(a_[1],[0,d],0.)]];var
-e=c[2],g=c[1];if(!e)return[6,[0,a$,h(a$[1],[0,d,g],0.)]];if(!e[2])return[6,[0,bZ,h(bZ[1],[0,d,g,e[1]],0.)]];var
-k=a3(a);return[6,[0,b0,h(b0[1],k,0.)]]}function
+e=c[2],g=c[1];if(!e)return[6,[0,a$,h(a$[1],[0,d,g],0.)]];if(!e[2])return[6,[0,bY,h(bY[1],[0,d,g,e[1]],0.)]];var
+k=a3(a);return[6,[0,bZ,h(bZ[1],k,0.)]]}function
 bk(a,b){if(!a)return[6,[0,s,h(s[8],[0],b)]];var
 c=a[2],d=a[1];if(!c)return[6,[0,a_,h(a_[8],[0,d],b)]];var
-e=c[2],f=c[1];if(!e)return[6,[0,a$,h(a$[8],[0,d,f],b)]];if(!e[2])return[6,[0,bZ,h(bZ[8],[0,d,f,e[1]],b)]];var
-g=a3(a);return[6,[0,b0,h(b0[8],g,b)]]}function
+e=c[2],f=c[1];if(!e)return[6,[0,a$,h(a$[8],[0,d,f],b)]];if(!e[2])return[6,[0,bY,h(bY[8],[0,d,f,e[1]],b)]];var
+g=a3(a);return[6,[0,bZ,h(bZ[8],g,b)]]}function
 ba(a,b,c){var
 e=[0,0],f=a-1|0;if(f>=0){var
 d=f;for(;;){if(!e[1]){var
@@ -3600,7 +3600,7 @@ t=g(u,0);if(!t)return[6,[0,a$,q]];u=t[2]}}function
 c1(a){return a?a[4]:0}function
 aK(a,b,c){var
 d=a?a[4]:0,e=c?c[4]:0,f=e<=d?d+1|0:e+1|0;return[0,a,b,c,f]}function
-bP(a,b,c){var
+bO(a,b,c){var
 f=a?a[4]:0,g=c?c[4]:0;if((g+2|0)<f){if(!a)return u(ma);var
 d=a[3],j=a[2],h=a[1],l=c1(d);if(l<=c1(h))return aK(h,j,aK(d,b,c));if(!d)return u(l$);var
 m=d[2],n=d[1],o=aK(d[3],b,c);return aK(aK(h,j,n),m,o)}if((f+2|0)>=g){var
@@ -3609,27 +3609,27 @@ i=c[3],k=c[2],e=c[1],p=c1(e);if(p<=c1(i))return aK(aK(a,b,e),k,i);if(!e)return u
 q=e[2],r=e[1],s=aK(e[3],k,i);return aK(aK(a,b,r),q,s)}function
 bi(a,b){if(!b)return[0,0,a,0,1];var
 c=b[3],d=b[2],e=b[1],h=a-d|0;if(0===h)return b;if(0<=h){var
-f=bi(a,c);return c===f?b:bP(e,d,f)}var
-g=bi(a,e);return e===g?b:bP(g,d,c)}function
+f=bi(a,c);return c===f?b:bO(e,d,f)}var
+g=bi(a,e);return e===g?b:bO(g,d,c)}function
 gt(a){return[0,0,a,0,1]}function
 gu(a,b){if(!b)return gt(a);var
-c=b[3],d=b[2];return bP(gu(a,b[1]),d,c)}function
+c=b[3],d=b[2];return bO(gu(a,b[1]),d,c)}function
 gv(a,b){if(!b)return gt(a);var
-c=b[2],d=b[1];return bP(d,c,gv(a,b[3]))}function
-bQ(a,b,c){if(!a)return gu(b,c);if(!c)return gv(b,a);var
-d=c[4],e=a[4],f=c[3],g=c[2],h=c[1],i=a[3],j=a[2],k=a[1];return(d+2|0)<e?bP(k,j,bQ(i,b,c)):(e+2|0)<d?bP(bQ(a,b,h),g,f):aK(a,b,c)}function
+c=b[2],d=b[1];return bO(d,c,gv(a,b[3]))}function
+bP(a,b,c){if(!a)return gu(b,c);if(!c)return gv(b,a);var
+d=c[4],e=a[4],f=c[3],g=c[2],h=c[1],i=a[3],j=a[2],k=a[1];return(d+2|0)<e?bO(k,j,bP(i,b,c)):(e+2|0)<d?bO(bP(a,b,h),g,f):aK(a,b,c)}function
 c2(a,b){if(!b)return md;var
 c=b[3],d=b[2],e=b[1],f=a-d|0;if(0===f)return[0,e,,c];if(0<=f){var
-g=c2(a,c),i=g[3];return[0,bQ(e,d,g[1]),,i]}var
-h=c2(a,e),j=h[1];return[0,j,,bQ(h[3],d,c)]}var
+g=c2(a,c),i=g[3];return[0,bP(e,d,g[1]),,i]}var
+h=c2(a,e),j=h[1];return[0,j,,bP(h[3],d,c)]}var
 c3=0;function
 el(a,b){var
 c=b;for(;;){if(!c)return 0;var
 e=a-c[2]|0,d=0===e?1:0,f=c[3],g=c[1];if(d)return d;c=0<=e?f:g}}function
 cq(a,b){if(!a)return b;if(!b)return a;var
 e=b[4],c=b[2],f=a[4],d=a[2],i=b[3],j=b[1],k=a[3],l=a[1];if(e<=f){if(1===e)return bi(c,a);var
-g=c2(d,b),m=g[1],n=cq(k,g[3]);return bQ(cq(l,m),d,n)}if(1===f)return bi(d,b);var
-h=c2(c,a),o=h[1],p=cq(h[3],i);return bQ(cq(o,j),c,p)}function
+g=c2(d,b),m=g[1],n=cq(k,g[3]);return bP(cq(l,m),d,n)}if(1===f)return bi(d,b);var
+h=c2(c,a),o=h[1],p=cq(h[3],i);return bP(cq(o,j),c,p)}function
 hP(a,b){function
 H(a,b,c){if(typeof
 a==="number")switch(a){case
@@ -3653,8 +3653,8 @@ x=k[1],y=H(W,x,c+1|0);if(0===y[0]){var
 E=y[1],I=dq(E);if(I===dq(x)||1===I){o=v;k=[0,E]}else{var
 U=cA(E),V=cA(x);o=v;k=[1,h(l(xU),V,U)]}}else{o=v;k=y}}else
 o=v}if(0!==k[0])return k;var
-F=k[1];if(!F)return[0,gh(function(a){return 0<a?1:0},bO(function(a,b){return a===s?-1:b},b))];if(F[2])return xT;var
-T=F[1];return[0,bO(function(a,b){return a===s?T:b},b)];case
+F=k[1];if(!F)return[0,gh(function(a){return 0<a?1:0},bN(function(a,b){return a===s?-1:b},b))];if(F[2])return xT;var
+T=F[1];return[0,bN(function(a,b){return a===s?T:b},b)];case
 4:var
 J=a[1],K=av(J),L=av(b);if(K!==L)return[1,h(l(xW),K,L)];var
 d=0,g=J,f=b;for(;;){if(g&&f){var
@@ -3757,9 +3757,9 @@ h2(a,b){return[0,b[4],[0,b[1],b[2],[0,a,b[3]],b[4]+1|0,b[5],b[6],b[7],b[8],b[9],
 eZ(a,b,c,d,e,f){var
 n=hP(a,b);if(0!==n[0]){var
 A=n[1];return o(g(l(yp),A))}var
-p=b3(n[1]);if(typeof
+p=b2(n[1]);if(typeof
 p!=="number"&&6===p[0]){var
-v=p[1],r=v[2],s=v[1],w=a3(bO(function(a,b){if(0===b[0]){var
+v=p[1],r=v[2],s=v[1],w=a3(bN(function(a,b){if(0===b[0]){var
 k=b[1];return[0,k,i(c,a)[a+1],1]}var
 d=b[3],e=b[2],g=b[1];if(g){var
 f=g[1];if(e){var
@@ -3792,7 +3792,7 @@ g=0}if(g)return[6,[0,s,h(s[1],[0],0.)]];var
 k=b.length-1;if(4>k)switch(k){case
 1:return[6,[0,a_,h(a_[1],b,0.)]];case
 2:return[6,[0,a$,h(a$[1],b,0.)]];case
-3:return[6,[0,bZ,h(bZ[1],b,0.)]]}return[6,[0,b0,h(b0[1],b,0.)]]}if(!c)return d;var
+3:return[6,[0,bY,h(bY[1],b,0.)]]}return[6,[0,bZ,h(bZ[1],b,0.)]]}if(!c)return d;var
 k=c[1];if(!c[2]){var
 b=g(e[5],f),a=b.length-1;if(typeof
 k==="number")switch(k){case
@@ -3843,7 +3843,7 @@ L=b[2],M=bl(b[1]),N=0.;return hO(a,M,bl(L),function(a){return N});case
 1:var
 x=bl(b[1]),O=0.;return hO(a,x,x,function(a){return O});case
 2:var
-P=b[1],q=b3(d);if(typeof
+P=b[1],q=b2(d);if(typeof
 q!=="number"&&6===q[0]){var
 z=q[1],A=z[2],B=z[1],w=function(a,b,c){if(0===c[0]){var
 e=c[1],g=0;for(;;){if(!e)return;var
@@ -3856,7 +3856,7 @@ j=b[1];switch(j[0]){case
 0:var
 C=j[2],Q=j[1];return bk([0,C,[0,C,0]],function(a){return gq(function(a,b){var
 c=a[1],d=a[2],e=c?d===b?1:0:c;return[0,e,b]},[0,1,i(a,0)[1]],a)[1]?Q:0.});case
-1:return b3(j[1]);case
+1:return b2(j[1]);case
 2:return bk(j[1],function(a){return 1.});case
 3:var
 R=j[1];return bk(j[2],function(a){return R});case
@@ -3890,7 +3890,7 @@ $=hS(k,m);e=l;f=[6,[0,s,h(s[1],[0],$)]];continue;case
 aa=hT(k,m);e=l;f=[6,[0,s,h(s[1],[0],aa)]];continue}switch(n[0]){case
 0:e=l;f=[6,[0,k,hY(k,m,[0,n[1],n[2]])]];continue;case
 1:var
-v=b3(n[1]);if(typeof
+v=b2(n[1]);if(typeof
 v!=="number"&&6===v[0]){var
 H=v[1],I=H[2],J=H[1];hZ(k,J,m,I);e=l;f=[6,[0,J,I]];continue}e=l;f=o(yB);continue;case
 2:h0(k,bl(n[1]),m,a);e=l;continue;case
@@ -3914,7 +3914,7 @@ v=hS(f,j);d=i;e=[6,[0,s,h(s[1],[0],v)]];continue;case
 w=hT(f,j);d=i;e=[6,[0,s,h(s[1],[0],w)]];continue}switch(k[0]){case
 0:d=i;e=[6,[0,f,hY(f,j,[0,k[1],k[2]])]];continue;case
 1:var
-l=b3(k[1]);if(typeof
+l=b2(k[1]);if(typeof
 l!=="number"&&6===l[0]){var
 n=l[1],p=n[2],q=n[1];hZ(f,q,j,p);d=i;e=[6,[0,q,p]];continue}d=i;e=o(yD);continue;case
 2:h0(f,bl(k[1]),j,a);d=i;continue;case
@@ -4060,7 +4060,7 @@ af=V(r);o(g(l(yJ),af))}return 1}}}function
 y1(a,b){hb(0);if(0===b[0])var
 f=o(yf);else{var
 C=b[1][1],O=C[1][2],L=C[2],M=C[1][1],ad=av(L);if(av(M)===ad)var
-F=bO(function(a,b){var
+F=bN(function(a,b){var
 d=b[2],e=b[1][1],f=e[2],g=e[1],c=eW(g,[6,d,f]);return 0===c[0]?xI(d,a,g,f,c[1]):c},cX(M,L)),u=ei(cW,F)?[1,gl(ya,N(lG,gh(cW,F)))]:[0,N(ge,F)];else
 var
 u=yb;if(0===u[0]){var
@@ -4106,7 +4106,7 @@ f=[0,[0,D,yg]]}else
 var
 f=e}if(0!==f[0])return f;var
 y=f[1],E=y[2],_=E[1],au=E[3],aw=E[2],ax=N(function(a){var
-b=N(function(a){return[0,a[1],a[3]]},a[2]);return[0,a[1],a[4],a[5],b]},y[1]),ak=[0,0,0,0,0,0,eA(0,8),0,y2,0,0],U=h2(b3(aw),ak),p=U[1],al=U[2],V=h1(a)[2],m=[0,0,al],q=ax;for(;;){if(!q)break;var
+b=N(function(a){return[0,a[1],a[3]]},a[2]);return[0,a[1],a[4],a[5],b]},y[1]),ak=[0,0,0,0,0,0,eA(0,8),0,y2,0,0],U=h2(b2(aw),ak),p=U[1],al=U[2],V=h1(a)[2],m=[0,0,al],q=ax;for(;;){if(!q)break;var
 r=q[1],ab=q[2],am=r[3],an=m[2],ao=m[1],W=h2(h5(V,h4(V,r[2],r[4],r[1]),am),an);m=[0,[0,W[1],ao],W[2]];q=ab}var
 X=m[2],Z=Y(m[1]),ay=gi(Z),az=gi(y[1]),aA=bg(function(a){return ef(az,ay,a)}),w=y[1],v=[0,yG,yF,,c3];function
 ap(Z,Y,L,d){function
@@ -4139,7 +4139,7 @@ G=k[2],h=k[1];if(el(h[1],c[4]))k=G;else if(0<=h[5]){var
 aq=bi(h[1],c[4]),ar=c[2];k=G;c=[0,I(c[1],[0,h,0]),ar,,aq]}else{var
 as=bi(h[1],c[4]),at=I(c[2],[0,h,0]);k=G;c=[0,c[1],at,,as]}}}function
 aB(a,b,c,d,e){if(!c)return e;var
-f=cn(bO(function(a,b){var
+f=cn(bN(function(a,b){var
 c=b[2],d=N(function(a){return a[1]},b[1][2]);return 0===a?dr(c,eU(d,e[6])):I(dr(c,eU(d,e[6])),y3)},aA));if(_){var
 h=N(function(a){return a[1]},_[1]),g=eU(h,e[6]),G=hM(p,g),i=hK(dr(p,g),0,G),j=e[10],k=e[9],l=e[8],m=e[7],n=e[6],o=e[5],q=e[4],r=e[3],s=I(f,i),t=I(e[2],s);return[0,e[1],t,r,q,o,n,m,l,k,j]}var
 u=hM(p,h8),v=hK(dr(p,h8),0,u),w=e[10],x=e[9],y=e[8],z=e[7],A=e[6],B=e[5],C=e[4],D=e[3],E=I(f,v),F=I(e[2],E);return[0,e[1],F,D,C,B,A,z,y,x,w]}function
@@ -4156,7 +4156,7 @@ d=f[1],l=d[10],m=a3(Y(d[3])),n=a3(Y(d[1])),o=[0,a3(d[2]),n,0,m,l],j=[0,q(bn,0),o
 h=c[1],e=c[3];if(h.length-1<=e){var
 p=lo(0)-k;g(aN(y0),p);return 0}var
 s=yX(j,i(h,e)[e+1]);c[3]=c[3]+s|0}}var
-h_=[E,y8,bL(0)];he(y9,[0,h_,[0]]);var
+h_=[E,y8,bK(0)];he(y9,[0,h_,[0]]);var
 aR=t,e1=null,bm=true,e2=false;aR.String;aR.RegExp;aR.Object;aR.Array;aR.Date;aR.Math;function
 h$(a){return S(a.toString())}aR.JSON;var
 y$=aR.Error;ew(function(a){return a
@@ -4168,7 +4168,7 @@ b=g(c,a);if(1-(b|0))a.preventDefault();return b})}function
 e4(a,b,c,d){if(1-(a.addEventListener===y_?1:0)){var
 e={};e.capture=d;a.addEventListener(b,c,e);return}a.attachEvent("on".concat(b),function(a){var
 d=[0,c,a,[0]];return function(a,b){return Aq(d,a,b)}})}aR.HTMLElement;var
-bA=As(0),zb="mousedown",zc=aR.document,ze=[E,zd,bL(0)],zf=400,zg=240,zu="mousemove",zv="mouseup";function
+b3=As(0),zb="mousedown",zc=aR.document,ze=[E,zd,bK(0)],zf=400,zg=240,zu="mousemove",zv="mouseup";function
 cB(a,b){switch(b[0]){case
 0:var
 c=b[4],d=b[3],e=b[2],f=b[1],g=b[6];a.fillStyle=ae(b[5]);a.fillRect(f,e,d,c);a.strokeStyle=kb;a.lineWidth=g;a.strokeRect(f,e,d,c);return;case
@@ -4179,7 +4179,7 @@ l=b[3],m=b[2],n=b[1];a.fillStyle=ae(b[4]);a.font="14px Arial";a.fillText(ae(l),n
 3:var
 o=b[6],p=b[5],q=b[4],r=b[3],s=b[2],t=b[1];a.beginPath();a.moveTo(t,s);a.lineTo(r,q);a.strokeStyle=ae(o);a.lineWidth=p;a.stroke();return;default:var
 u=b[8],v=b[7],w=b[6],x=b[5],y=b[4],z=b[3],A=b[2],B=b[1];a.beginPath();a.bezierCurveTo(B,A,z,y,x,w);a.strokeStyle=ae(u);a.lineWidth=v;a.stroke();return}}var
-bb=[0,0,dt[1].call(null,4),yh],xD=aP[1].call(null,b6);dt[5].call(null,bb[2],bB,[0,bb[1],xD,yi]);var
+bb=[0,0,dt[1].call(null,4),yh],xD=aP[1].call(null,b6);dt[5].call(null,bb[2],bA,[0,bb[1],xD,yi]);var
 ia=[0,0];function
 ro(a,b){var
 k=bg(cY(b)),g=0,j=0;for(;;){var
@@ -4240,7 +4240,7 @@ R=D[1];k=[0,R[1],[0,q,[0,R[2],p]]]}}}else
 var
 h=b;if(0!==h[0])return h;var
 T=h[1],M=T[1],N=M[1];return[0,[0,[0,N[1],N[2],[1,[0,T[2]]]],M[2]]]}var
-yj=[0,bb[1]+1|0,bb[2],bB];function
+yj=[0,bb[1]+1|0,bb[2],bA];function
 zj(a){var
 g=zc.createElement(iI);if(1-(1-(g.getContext==e1?1:0)))throw j(ze,1);var
 h=g.tagName.toLowerCase()==iI?g:e1,d=h==e1?o(zh):h,f=aR.devicePixelRatio;d.style.width=ae("400"+dJ);d.style.height=ae("240"+dJ);d.width=400.*f|0;d.height=240.*f|0;d.getContext(jI).scale(f,f);var
@@ -4249,20 +4249,20 @@ i=b[11],k=b[12];b[2].fillStyle="white";b[2].fillRect(0.,0.,i,k);cB(b[2],[1,205.,
 c=b[1];e4(c,zb,e3(function(a){a.preventDefault();b[9]=1;c.style.cursor=i1;var
 d=c.getBoundingClientRect(),e=a.clientX,f=a.clientY,g=d.left,h=d.top;c.classList.add(j0);b[5]=e;b[6]=f;b[7]=(g|0)-56|0;b[8]=(h|0)-jb|0;return bm}),bm);e4(c,zu,e3(function(a){a.preventDefault();if(!b[9])return bm;c.style.cursor=i1;var
 d=(b[8]+(a.clientY-b[6]|0)|0)-2|0;c.style.left=ae(e+((b[7]+(a.clientX-b[5]|0)|0)+56|0)+dJ);c.style.top=ae(e+d+dJ);return bm}),bm);e4(c,zv,e3(function(a){a.preventDefault();b[9]=0;c.style.cursor=j7;var
-d=c.getBoundingClientRect();d.left;d.top;c.classList.remove(j0);return bm}),bm);bA.log("appending new child canvas");a[1].appendChild(b[1]);return[0,a[1],[0,b,a[2]]]}var
-cC={renderarea:bM(function(a,b){ia[1]=[0,zj([0,b,0])];return e2}),cleardrag:bM(function(a,b){var
-d=ia[1];if(!d){bA.log("no plts");return e2}var
+d=c.getBoundingClientRect();d.left;d.top;c.classList.remove(j0);return bm}),bm);a[1].appendChild(b[1]);return[0,a[1],[0,b,a[2]]]}var
+cC={renderarea:bL(function(a,b){ia[1]=[0,zj([0,b,0])];return e2}),cleardrag:bL(function(a,b){var
+d=ia[1];if(!d){b3.log("no plts");return e2}var
 c=d[1][2];for(;;){if(!c)return bm;var
-e=c[2];c[1][9]=0;c=e}}),get:bM(function(a,b,c){var
-f=du(yj,bB);if(!f){bA.error("Missing grid!!!");return e}var
+e=c[2];c[1][9]=0;c=e}}),get:bL(function(a,b,c){var
+f=du(yj,bA);if(!f){b3.error("Missing grid!!!");return e}var
 h=aP[8].call(null,f[1][2],[0,b,c]);if(!h)return e;var
 d=h[1];switch(d[0]){case
 0:var
 i=d[1];return ae(g(l(zr),i));case
-1:return ae(e+d[1]);default:return ae(d[1])}}),gridaddnumber:bM(function(a,b,c,d){var
-e=du(bb,bB);return e?aP[5].call(null,e[1][2],[0,b,c],[0,d]):bA.error("cant add number - Missing grid!!!")}),gridaddstring:bM(function(a,b,c,d){var
-e=du(bb,bB),f=S(d);return e?aP[5].call(null,e[1][2],[0,b,c],[2,f]):bA.error("cant add value - Missing grid!!!")}),executecode:bM(function(a,b){var
-p=[0,bb[1],bb[2],bB],k=bO(ro,ek(10,S(b))),i=ei(cW,k)?gg(cW,k):[0,cn(N(ge,k))];if(0!==i[0]){var
+1:return ae(e+d[1]);default:return ae(d[1])}}),gridaddnumber:bL(function(a,b,c,d){var
+e=du(bb,bA);return e?aP[5].call(null,e[1][2],[0,b,c],[0,d]):b3.error("cant add number - Missing grid!!!")}),gridaddstring:bL(function(a,b,c,d){var
+e=du(bb,bA),f=S(d);return e?aP[5].call(null,e[1][2],[0,b,c],[2,f]):b3.error("cant add value - Missing grid!!!")}),executecode:bL(function(a,b){var
+p=[0,bb[1],bb[2],bA],k=bN(ro,ek(10,S(b))),i=ei(cW,k)?gg(cW,k):[0,cn(N(ge,k))];if(0!==i[0]){var
 j=i[1],t=j[3],u=j[2],v=j[1];return y(aN(y7),v,u,t)}var
 e=c([0,vA,i[1]]);for(;;){if(x(4,e[1])){var
 f=c(e);if(x(5,f[1]))var
@@ -4275,9 +4275,9 @@ d=h}}else
 var
 d=[0,e];if(0===d[0]){var
 n=d[1],o=n[1][3];return 0<av(n[2])?h9(p,o):h9(p,o)}var
-s=d[1];return g(aN(y6),s)}}),paste:bM(function(a,b,c,d){var
+s=d[1];return g(aN(y6),s)}}),paste:bL(function(a,b,c,d){var
 C=S(d),H=gm(C,9)?9:44;h(aN(yk),b,c);var
-r=aA(16),A=du(bb,bB);if(A){var
+r=aA(16),A=du(bb,bA);if(A){var
 s=A[1][2],q=N(function(a){return ek(H,a)},ek(10,C)),f=b;for(;;){if(!q){var
 v=[0,f];break}var
 p=q[1],m=c,K=q[2];for(;;){if(!p){q=K;f=f+1|0;break}var
@@ -4302,6 +4302,6 @@ w=a1(f);if(w[1]!==cj)throw j(w,0);var
 t=0}if(t)aP[5].call(null,s,[0,f,m],[0,t[1]]);else
 aP[5].call(null,s,[0,f,m],[2,e])}p=J;m=m+1|0}}}else
 var
-v=yn;if(0===v[0])return bA.info("Paste values");var
-I=v[1];return bA.error(g(l(zq),I))})},za=S(typeof
+v=yn;if(0===v[0])return b3.info("Paste values");var
+I=v[1];return b3.error(g(l(zq),I))})},za=S(typeof
 cC)==="function"?0<cC.length?fR(cC):cC:cC;AY.myLib=za;ec(0);return}(globalThis));

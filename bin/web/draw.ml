@@ -11,6 +11,7 @@
 
 *)
 open Js_of_ocaml
+open Eincalc.Plotter;;
 
 let js_str  = Js.string
 let js_num  = Js.number_of_float
@@ -23,20 +24,6 @@ let _layout_drawer = 56;;
 (* Get display dimensions *)
 let _display_width =  400;;
 let _display_height = 240;;
-
-(* ============================================================
-   SHAPE TYPES
-   ============================================================ *)
-
-type color = string [@@deriving show];;
-
-type shape =
-    | Box of    { x: float; y: float; width:  float;  height: float; color: color; linewidth: float; }
-    | Circle of { x: float; y: float; radius: float;  color:  color; linewidth: float }
-    | Text of   { x: float; y: float; text:   string; color:  color }
-    | Line of   { x: float; y: float; fx: float; fy: float; linewidth: float; color: color }
-    | Spline of { cp1x: float; cp1y: float; cp2x: float; cp2y: float; x: float; y: float; linewidth: float; color: color; }
-[@@deriving show];;
 
 (* ============================================================
    CANVAS MANAGER
@@ -186,89 +173,35 @@ module Canvas = struct
         t.current_color <- color
 end
 
-(* ============================================================
-   SHAPE FACTORIES
-   ============================================================ *)
-
-module ShapeFactory = struct
-    (* Create a box at position with random size *)
-    let make_box ~x ~y ~color =
-        let width = 20. +. Random.float 30. in
-        let height = 20. +. Random.float 30. in
-        Box { x; y; width; height; color; linewidth=1. }
-
-    (* Create a box with specific dimensions *)
-    let make_box_sized ~x ~y ~width ~height ~color =
-        Box { x; y; width; height; color; linewidth=1. }
-
-    (* Create a circle at position with random radius *)
-    let make_circle ~x ~y ~color =
-        let radius = 10. +. Random.float 20. in
-        Circle { x; y; radius; color; linewidth=1. }
-
-    (* Create a circle with specific radius *)
-    let make_circle_sized ~x ~y ~radius ~color =
-        Circle { x; y; radius; color; linewidth=1. }
-
-    (* Create text at position *)
-    let make_text ~x ~y ~text ~color =
-        Text { x; y; text; color }
-
-    (* Keep shape within canvas bounds *)
-    let clamp_to_bounds t shape =
-        let width = float_of_int t.Canvas.display_width in
-        let height = float_of_int t.Canvas.display_height in
-        match shape with
-        | Box b ->
-            let x = max 0. (min b.x (width -. b.width)) in
-            let y = max 0. (min b.y (height -. b.height)) in
-            Box { b with x; y }
-        | Circle c ->
-            let x = max c.radius (min c.x (width -. c.radius)) in
-            let y = max c.radius (min c.y (height -. c.radius)) in
-            Circle { c with x; y }
-        | Line l -> 
-            let mx  = (max 0. (min l.x  width)) in
-            let mfx = (max 0. (min l.fx width)) in
-            let my  = (max 0. (min l.y  width)) in
-            let mfy = (max 0. (min l.fy width)) in
-            Line { l with x=mx; y=my; fx=mfx; fy=mfy; }
-        | Spline l -> 
-            let mx  = (max 0. (min l.x  width)) in
-            let my  = (max 0. (min l.y  width)) in
-            let mcp1x = (max 0. (min l.cp1x width)) in
-            let mcp1y = (max 0. (min l.cp1y width)) in
-            let mcp2x = (max 0. (min l.cp2x width)) in
-            let mcp2y = (max 0. (min l.cp2y width)) in
-            Spline { l with x=mx; y=my; cp1x=mcp1x; cp1y=mcp1y;  cp2x=mcp2x; cp2y=mcp2y; }
-        | Text _ -> shape
-end
-
-(* ============================================================
-   UI HELPERS
-   ============================================================ *)
-
-
-module UI = struct
-    (* Update shape count display *)
-    let update_count count =
-        let doc = Dom_html.document in
-        match Js.Opt.to_option (doc##getElementById (Js.string "shape-count")) with
-        | Some elem ->
-            elem##.textContent := Js.some (Js.string (Printf.sprintf "Shapes: %d" count))
-        | None -> ()
-
-    (* Get color from color picker *)
-    let get_color_value () =
-        let doc = Dom_html.document in
-        match Js.Opt.to_option (doc##getElementById (Js.string "color-picker")) with
-        | Some elem ->
-            (Js.Opt.case (Dom_html.CoerceTo.input elem) 
-                (fun _  -> "#4CAF50")
-                (fun input -> Js.to_string input##.value)
-            )
-        | None -> "#4CAF50"
-end
+(* Keep shape within canvas bounds *)
+let clamp_to_bounds t shape =
+    let width = float_of_int t.Canvas.display_width in
+    let height = float_of_int t.Canvas.display_height in
+    match shape with
+    | Box b ->
+        let x = max 0. (min b.x (width -. b.width)) in
+        let y = max 0. (min b.y (height -. b.height)) in
+        Box { b with x; y }
+    | Circle c ->
+        let x = max c.radius (min c.x (width -. c.radius)) in
+        let y = max c.radius (min c.y (height -. c.radius)) in
+        Circle { c with x; y }
+    | Line l -> 
+        let mx  = (max 0. (min l.x  width)) in
+        let mfx = (max 0. (min l.fx width)) in
+        let my  = (max 0. (min l.y  width)) in
+        let mfy = (max 0. (min l.fy width)) in
+        Line { l with x=mx; y=my; fx=mfx; fy=mfy; }
+    | Spline l -> 
+        let mx  = (max 0. (min l.x  width)) in
+        let my  = (max 0. (min l.y  width)) in
+        let mcp1x = (max 0. (min l.cp1x width)) in
+        let mcp1y = (max 0. (min l.cp1y width)) in
+        let mcp2x = (max 0. (min l.cp2x width)) in
+        let mcp2y = (max 0. (min l.cp2y width)) in
+        Spline { l with x=mx; y=my; cp1x=mcp1x; cp1y=mcp1y;  cp2x=mcp2x; cp2y=mcp2y; }
+    | Text _ -> shape
+;;
 
 (* ============================================================
    EVENT HANDLERS
@@ -292,20 +225,14 @@ module EventHandlers = struct
                 let cy = (Js.to_float ev##.clientY) in
                 let bx = (Js.to_float bnd##.left) in 
                 let by = (Js.to_float bnd##.top) in
-                (*let cdiff = cx -. bx in *)
-                (*let bdiff = cy -. by in *)
+
                 canvas##.classList##add (js_str "ring-2"); 
-                (*canvas##.classList##add (js_str "ring-primary-blue/50");*)
 
                 canvas_manager.Canvas.initialx <- (cx);
                 canvas_manager.Canvas.initialy <- (cy);
                 canvas_manager.Canvas.currentx <- (int_of_float bx - _layout_drawer);
                 canvas_manager.Canvas.currenty <- (int_of_float by - _layout_header);
 
-                (*Console.console##log (Format.sprintf "down setting to: left %f top %f" cdiff bdiff);*)
-                (*canvas##.style##.transform := (js_str "none");*)
-                (*canvas##.style##.left := js_str ((string_of_int @@ (int_of_float cdiff)) ^ "px");*)
-                (*canvas##.style##.top  := js_str ((string_of_int @@ (int_of_float bdiff)) ^ "px");*)
                 Js._true
             ))
             Js._true
@@ -320,12 +247,8 @@ module EventHandlers = struct
                         let translate_y = int_of_float @@ ((Js.to_float ev##.clientY) -. canvas_manager.Canvas.initialy) in
                         (
                             (*// Calculate offset from mouse position to div's top-left corner*)
-                            (*NB: You MUST remove the transform or else it will
-                                   stutter!!! - don't delete this comment!!! *)
-                            let newx = (canvas_manager.Canvas.currentx +
-                                translate_x + 56) in
-                            let newy = (canvas_manager.Canvas.currenty +
-                                translate_y - 2) in
+                            let newx = (canvas_manager.Canvas.currentx + translate_x + _layout_drawer) in
+                            let newy = (canvas_manager.Canvas.currenty + translate_y - 2) in
                             (*canvas##.style##.transform := (js_str "none");*)
                             canvas##.style##.left := js_str ((string_of_int @@ newx) ^ "px");
                             canvas##.style##.top  := js_str ((string_of_int @@ newy) ^ "px");
@@ -349,28 +272,10 @@ module EventHandlers = struct
                 ignore(canvas_manager.Canvas.currentx = int_of_float bx);
                 ignore(canvas_manager.Canvas.currenty = int_of_float by);
                 canvas##.classList##remove (js_str "ring-2"); 
-                (*canvas##.classList##remove (js_str "ring-primary-blue/50");*)
-                Js._true
-            ))
-        Js._true
-    ;;
-
-    (* Handle canvas click *)
-    let setup_canvas_click canvas_manager =
-        let canvas = canvas_manager.Canvas.canvas in
-        Dom_html.addEventListener canvas Dom_html.Event.click
-            (Dom_html.handler (fun ev ->
-                let rect = canvas##getBoundingClientRect in
-                let x = (Js.to_float ev##.clientX) -. (Js.to_float rect##.left) in
-                let y = (Js.to_float ev##.clientY) -. (Js.to_float rect##.top) in
-                let color = UI.get_color_value () in
-                let shape = ShapeFactory.make_box ~x ~y ~color in
-                let clamped = ShapeFactory.clamp_to_bounds canvas_manager shape in
-                Canvas.add_shape canvas_manager clamped;
-                UI.update_count (Canvas.shape_count canvas_manager);
                 Js._true
             ))
             Js._true
+    ;;
 
     (* Setup button click handlers *)
     let setup_button_click btn_id handler =
@@ -385,71 +290,13 @@ module EventHandlers = struct
                 Js._true
             |> ignore
         | None -> ()
-
-    (* Add random box *)
-    let add_random_box canvas_manager () =
-        let width = float_of_int canvas_manager.Canvas.display_width in
-        let height = float_of_int canvas_manager.Canvas.display_height in
-        let x = Random.float (width -. 50.) in
-        let y = Random.float (height -. 50.) in
-        let color = UI.get_color_value () in
-        let shape = ShapeFactory.make_box ~x ~y ~color in
-        Canvas.add_shape canvas_manager shape;
-        UI.update_count (Canvas.shape_count canvas_manager)
-
-    (* Add random circle *)
-    let add_random_circle canvas_manager () =
-        let width = float_of_int canvas_manager.Canvas.display_width in
-        let height = float_of_int canvas_manager.Canvas.display_height in
-        let x = 20. +. Random.float (width -. 40.) in
-        let y = 20. +. Random.float (height -. 40.) in
-        let color = UI.get_color_value () in
-        let shape = ShapeFactory.make_circle ~x ~y ~color in
-        Canvas.add_shape canvas_manager shape;
-        UI.update_count (Canvas.shape_count canvas_manager)
+    ;;
 
     (* Clear all shapes *)
     let clear_all canvas_manager () =
         Canvas.clear_shapes canvas_manager;
-        UI.update_count 0
+    ;;
 end
-
-(* ============================================================
-   MAIN APPLICATION
-   ============================================================ *)
-
-let run () =
-    Random.self_init ();
-
-    (* Create canvas manager *)
-    let canvas_mgr = Canvas.create "canvas" in
-
-    (* Setup event handlers *)
-    let _ev_id = EventHandlers.setup_canvas_click canvas_mgr in
-
-    EventHandlers.setup_button_click "add-random" 
-        (EventHandlers.add_random_box canvas_mgr);
-
-    EventHandlers.setup_button_click "add-circle" 
-        (EventHandlers.add_random_circle canvas_mgr);
-
-    EventHandlers.setup_button_click "clear" 
-        (EventHandlers.clear_all canvas_mgr);
-
-    (* Initial render *)
-    Canvas.render_all canvas_mgr;
-
-    (* Add some initial shapes *)
-    let initial_shapes = [
-        ShapeFactory.make_box_sized ~x:20. ~y:20. ~width:30. ~height:30. ~color:"#4CAF50";
-        ShapeFactory.make_circle_sized ~x:100. ~y:100. ~radius:15. ~color:"#2196F3";
-        ShapeFactory.make_box_sized ~x:150. ~y:50. ~width:25. ~height:35. ~color:"#FF9800";
-    ] in
-    List.iter (Canvas.add_shape canvas_mgr) initial_shapes;
-    UI.update_count (Canvas.shape_count canvas_mgr);
-
-    Console.console##log (Js.string "Canvas renderer initialized!")
-;;
 
 type plots = { 
     parent:   Dom.element Js.t;
@@ -459,7 +306,7 @@ type plots = {
 let init (node: Dom.element Js.t) = 
     {
         parent=node
-    ;   canvases=[]  
+        ;   canvases=[]  
     }
 ;;
 
