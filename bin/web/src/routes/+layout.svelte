@@ -33,8 +33,8 @@
 
             <header class="after:pointer-events-none after:absolute
                 after:inset-x-0 after:inset-y-0 after:border-y after:border-white/10
-                border-b border-b-black z-10">
-                <div class="pl-0 z-10">
+                border-b border-b-black z-auto">
+                <div class="pl-0">
                     <div role="tablist" class="pl-14 tabs "> 
                         <div role="tab" class="outline-black tab tab-active px-2 border-x border-x-black">
                             <span class="badge text-sm badge-neutral badge-outline">

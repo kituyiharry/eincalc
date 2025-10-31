@@ -2,7 +2,15 @@
   import { Canvas, Layer } from 'svelte-canvas';
   // TODO: standardize controller so that we can type it
   import { default as controller } from '$lib/index';
-    import { onMount } from 'svelte';
+  import { onMount } from 'svelte';
+
+  // editing support via floating input 
+  let editor
+  let plotArea 
+
+  onMount(() => {
+    controller.myLib.renderarea(plotArea);
+  })
 
   let refresh = $state(0);
 
@@ -24,9 +32,6 @@
   let selectionStart = null;
   let selectionEnd   = null;
   let isDragging     = false;
-
-  // editing support via floating input 
-  let editor
 
   /** 
    * @typedef  EditingCell
@@ -132,6 +137,9 @@
 
   // Dragging and selection
   function handleMouseDown(e) {
+      // ensure plots don't block
+      controller.myLib.cleardrag(e);
+      e.stopPropagation();
       const rect = e.target.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -148,6 +156,8 @@
   }
 
   function handleMouseMove(e) {
+      // ensure plots don't block
+      controller.myLib.cleardrag(e);
       if (!isDragging) return;
 
       const rect = e.target.getBoundingClientRect();
@@ -202,6 +212,7 @@
   }
 
   function handleDoubleClick(e) {
+      controller.myLib.cleardrag(e);
       const rect = e.target.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -254,9 +265,9 @@
 </script>
 
 <!--<svelte:window />-->
-<div class="drawer fixed mt-26 drawer-open">
+<div class="drawer fixed mt-26 drawer-open" >
     <input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
-    <div class="drawer-content" >
+    <div class="drawer-content" bind:this={plotArea} >
 
         <div class='h-[90%] w-[100vw]'>
 
@@ -268,16 +279,20 @@
                 onblur    ={handleEditorBlur}
                 onkeydown ={handleEditorKeyDown}
                 onpaste={handlePaste}
-                class="bg-black text-white text-xs"
+                class="bg-black text-white text-xs "
                 style={Object.entries(editorStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}
             />
+
+            <!--<div bind:this={overlay} class="pointer-events-none h-[90%] w-[100vw]">-->
+            <!--</div>-->
+
+            <!--layerEvents-->
             <Canvas
                 ondblclick ={handleDoubleClick} 
                 onmousedown={handleMouseDown} 
                 onmouseup  ={handleMouseUp}
                 onmousemove={handleMouseMove}
                 onwheel={handleWheel} 
-                layerEvents  
                 style="display: block; cursor: cell;">
                 {#key refresh}
                     <Layer 
@@ -390,6 +405,7 @@
                         }} />
                 {/key}
             </Canvas>
+
             <div class="flex flex-row bg-transparent backdrop-blur-sm border-t
                 border-t-black resize-y" 
                 style={Object.entries(funcStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}>

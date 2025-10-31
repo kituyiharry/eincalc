@@ -1,11 +1,13 @@
 (executable
   (name index)
   (modes byte js)
-  (preprocess (pps js_of_ocaml-ppx))
+  (modules index draw)
+  (preprocess (pps js_of_ocaml-ppx ppx_deriving.show) )
   (libraries eincalc js_of_ocaml js_of_ocaml-lwt js_of_ocaml-lwt.graphics)
   (js_of_ocaml 
     ; todo: maybe disable errors and exception. add effects support when needed ?
-    (flags :standard --opt 3 --source-map --debug-info --disable staticeval --disable share --target-env browser --enable=with-js-error --enable=excwrap)
+    ;(flags :standard --opt 3 --source-map --disable staticeval --disable share --target-env browser --enable=with-js-error --enable=excwrap)
+    (flags :standard  --target-env browser)
     (build_runtime_flags (:standard --target-env browser))))
 
 ;(dirs :standard \ node_modules static src)

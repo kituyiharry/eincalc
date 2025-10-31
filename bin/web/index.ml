@@ -7,83 +7,101 @@ module Con  = Js_of_ocaml.Console
 
 let js_str  = Js.string
 (*let js_num  = Js.number_of_float*)
+open Draw
 
 let _ =
     let controller = Eincalc.Ndcontroller.create_controller () in
     let default    = "Default" in
     let sheet      = Eincalc.Ndcontroller.new_sheet controller default in
+    let pltstate   = ref None in
     (* NB: method names cant have underscores!! *)
     (* TODO: use a view interface to manage this object and the controller *)
-    let _ = Js.export "myLib"
-            (object%js (_self)
-                
-                method get row col = (
-                    match Eincalc.Ndcontroller.fetch_grid_label sheet default with
-                    | Some { grid=_g; _ } -> 
-                        (match Eincalc.Ndmodel.Grid.find_opt _g (row, col) with 
-                        | Some Eincalc.Ndmodel.TValue  s -> (js_str s)
-                        | Some Eincalc.Ndmodel.TNumber f -> (js_str (Format.sprintf "%.2f" f))
-                        | Some Eincalc.Ndmodel.TNat f    -> (js_str (string_of_int f))
-                        | None   -> js_str "")
-                    | None -> 
-                        let _ = Con.console##error "Missing grid!!!" in
-                        js_str ""
-                )
+    let _ = Js.export "myLib" (object%js (_self)
 
-                (* TODO: use OptDef or Opt for null checks *)
-                method gridaddnumber row col (value: Js.number Js.t) = (
-                    let vstr = Js.to_float value in
-                    (*let _ = Con.console##log (Format.sprintf "adding %f to %d*)
+        method renderarea node = (
+            let plts  = Draw.init node in 
+            let plts' = Draw.add_canvas plts in
+            pltstate := Some plts';
+            Js._false
+        )
+
+        method cleardrag _ = (
+            match !pltstate with 
+            | Some plts -> 
+                List.iter (fun c -> c.Canvas.is_dragging <- false;) plts.canvases;
+                Js._true
+            | _ -> 
+                Con.console##log "no plts";
+                Js._false 
+        ) 
+
+        method get row col = (
+            match Eincalc.Ndcontroller.fetch_grid_label sheet default with
+            | Some { grid=_g; _ } -> 
+                (match Eincalc.Ndmodel.Grid.find_opt _g (row, col) with 
+                    | Some Eincalc.Ndmodel.TValue  s -> (js_str s)
+                    | Some Eincalc.Ndmodel.TNumber f -> (js_str (Format.sprintf "%.2f" f))
+                    | Some Eincalc.Ndmodel.TNat f    -> (js_str (string_of_int f))
+                    | None   -> js_str "")
+            | None -> 
+                let _ = Con.console##error "Missing grid!!!" in
+                js_str ""
+        )
+
+        (* TODO: use OptDef or Opt for null checks *)
+        method gridaddnumber row col (value: Js.number Js.t) = (
+            let vstr = Js.to_float value in
+            (*let _ = Con.console##log (Format.sprintf "adding %f to %d*)
                     (*%d\n" vstr row col) in*)
-                    (match Eincalc.Ndcontroller.fetch_grid_label controller default with
-                    | Some { grid=_g; _ } -> 
-                        Eincalc.Ndmodel.Grid.add _g (row, col) (TNumber vstr)
-                    | None ->
-                        Con.console##error "cant add number - Missing grid!!!"
-                    )
-                )
+            (match Eincalc.Ndcontroller.fetch_grid_label controller default with
+                | Some { grid=_g; _ } -> 
+                    Eincalc.Ndmodel.Grid.add _g (row, col) (TNumber vstr)
+                | None ->
+                    Con.console##error "cant add number - Missing grid!!!"
+            )
+        )
 
-                (* TODO: use OptDef or Opt for null checks *)
-                method gridaddstring row col (value: Js.js_string Js.t) = (
-                    let vstr = Js.to_string value in
-                    (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
+        (* TODO: use OptDef or Opt for null checks *)
+        method gridaddstring row col (value: Js.js_string Js.t) = (
+            let vstr = Js.to_string value in
+            (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
                     (*\n" vstr row col)  in*)
-                    (match Eincalc.Ndcontroller.fetch_grid_label controller default with
-                    | Some { grid=_g; _ } -> 
-                        Eincalc.Ndmodel.Grid.add _g (row, col) (TValue vstr)
-                    | _ -> 
-                        Con.console##error "cant add value - Missing grid!!!"
-                    )
-                )
+            (match Eincalc.Ndcontroller.fetch_grid_label controller default with
+                | Some { grid=_g; _ } -> 
+                    Eincalc.Ndmodel.Grid.add _g (row, col) (TValue vstr)
+                | _ -> 
+                    Con.console##error "cant add value - Missing grid!!!"
+            )
+        )
 
-                (* TODO: use OptDef or Opt for null checks *)
-                method executecode (value: Js.js_string Js.t) = (
-                    let vstr = Js.to_string value in
-                    (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
+        (* TODO: use OptDef or Opt for null checks *)
+        method executecode (value: Js.js_string Js.t) = (
+            let vstr = Js.to_string value in
+            (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
                     (*\n" vstr row col)  in*)
-                    Eincalc.Repl.handle_scan_exp { controller with active=default; } vstr
-                )
+            Eincalc.Repl.handle_scan_exp { controller with active=default; } vstr
+        )
 
-                (* TODO: use OptDef or Opt for null checks *)
-                (* TODO: figuring out structure here is very rudimentary - make
+        (* TODO: use OptDef or Opt for null checks *)
+        (* TODO: figuring out structure here is very rudimentary - make
                    updates*)
-                method paste row col (value: Js.js_string Js.t) = (
-                    let vstr = Js.to_string value in
-                    let sep = if String.contains vstr '\t' then '\t' else ',' in
-                    (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
+        method paste row col (value: Js.js_string Js.t) = (
+            let vstr = Js.to_string value in
+            let sep = if String.contains vstr '\t' then '\t' else ',' in
+            (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
                     (*\n" vstr row col)  in*)
-                    (match Eincalc.Ndcontroller.paste_values controller default sep (row, col) vstr with 
-                    | Ok    v -> 
-                        Con.console##info "Paste values"
-                    | Error e ->
-                        Con.console##error (Format.sprintf "paste error - %s!!!" e)
-                    )
-                )
+            (match Eincalc.Ndcontroller.paste_values controller default sep (row, col) vstr with 
+                | Ok    _v -> 
+                    Con.console##info "Paste values"
+                | Error e ->
+                    Con.console##error (Format.sprintf "paste error - %s!!!" e)
+            )
+        )
 
-                (*You can also write javascript within your OCaml code.
+        (*You can also write javascript within your OCaml code.
                   Note that the versino of javascript supported is not recent               
                   (no let keyword for example).*)
-                (*
+        (*
                  *method typedArray _ =
                  *(
                  *    let init_typed_array = Js.Unsafe.js_expr
@@ -100,7 +118,7 @@ let _ =
                  *\)
                  *)
 
-            end) 
+        end) 
   in ()
   (*Format.printf "Hello console from ocaml!";*)
   (*Html.window##.onload := Html.handler onload*)

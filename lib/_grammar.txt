@@ -1,6 +1,6 @@
-(repl? -> ) lexer -> parser -> genfunc -> emitter
+(repl? -> ) lexer -> parser -> genfunc -> emitter + masks -> eval + masks
 
-++Phase 1: 
+++Phase 1:
     - Lexer + Parser
     - Einsum interpreter
     - Einsum VM
@@ -10,7 +10,7 @@
 ++Phase 2:
     - External Data
     - Custom types
-    - LSP + TreeSitter 
+    - LSP + TreeSitter
     - Version control   ??
     - Sync engine       ??
     - Logic prog engine ??
@@ -37,22 +37,22 @@ dimension   -> alpha
 
 parameters  -> range (, range)*
 range       -> param (, mask)*
-range       -> 
+range       ->
     | '@' function '<' function_params '>'
     | '@' index '..' index
-    | '@' index 
+    | '@' index
     | '<' (numeric) range
 
 mask        ->
     | '@' mask_name
-mask_name   -> 
-    | norm 
+mask_name   ->
+    | norm
     | reshape
 
-function    -> 
-    | "fill" 
+function    ->
+    | "fill"
     | "eye"
-    | "diag" 
+    | "diag"
     | "zeros"
     | "ones"
     | "rand"

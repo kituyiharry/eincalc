@@ -669,7 +669,7 @@ let parse_scatter_axes state =
 
 let parse_plot_params state = 
     (match (fst state).curr with 
-        | Some ({ tokn=(TAlphaNum plot) }) -> 
+        | Some ({ tokn=(TAlphaNum plot); _ }) -> 
             (match plot with 
                 | "scatter" -> 
                     (>>==) (enclosed TLeftAngle TRightAngle (parse_scatter_axes) (advance state)) 
