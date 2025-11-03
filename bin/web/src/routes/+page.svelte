@@ -54,11 +54,6 @@
     borderWidth: 1
   })
 
-  function updateStyle(key, value) {
-      styleBuffer[key] = value; 
-      styleBuffer = styleBuffer;
-  }
-
   // Default style object structure
   const defaultStyle = {
     backgroundColor: '#ffffff',
@@ -963,9 +958,9 @@
 
                 <li class="dropdown dropdown-right dropdown-center">
                     <button tabindex="0" class="text-md is-drawer-close:tooltip
-                        is-drawer-close:tooltip-right" data-tip="Font">
+                        is-drawer-close:tooltip-right" data-tip="Text style">
                         <i class="fa fa-font" aria-hidden="true"></i>
-                        <span class="is-drawer-close:hidden">Font</span>
+                        <span class="is-drawer-close:hidden">Text Style</span>
                     </button>
                     <div tabindex="-1" class="dropdown-content menu bg-base-100
                         shadow-xl transition-shadow duration-150
@@ -1067,20 +1062,66 @@
                     </div>
                 </li>
 
+                <li class="dropdown dropdown-right dropdown-center">
+                    <button tabindex="0" class="text-md is-drawer-close:tooltip
+                        is-drawer-close:tooltip-right" data-tip="Table Style">
+                        <i class="fa fa-table" aria-hidden="true"></i>
+                        <span class="is-drawer-close:hidden">Table Style</span>
+                    </button>
+                    <div tabindex="-1" class="dropdown-content menu bg-base-100
+                        shadow-xl transition-shadow duration-150
+                        hover:shadow-primary-blue/50 rounded-box z-1 w-56 p-2
+                        items-center justify-center mx-4">
+                        <div class="menu flex flex-col items-center"> 
+                            <h3 class="menu-title text-black text-lg">Cell Style</h3>
+                            <div class="divider py-0 my-0"></div>
+                            <h3 class="text-black text-sm">Border Width</h3>
+                            <div class="flex flex-row py-4 px-3 items-center justify-between w-full">
+                                <input id="bordersize" 
+                                    class="basis-2/3 range range-xs range-neutral" type="range" min="1" max="4" step="1" 
+                                    bind:value={styleBuffer.borderWidth}
+                                    onchange={() => {
+                                        applyStyleToSelection({ borderWidth: styleBuffer.borderWidth })
+                                    }} />
+                                <label for="bordersize" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
+                                    <span>{styleBuffer.borderWidth} em </span>
+                                </label>
+                            </div>
+                            <h3 class="text-black text-xs">Background Color</h3>
+                            <div class="flex flex-row py-2 px-6 justify-between w-full">
+                                <input id="backgroundcolor" 
+                                    class="basis-2/3 range range-xs range-neutral" 
+                                    type="color"
+                                    bind:value={styleBuffer.backgroundColor}
+                                    onchange={() => {
+                                        applyStyleToSelection({ backgroundColor: styleBuffer.backgroundColor })
+                                    }}  />
+                                <label for="backgroundcolor" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
+                                    <span>{styleBuffer.backgroundColor }</span>
+                                </label>
+                            </div>
+                            <h3 class="text-black text-sm">Border Color</h3>
+                            <div class="flex flex-row py-2 px-6 justify-between w-full">
+                                <input id="bordercolor" 
+                                    class="basis-2/3 range range-xs range-neutral" 
+                                    type="color"
+                                    bind:value={styleBuffer.borderColor}
+                                    onchange={() => {
+                                        applyStyleToSelection({ borderColor: styleBuffer.borderColor })
+                                    }}  />
+                                <label for="bordercolor" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
+                                    <span>{styleBuffer.borderColor}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+
                 <li>
                     <button class="text-md is-drawer-close:tooltip
                         is-drawer-close:tooltip-right" data-tip="Import">
                         <i class="fa fa-upload text-gray-300" aria-hidden="true"></i>
                         <span class="is-drawer-close:hidden">Import</span>
-                    </button>
-                </li>
-
-
-                <li>
-                    <button class="text-md is-drawer-close:tooltip
-                        is-drawer-close:tooltip-right" data-tip="Style">
-                        <i class="fa fa-paint-brush text-gray-300" aria-hidden="true"></i>
-                        <span class="is-drawer-close:hidden">Style</span>
                     </button>
                 </li>
 
