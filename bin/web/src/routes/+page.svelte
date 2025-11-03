@@ -250,8 +250,8 @@
 
   // cell selection
   let selectedCell   = null;
-  let selectionStart = null;
-  let selectionEnd   = null;
+  let selectionStart = $state(null);
+  let selectionEnd   = $state(null);
   let isDragging     = false;
   let erasorState    = $state(false)
 
@@ -590,6 +590,29 @@
     }
   }
 
+  function getShapeLabels() {
+    const bounds = getSelectionBounds();
+    if (!bounds) return 'None';
+    
+    if (bounds.startRow === bounds.endRow && bounds.startCol === bounds.endCol) {
+      return `${getColumnLabel(bounds.startCol)}${bounds.startRow + 1}`;
+    }
+    
+    return `${getColumnLabel(bounds.startCol)}${bounds.startRow + 1}..${getColumnLabel(bounds.endCol)}${bounds.endRow + 1}`;
+  }
+
+  function getShape() {
+    const bounds = getSelectionBounds();
+    if (!bounds) return '??';
+    
+    const rows = bounds.endRow - bounds.startRow + 1;
+    const cols = bounds.endCol - bounds.startCol + 1;
+    return `${rows}×${cols}`;
+  }
+
+  let selectionLabel = $derived(selectionEnd ? getShapeLabels() : '');
+  let selectionSize  = $derived(selectionEnd ? getShape() : '');
+
 </script>
 
 <!--<svelte:window />-->
@@ -610,6 +633,22 @@
                 class="bg-black text-white text-xs "
                 style={Object.entries(editorStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}
             />
+            
+            <!-- Info panel -->
+            <div style={`
+              position: absolute;
+              top: 10px;
+              right: 12px;
+              background: white;
+              padding: 10px;
+              border-radius: 4px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              font-size: 12px;
+            `}>
+              <div>Selected: {selectionLabel}</div>
+                  <div>Size: {selectionSize}</div>
+                <div>Scroll: X={Math.round(scrollX)}, Y={Math.round(scrollY)}</div>
+            </div>
 
             <!--<div bind:this={overlay} class="pointer-events-none h-[90%] w-[100vw]">-->
             <!--</div>-->
@@ -936,14 +975,15 @@
                             <h3 class="menu-title text-black text-lg">Text Style</h3>
                             <div class="divider py-0 my-0"></div>
                             <div class="flex flex-row py-4 px-3 items-center justify-between w-full">
-                                <input class="basis-2/3 range range-xs range-neutral" type="range" min="10" max="20" step="1" 
+                                <input id="fontsize" 
+                                    class="basis-2/3 range range-xs range-neutral" type="range" min="10" max="20" step="1" 
                                     bind:value={styleBuffer.fontSize}
                                     onchange={() => {
-                                        applyStyleToSelection(styleBuffer)
+                                        applyStyleToSelection({ fontSize: styleBuffer.fontSize })
                                     }}  />
-                                <div class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
+                                <label for="fontsize" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
                                     <span>{styleBuffer.fontSize} px</span>
-                                </div>
+                                </label>
                             </div> 
                             <div class="flex flex-row py-2 px-6 justify-between w-full">
                                 <button aria-label="none" class="px-3 border border-black rounded  text-md tooltip tooltip-bottom" 
@@ -1010,6 +1050,18 @@
                                     }}>
                                   <i class="fa fa-align-right fa-xs" aria-hidden="true"></i>
                                 </button>
+                            </div>
+                            <div class="flex flex-row py-2 px-6 justify-between w-full">
+                                <input id="fontcolor" 
+                                    class="basis-2/3 range range-xs range-neutral" 
+                                    type="color"
+                                    bind:value={styleBuffer.color}
+                                    onchange={() => {
+                                        applyStyleToSelection({ color: styleBuffer.color })
+                                    }}  />
+                                <label for="fontcolor" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
+                                    <span>{styleBuffer.color}</span>
+                                </label>
                             </div>
                         </div>
                     </div>
