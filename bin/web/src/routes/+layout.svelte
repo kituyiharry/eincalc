@@ -3,6 +3,7 @@
     import '$lib/assets/font-awesome.min.css';
 	import favicon from '$lib/assets/favicon.svg';
     import kookaburra from '$lib/assets/Kookaboora.jpeg'
+    import github from '$lib/assets/github-mark.svg'
 	
 	let { children } = $props();
 </script>
@@ -16,10 +17,11 @@
         <div class="min-w-full flex flex-col">
             <div class="flex h-16 items-start justify-between  border-b border-b-black">
 
-                <div class="flex items-center px-8">
+                <div class="flex items-center h-16 px-8">
                     <div class="shrink-0 rounded">
                         <img src={kookaburra} alt="logo" 
-                            class="size-6 border rounded-full object-cover scale-130" />
+                            class="size-6 border rounded-full object-cover
+                            scale-150" />
                     </div>
                     <div class="">
                         <div class="ml-6 flex items-baseline space-x-4">
@@ -28,6 +30,16 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="flex items-center h-16 px-8">
+                    <div class="shrink-0 rounded">
+                        <a target="_blank" href="https://github.com/kituyiharry/eincalc"> 
+                            <img src={github} alt="logo" 
+                            class="size-6 border rounded-full object-cover scale-130" />
+                        </a>
+                    </div>
+                </div> 
+
                 <!-- TODO: Add subscribe or integrate button -->
             </div>
 
@@ -39,7 +51,7 @@
                         <div role="tab" class="outline-black tab tab-active px-2 border-x border-x-black">
                             <span class="badge text-sm badge-neutral badge-outline">
                                 <i class="fa fa-circle text-green-200"> </i>
-                                Workspace A
+                                Default Worksheet
                             </span>
                         </div>
                     </div>

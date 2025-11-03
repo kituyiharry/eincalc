@@ -64,6 +64,17 @@ let fetch_active_grid controller =
     GridTable.find controller.sheets controller.active
 ;;
 
+let erase_grid controller row rowend col colend = 
+    let grid = (fetch_active_grid controller).grid in
+    let colrange = genrange col colend in
+    genrange row rowend 
+    |> Seq.iter (fun row' -> 
+        Seq.iter (fun col' -> 
+            Grid.remove grid (row', col')
+        ) colrange
+    )
+;;
+
 let paste_values controller label separator (_row, _col) data = 
     let _ = Format.printf "pasting values to %d,%d !\n" _row _col in
 

@@ -352,6 +352,7 @@ let writeaxis (type data) axis (module S: Ndarray.NDarray with type t = data) (r
         ) data
 ;;
 
+(* copies over data rather than creating a view to make life easier *)
 let slice (type adata bdata) 
     (module M: Ndarray.NDarray with type t = adata) 
     (module S: Ndarray.NDarray with type t = bdata) 

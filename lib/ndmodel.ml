@@ -7,6 +7,8 @@
  *   department may entail severe civil or criminal penalties.
  *
  *)
+
+(* TODO: support embeddings for categorical text data *)
 open Ndarray;;
 open Types;;
 
@@ -24,6 +26,7 @@ type gridref = (string * int)
 let key_of_ref ((col, row): gridref) = 
     let col = String.fold_left (fun acc c -> 
         (acc * ((Char.code 'Z' - Char.code 'A') + 1))
+
             + 
         ((Char.code c - Char.code 'A') + 1)
     ) 0 (String.uppercase_ascii col) in 
@@ -141,7 +144,10 @@ let genrange sc ec =
 ;;
 
 (* fetch from 2d grid with a sparse function if it is not available  - the
-   second pairs are like displacements from the first *)
+   second pairs are like displacements from the first. Since its only a 2 by 2
+   grid currently shapes can only be upto a matrix! *)
+(* TODO: make grid multidimensional such that it can support say [3x3x3 dim] -
+   figure out a way to visualize this ?? *)
 (* TODO: assert r < r' and c < c' ?? or leave commutative and reverse if neg ?? *)
 let fetch_grid g (r, c) (r', c') sparse = 
     match (r' - r, c' - c) with
@@ -153,6 +159,9 @@ let fetch_grid g (r, c) (r', c') sparse =
                 (match v with 
                     | TNumber   f -> 
                         let _sdat = Scalar.make [||] f in
+                        (SNdim (_scal, _sdat))
+                    | TNat   f -> 
+                        let _sdat = Scalar.make [||] (float_of_int f) in
                         (SNdim (_scal, _sdat))
                     | _ -> 
                         let _sdat = Scalar.make [||] (sparse (r, c)) in

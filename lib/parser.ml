@@ -88,7 +88,6 @@ and mask =
     (*| Partition                 (* break into groups *) *)
     (*| Determ                    (* determinant *) *)
     (*| Rescale                   (* values add up to a certain num *)*)
-    (*| Cumulative*)
     (*| Map *)
     (*| Reduce *)
 and  cell    = string * int      (* Rows are strings, Columns are numbers *)
@@ -1174,11 +1173,7 @@ let parse_num state =
 ;;
 
 let parse_ein_mask state = 
-    (* TODO: support arbitrary expression operations
-     *| Map 
-     *| Reduce
-     *| Rescale                    (* values add up to a certain num *)*
-     *)
+    (* TODO: support arbitrary expression operations *)
     let rec masklist state lst = 
         (match (fst state).curr with 
             | Some { tokn; _ } -> 

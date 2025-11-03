@@ -307,9 +307,6 @@ let rec range_to_ndarray _grid n _cl shp =
     | Mask (_cr, _ml) -> 
         masked_to_ndarray _grid _ml _cl _cr
     | _ -> failwith "not implemented"
-    (*| Relative (_motion, _crange) -> () *)
-    (*| Refer    (_referral) -> () *)
-    (*| Void ->  ()*)
 (* TODO: remove all failwith calls and replace with Result *)
 and masked_to_ndarray _grid _masks _cl range = 
     (* TODO: we may not need to recalculate *)

@@ -193,10 +193,10 @@ module Matrix: NDarray with type t = float array array wrap = struct
                 (if !brk then () else if i = axisid then () else 
                     (if indx.(i) = (dims.(i) - 1) then 
                         indx.(i) <- 0
-                        else
-                            let _ = indx.(i) <- ((indx.(i)) + 1) in 
-                            let _ = brk := true in 
-                            ()
+                    else
+                        let _ = indx.(i) <- ((indx.(i)) + 1) in 
+                        let _ = brk := true in 
+                        ()
                     )
                 )
             done
@@ -402,7 +402,8 @@ module MulDim: NDarray with type t = bigfloatarray = struct
     let iteriaxis axisid (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
         let shp   = shape _cont in 
         let bound  = (Array.get shp axisid) - 1 in
-        let start =  (Array.make (Array.length shp) 0) in 
+        let len   = Array.length shp in
+        let start = Array.make len 0 in 
         (* increase dimension while ignoring axis. len is number of dimensions,
            dims is the final shape, indx is the current indexing values *)
         let incrindex len indx dims = 
@@ -427,7 +428,7 @@ module MulDim: NDarray with type t = bigfloatarray = struct
                 let _ = apply start (get _cont start) in
                 start.(axisid) <- (start.(axisid) + 1)
             done;
-            incrindex 3 start shp;
+            incrindex len start shp;
             start.(axisid) <- 0;
             onendslice ()
         done
