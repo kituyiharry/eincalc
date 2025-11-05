@@ -23,6 +23,7 @@
     - Accounts + Data   ??
 
 sample: ("i -> ", @D1..D10) // sums along the axis
+// TODO: needs updating!
 
 program     -> declaration
 declaration -> '(' formulae ')'
@@ -44,7 +45,7 @@ range       ->
     | '<' (numeric) range
 
 mask        ->
-    | '@' mask_name
+    | mask_name
 mask_name   ->
     | norm
     | reshape

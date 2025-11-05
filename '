@@ -9,6 +9,7 @@
  *)
 open Parser;;
 open Emitter;;
+open Genfunc;;
 open Planner;;
 open Types;;
 open Ndmodel;;
@@ -22,22 +23,20 @@ type vm = {
     ;   source: source
     ;   mutable stkidx: int 
     ;   mutable frmptr: int
-    ;   mutable oldframe: int list
     ;   sheet:  spinmodel Grid.t
 };;
 
-let debug_stack { spine; stkidx; source; _ } = 
+let debug_stack { spine; stkidx; _ } = 
     let _ = Format.printf "Stacktrace ============\n" in
-    for i = (stkidx - 1) downto 0 do 
-        let y = spine.(i) in
-        (match y with 
-            | SNdim _n ->  (show_kernel y) 
-            | SKern ix -> (show_kernel source.kernels.(ix))
-            | _ -> 
-                let _ = Format.printf "%d -> %s\n" i (Types.show_spinval y) in
-                Format.print_flush ()
-        )
-    done
+    Array.iteri (fun x y ->
+        (* NB: stkidx is just pointing to where we will write the next value! we
+           skip it when printing! *)
+        if x >= stkidx then
+            ()
+        else
+            let _ = Format.printf "%d -> %s\n" x (Types.show_spinval y) in
+            Format.print_flush ()
+    ) spine 
 ;;
 
 let get_stack idx ({ frmptr; spine; _ }) = 
@@ -59,58 +58,43 @@ let push s sval =
    when execution starts it points at nil but at the end it will likely have
    been overwritten by some other value :-) *)
 let pop s = 
-    let v = Array.unsafe_get s.spine (s.stkidx - 1) in 
+    let v = Array.get s.spine (s.stkidx - 1) in 
     let _ = s.stkidx <- (s.stkidx - 1) in 
     v
-;;
-
-(* Auto resolves pointers to kernels *)
-let popresolve s = 
-    let v = Array.unsafe_get s.spine (s.stkidx - 1) in 
-    let _ = s.stkidx <- (s.stkidx - 1) in 
-    (match v with 
-        | SKern idx ->
-            s.source.kernels.(idx)
-        | _ -> v 
-    )
 ;;
 
 let peek s = 
     Array.get s.spine (s.stkidx - 1)
 ;;
 
-(* FIXME: based on implementation this would only be called for einsum outputs
-   so needs to be such that we don't need hardcoding but for now it works!  *)
+
 let apply_masks pr = 
-    let s = Emitter.transform_mask pr.sheet (pr.source.kernels.(0)) pr.source.pmasks in 
-    let _ = pr.source.kernels.(0) <- s in 
-    (* TODO: decide on proper stack behavior -> this could clash with how
-       genloop also emits this instruction causing for artifacts on the stack *)
-    (*push pr (SKern 0)*)
-    ()
+    (match (pop pr) with 
+    | SKern idx -> 
+        let s = Emitter.transform_mask pr.sheet (pr.source.kernels.(idx)) pr.source.pmasks in 
+        let _ = pr.source.kernels.(idx) <- s in 
+        push pr (SKern idx)
+    |  SIndex i -> 
+        (Format.printf "unhandled masks")
+    |  SNumber n -> 
+        (Format.printf "unhandled masks")
+    | _ ->
+        (Format.printf "Mask variable cannot be applied on operand")
+    )
 ;;
 
 let apply_masks_list pr ml = 
     (match (pop pr) with 
     | SKern idx -> 
-        let _ = Format.printf "mASKING idx %d !\n" idx in
         let s = Emitter.transform_mask pr.sheet (pr.source.kernels.(idx)) ml in 
         let _ = pr.source.kernels.(idx) <- s in 
         push pr (SKern idx)
     |  SIndex i -> 
-        let sc = (Ndarray.Scalar.make [||] (float_of_int i)) in
-        let s = Emitter.transform_mask pr.sheet (SNdim((module Ndarray.Scalar), sc)) ml in 
-        push pr (s)
+        (Format.printf "unhandled masks")
     |  SNumber n -> 
-        let sc = (Ndarray.Scalar.make [||] (n)) in
-        let s = Emitter.transform_mask pr.sheet (SNdim((module Ndarray.Scalar), sc)) ml in 
-        push pr (s)
-    |  SNdim n -> 
-        let _ = Format.printf "mASKING raw!\n" in
-        let s = Emitter.transform_mask pr.sheet (SNdim n) ml in 
-        push pr (s)
+        (Format.printf "unhandled masks")
     | _ ->
-        (failwith "Mask variable cannot be applied on operand")
+        (Format.printf "Mask variable cannot be applied on operand")
     )
 ;;
 
@@ -130,6 +114,29 @@ let load_kernel_addr vm count =
     in 
     collect [] 0
 ;;
+
+let show_kernel sk = 
+    (match sk with 
+        | SNdim ((module M), _modl) as _g -> 
+            (
+                let n = show_spinval (sk) in 
+                let b = Buffer.create 256 in
+                let _ = Buffer.add_string b ("      " ^ n) in 
+                let _ = Buffer.add_char b '\n' in 
+                let _ = M.iteris (fun _ -> 
+                    Buffer.add_string b "\r    "
+                ) (fun _d v -> 
+                        Buffer.add_string b (Format.sprintf " |% 7.2f|" v)
+                    ) 
+                    (fun _ -> 
+                        Buffer.add_string b "    \n"
+                    ) _modl in
+                Format.printf "%s\n" (Buffer.contents b)
+            )
+        | _ -> failwith "invalid kernel!"
+    )
+;;
+
 (* TODO: standardize order *)
 let print_kernel vm = 
     let indx = peek vm in
@@ -194,16 +201,16 @@ let load_kernel_val vm =
 
 let binop s f = 
     match f with 
-    | IAdd -> push s @@ Types.sadd (popresolve s) (popresolve s)
-    | IMul -> push s @@ Types.smul (popresolve s) (popresolve s)
-    | ISub -> push s @@ Types.ssub (popresolve s) (popresolve s)
-    | IDiv -> push s @@ Types.sdiv (popresolve s) (popresolve s)
+    | IAdd -> push s @@ Types.sadd (pop s) (pop s)
+    | IMul -> push s @@ Types.smul (pop s) (pop s)
+    | ISub -> push s @@ Types.ssub (pop s) (pop s)
+    | IDiv -> push s @@ Types.sdiv (pop s) (pop s)
     | _    -> failwith "Unhandled binary op"
 ;;
 
 let unaryop s f = 
     match f with 
-    | INeg -> push s @@ Types.sneg (popresolve s)
+    | INeg -> push s @@ Types.sneg (pop s)
     | _    -> failwith "Unhandled binary op"
 ;;
 
@@ -251,17 +258,8 @@ let handle_op vm op =
     | IEchoKern     -> let _ = print_kernel vm in 1
     | ILoadAddr _a  -> let _ = load_kernel_addr vm _a in 1 
     | IApplyMasks   -> let _ = apply_masks vm in 1
-    | IApplyMaskList ml -> let _ = apply_masks_list vm ml in 1
-    | ISaveFrame ->  let _ = 
-        vm.oldframe <- (vm.frmptr :: vm.oldframe); 
-        (vm.frmptr <- vm.stkidx) 
-    in 1
-    | ILoadFrame    -> let _ = (
-        match vm.oldframe with
-        | [] -> vm.frmptr <- 0 
-        | hd :: rem -> 
-            (vm.frmptr <- hd); vm.oldframe <- rem
-    ) in 1
+    | IApplyMaskList ml -> let _ = apply_masks vm ml in 1
+    | ISaveFrame   ->  let _ = (vm.frmptr <- vm.stkidx) in 1
 ;;
 
 let timeonly f =
@@ -272,16 +270,11 @@ let timeonly f =
 
 (* access grid via controller *)
 let eval (pr: vm) = 
-    (*let _ = pprint_instr pr.source.oprtns in*)
-    let tval = timeonly (fun _ -> consume pr.source (handle_op pr))
+    let tval = timeonly (fun _ -> 
+        consume pr.source (handle_op pr)
+    )
     in let _ = debug_stack pr
-    in 
-    (*let _ =*)
-        (*for i = Array.length pr.source.kernels downto 1 do *)
-            (*(show_kernel) pr.source.kernels.(i - 1);*)
-        (*done;*)
-    (*in*)
-    Format.printf "\nexec %f secs\n" tval
+    in Format.printf "\nexec %f secs\n" tval
 ;;
 
 let tosource (controller) (vw: program) = 
@@ -290,10 +283,9 @@ let tosource (controller) (vw: program) =
 
 let mkvm controller src = {
     spine  = Array.make 256 SNil
-    ;   stkidx   = 0
-    ;   frmptr   = 0 
-    ;   oldframe = []
-    ;   source   = src
-    ;   sheet    = (Ndcontroller.fetch_active_grid controller).grid
+    ;   stkidx = 0
+    ;   frmptr = 0 
+    ;   source = src
+    ;   sheet  = (Ndcontroller.fetch_active_grid controller).grid
 }
 

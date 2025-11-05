@@ -19,6 +19,7 @@ type 'a matrix     = 'a array array wrap
 type batches       = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Array3.t ;;
 type bigfloatarray = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t ;;
 
+(* only support float data at this point *)
 (*
    TODO: define a tape protocol which describes the order of the elements when
    iterated over. implicit at the moment. can be useful once we allow for out of
@@ -28,13 +29,6 @@ type bigfloatarray = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.G
    TODO: try and implement a view-based layout which does not need to be copied
    over when certain masks are applied but simply reinterpreted. Bigarray and
    Genarray would be able to reshape efficiently via Bigarray.reshape
-*)
-(*
-   TODO: Remove asserts in production or profile releases using compile time
-  flag, see (:standard -noassert) https://github.com/ocaml/dune/issues/1569#issuecomment-441281312
-  (env
-    (release
-    (flags (:standard -noassert)))
 *)
 module type NDarray = sig 
     type t
@@ -333,7 +327,6 @@ module BatchMatrix: NDarray with type t = batches = struct
 
 end
 
-(* only support float dimens at this point *)
 
 module MulDim: NDarray with type t = bigfloatarray = struct 
     open! Bigarray;;

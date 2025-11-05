@@ -488,6 +488,7 @@
                       }
                   }
               }
+
               // toggle and reset styles for selections
               // erasorState = false;
               // selectStyle.borderColor = '#1976d2'; 
@@ -546,6 +547,9 @@
           editingCell = cell;
           selectionStart = cell;
           selectionEnd = cell;
+          // make sure style menu has proper style
+          const style = getCellStyle(cell.row, cell.col);
+          styleBuffer = { ...style };
           editValue = cellData[cellKey] || '';
           setTimeout(() => editor?.focus(), 0);
       }
@@ -629,21 +633,30 @@
                 style={Object.entries(editorStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}
             />
             
-            <!-- Info panel -->
             <div style={`
               position: absolute;
-              top: 10px;
+              top: 32px;
               right: 12px;
               background: white;
               padding: 10px;
               border-radius: 4px;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
               font-size: 12px;
-            `}>
-              <div>Selected: {selectionLabel}</div>
-                  <div>Size: {selectionSize}</div>
-                <div>Scroll: X={Math.round(scrollX)}, Y={Math.round(scrollY)}</div>
+            `} class="shadow-2xl w-38 ">
+            <div class="flex flex-col items-center"> 
+                <div class="text-lg">{selectionLabel}</div>
+                <div class="text-xs">{selectionSize}</div>
+                <div class="flex flex-row px-8 w-full items-center justify-around">
+                    <div> 
+                        <i class="fa fa-angle-double-left fa-xs text-black text-center" aria-hidden="true"></i>
+                        {Math.round(scrollX)}
+                    </div>
+                    <div> 
+                        <i class="fa fa-angle-double-up fa-xs text-black text-center" aria-hidden="true"></i>
+                        {Math.round(scrollY)}
+                    </div>
+                </div>
             </div>
+        </div>
 
             <!--<div bind:this={overlay} class="pointer-events-none h-[90%] w-[100vw]">-->
             <!--</div>-->
@@ -949,7 +962,7 @@
                         class={`text-md is-drawer-close:tooltip
                         is-drawer-close:tooltip-right 
                         ${erasorState ? "border border-red-400" : "" }`} 
-                        data-tip="Erasor mode">
+                        data-tip="Eraser mode">
                         <i class={`fa fa-eraser ${erasorState ? "text-red-400" : "" }`} 
                             aria-hidden="true"></i>
                         <span class="is-drawer-close:hidden">Erase cells</span>

@@ -41,7 +41,7 @@ let isAlphaNum c =
     isDigit c || isAlpha c
 ;;
 
-let rec scan_token (line, colm, sstr) index rest =
+let scan_token (line, colm, sstr) index rest =
     match sstr with
     | '('  -> Ok ((mktok line colm TLeftParen),   index, rest)
     | ')'  -> Ok ((mktok line colm TRightParen),  index, rest)
@@ -56,6 +56,11 @@ let rec scan_token (line, colm, sstr) index rest =
     | '@'  -> Ok ((mktok line colm TAt),          index, rest)
     | '|'  -> Ok ((mktok line colm TPipe),        index, rest)
     | ':'  -> Ok ((mktok line colm TColon),       index, rest)
+
+    | '*'  -> Ok ((mktok line colm KMult),       index, rest)
+    | '/'  -> Ok ((mktok line colm KDiv),        index, rest)
+    | '+'  -> Ok ((mktok line colm KPlus),       index, rest)
+
     | '.'  ->
         (match rest with
             |  ('.') :: rest' ->
@@ -66,16 +71,17 @@ let rec scan_token (line, colm, sstr) index rest =
     | '-'  -> (match rest with
             | ('>') :: rest' ->
                 Ok ((mktok line colm TArrow), index+1, rest')
-            | ns :: rest' when isDigit ns ->
-                (* TODO: may have fudged line tracking! *)
-                (>>==) (scan_token (line, colm+1, ns) index rest') (fun (tok, indx, rem) ->
-                    match tok.tokn with
-                    | TFloat   v -> (Ok ((mktok line colm (TFloat ((-1. *. v)))), indx, rem))
-                    | TNumeral v -> (Ok ((mktok line colm (TNumeral (- v))), indx, rem))
-                    | _ -> Error (line, colm, "bad unary operation on token")
-                )
+            (*| ns :: rest' when isDigit ns ->*)
+                (*(* TODO: may have fudged line tracking! *)*)
+                (*(>>==) (scan_token (line, colm+1, ns) index rest') (fun (tok, indx, rem) ->*)
+                    (*match tok.tokn with*)
+                    (*| TFloat   v -> (Ok ((mktok line colm (TFloat ((-1. *. v)))), indx, rem))*)
+                    (*| TNumeral v -> (Ok ((mktok line colm (TNumeral (- v))), indx, rem))*)
+                    (*| _ -> Error (line, colm, "bad unary operation on token")*)
+                (*)*)
             | _ ->
-                Error (line, colm, Format.sprintf "expected einsum arrow function '->'")
+                Ok ((mktok line colm KMinus),       index, rest)
+                (*Error (line, colm, Format.sprintf "expected einsum arrow function '->'")*)
         )
     |  chr -> (
         let dbuf = Buffer.create 8 in
@@ -154,7 +160,7 @@ let run line pstring =
     )
 ;;
 
-(* run on a single line *)
+(* run on multiple lines *)
 let runall pstring =
     String.split_on_char '\n' pstring
     |> List.mapi (run)

@@ -24,8 +24,10 @@
                             scale-150" />
                     </div>
                     <div class="">
-                        <div class="ml-6 flex items-baseline space-x-4">
-                            <span class="text-black text-3xl py-2 font-bold">Eincalc</span>
+                        <div class="ml-6 flex flex-col items-start justify-around space-x-4">
+                            <span class="text-black text-3xl font-bold">Eincalc</span>
+                            <span class="text-black text-xs font-thin">A
+                                SpreadSheet for Shape Rotators! </span>
                             <!-- TODO: add other options here if needed -->
                         </div>
                     </div>
@@ -35,9 +37,10 @@
                     <div class="shrink-0 rounded">
                         <a target="_blank" href="https://github.com/kituyiharry/eincalc"> 
                             <img src={github} alt="logo" 
-                            class="size-6 border rounded-full object-cover scale-130" />
+                            class="size-8 border rounded-full object-cover scale-130" />
                         </a>
                     </div>
+                    <span class="text-xs font-thin text-center items-center w-16 p-4"> Star on Github </span>
                 </div> 
 
                 <!-- TODO: Add subscribe or integrate button -->
@@ -48,7 +51,8 @@
                 border-b border-b-black z-auto">
                 <div class="pl-0">
                     <div role="tablist" class="pl-14 tabs "> 
-                        <div role="tab" class="outline-black tab tab-active px-2 border-x border-x-black">
+                        <div role="tab" data-tip="Multiple sheets coming soon" 
+                            class="tooltip tooltip-bottom outline-black tab tab-active px-2 border-x border-x-black">
                             <span class="badge text-sm badge-neutral badge-outline">
                                 <i class="fa fa-circle text-green-200"> </i>
                                 Default Worksheet

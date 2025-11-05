@@ -11,12 +11,47 @@ open Tokens;;
 open Lexer;;
 
 let (>>==) = Result.bind;;
+let (let*) = Result.bind;;
 
-type lit     = 
+module CharSet = Set.Make (Char);;
+
+type einmatch = {
+        label: char 
+    ;   param: int
+    ;   index: int 
+    ;   dimen: int
+    ;   outlc: int
+} 
+and eincomp = {
+       shape: int list
+    ;  elems: einmatch list
+    ;  chset: CharSet.t      [@opaque]
+    ;  param: crange
+    ;  masks: mask list
+} 
+and eintree = {
+        inps: eincomp list 
+    ;   outs: (einmatch list option * int list * mask list) (* output matches, final shape and post execution masks *)
+}
+and lit     = 
     (* TODO: Does disjoint set make sense ?? *)
     (* evaluation of this mask is AFTER the parameter masks *)
     (* variable and its index along a mask list *)
-    | Shape of ((char * int) list * mask list)
+    | Number  of (float) 
+    | Tensor  of (crange)
+    | EinSpec of (einsum * params * eintree option)
+(* normal arithmetic operations *)
+and shape = 
+    | Shape  of ((char * int) list * mask list)
+and unary = 
+    | Negate 
+    (*| Invert *)
+and factor = 
+    | Div 
+    | Mul 
+and term = 
+    | Sub 
+    | Add 
 and referral = 
     | Self  (* the current cell *)
 and call = 
@@ -91,7 +126,7 @@ and mask =
     (*| Map *)
     (*| Reduce *)
 and  cell    = string * int      (* Rows are strings, Columns are numbers *)
-and  dimnsn  = lit               (* literal and its index *)
+and  dimnsn  = shape             (* literal and its index *)
 and  motion  =  
     | North of int (* ^ *)
     | South of int (* _ *)
@@ -116,7 +151,14 @@ and  einsum  = {
     ;   out: dimnsn option       (* output - can be empty *)
 }
 and expr     = 
-    | Ein   of (einsum * params) (* formula specification *)
+    | Literal  of lit
+    | Factor   of factor
+    | Term     of term
+    | Unary    of unary * expr
+    | Binary   of expr  * expr * expr
+    | Reduce   of expr  * mask list
+    | Grouping of expr 
+
 (* TODO: Blocks can only have 1 inner expression and then enclose other blocks or expressions 
    We want to discourage long blocks. *)
 and  formula = 
@@ -144,7 +186,7 @@ let einempty = {
 
 
 let prattempty = {
-    curr = None; prev = None; prog = Stmt (Ein (einempty, []))
+    curr = None; prev = None; prog = Stmt (Literal (EinSpec (einempty, [], None)))
 };;
 
 type parseres = (program, string) result
@@ -244,6 +286,32 @@ let enclosed opentok closetok apply state =
             )
         )
         else Error "missing opening enclose token"
+    )
+;;
+
+let current state = 
+    (fst state).curr 
+;;
+
+let rec takenum state = 
+    (match current state with 
+    | Some ({ tokn=(TFloat v); _ }) -> 
+        Ok ((TFloat v), (advance state)) 
+    | Some ({ tokn=(TNumeral _v) as x; _ }) -> 
+        Ok (x, advance state)
+    | Some ({ tokn=KMinus; _ }) -> 
+        (let* (n, state') = takenum (advance state) in
+            (match n with
+            | TFloat v -> 
+                Ok ((TFloat   (-1. *. v)), state')
+            | TNumeral n -> 
+                Ok ((TNumeral (-1 * n)), state')
+            | _ -> 
+                Error "invalid value in takenum"
+            )
+        )
+    | _ -> 
+        Error "invalid token when extracting number"
     )
 ;;
 
@@ -707,11 +775,11 @@ let parse_enum_reference state =
         | Some { tokn; _ } -> 
             (match tokn with
                 | TLeftAngle -> 
-                    (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
+                    (>>==) (takenum (advance next)) (fun (tok, next')-> 
                         match tok with 
                         | TFloat fval -> 
                             (>>==) (consume next' TComma) (fun after -> 
-                                (>>==) (parse_ref_angle_var (after)) (fun (next', tok)-> 
+                                (>>==) (takenum (after)) (fun (tok, next')-> 
                                     (match tok with
                                         |TFloat incv ->  
                                             (>>==) (consume next' TComma) (fun after -> 
@@ -754,7 +822,7 @@ let parse_enum_reference state =
                             )
                         | TNumeral ival -> 
                             (>>==) (consume next' TComma) (fun after -> 
-                                (>>==) (parse_ref_angle_var (after)) (fun (next', tok)-> 
+                                (>>==) (takenum (after)) (fun (tok, next')-> 
                                     (match tok with
                                         |TFloat incv ->  
                                             (>>==) (consume next' TComma) (fun after -> 
@@ -813,7 +881,7 @@ let parse_rand_reference state =
         | Some { tokn; _ } -> 
             (match tokn with
                 | TLeftAngle -> 
-                    (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
+                    (>>==) (takenum (advance next)) (fun (tok, next')-> 
                         match tok with 
                         | TFloat fval -> 
                             (>>==) (consume next' TComma) (fun after -> 
@@ -869,7 +937,7 @@ let parse_diag_reference state =
         | Some { tokn; _ } -> 
             (match tokn with
                 | TLeftAngle -> 
-                    (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
+                    (>>==) (takenum (advance next)) (fun (tok, next')-> 
                         match tok with 
                         | TFloat fval -> 
                             (>>==) (consume next' TComma) (fun after -> 
@@ -893,21 +961,22 @@ let parse_diag_reference state =
                         | TNumeral ival -> 
                             let fval = float_of_int ival in
                             (>>==) (consume next' TComma) (fun after -> 
-                                (match (fst after).curr with
-                                    | Some { tokn; _ } -> 
-                                        (match tokn with 
-                                            | TNumeral shp -> 
+                                let* num = takenum after in
+                                (match (num) with
+                                    (*| Some { tokn; _ } -> *)
+                                        (*(match tokn with *)
+                                            | (TNumeral shp, after) -> 
                                                 (>>==) (consume (advance after) TRightAngle) (fun final -> 
                                                     Ok (final, Create (Diag (fval, shp)))
                                                 )
-                                            | TFloat shp -> 
+                                            | (TFloat shp, after) -> 
                                                 (>>==) (consume (advance after) TRightAngle) (fun final -> 
                                                     Ok (final, Create (Diag (fval, (int_of_float shp))))
                                                 )
                                             | _ -> 
-                                                Error (Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn)))
-                                    | _ ->
-                                        Error "Expected shape fill spec"
+                                                Error (Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn))
+                                    (*| _ ->*)
+                                        (*Error "Expected shape fill spec"*)
                                 )
                             )
                         | _ -> 
@@ -927,7 +996,7 @@ let parse_fill_reference state =
         | Some { tokn; _ } -> 
             (match tokn with
                 | TLeftAngle -> 
-                    (>>==) (parse_ref_angle_var (advance next)) (fun (next', tok)-> 
+                    (>>==) (takenum (advance next)) (fun (tok, next')-> 
                         match tok with 
                         | TFloat fval -> 
                             (>>==) (consume next' TComma) (fun after -> 
@@ -1151,6 +1220,16 @@ and parse_ein_params state =
                 Ok (advance state, NdArray (Itemize ([ fval ])))
             | TNumeral ival -> 
                 Ok (advance state, NdArray (Itemize ([ float_of_int ival ])))
+            | KMinus -> 
+                let* (num, state) = takenum state in 
+                (match num with 
+                | TFloat ival  -> 
+                    Ok (advance state, NdArray (Itemize ([ ival ])))
+                | TNumeral ival -> 
+                    Ok (advance state, NdArray (Itemize ([ float_of_int ival ])))
+                | _  -> 
+                    Error "minus confusion!!"
+                )
             | _ -> 
                 Error "Bad token"
         )
@@ -1406,11 +1485,9 @@ let parse_einsum_expr pratt =
     (>>==) (parse_einsum pratt) (fun (state, ein) -> 
         let p = fst state in 
         let t = snd state in 
-        Ok ({ p with prog=(Stmt (Ein (fst ein, snd ein))) }, t)
+        Ok ({ p with prog=(Stmt (Literal (EinSpec (fst ein, snd ein, None)))) }, t)
     )
 ;;
-
-
 
 let parse_einsum_formulae state = 
     let rec _extract (state, (ein, par)) =
@@ -1441,29 +1518,121 @@ let parse_formulae state =
     (>>==) (parse_einsum_formulae state) (fun (x, y) -> 
         let p = fst x in 
         let t = snd x in
-        Ok ({ p with prog=(Stmt (Ein y)) }, t)
+        Ok ({ p with prog=(Stmt (Literal (EinSpec (fst y, snd y, None)))) }, t)
     )
+;;
+
+let parse_expression state = 
+    let rec _term state' =
+        let* (lexpr, termseq') = _factor state'  in
+        let rec check  l_expr ts = 
+            (match current ts with
+                | Some ({ tokn=KMinus; _ }) ->
+                    let* r_expr, _ts' = _term (advance ts) in
+                    (match (l_expr, r_expr) with 
+                    | (Literal _l, Binary (_, (Factor _), _)) ->   
+                        let lexpr' = (Binary (l_expr, (Term Sub), (Grouping r_expr))) in
+                        check  lexpr' _ts'
+                    | (Literal l, Binary (l', (Term _t), r')) ->   
+                        let lexpr' = (Binary ((Grouping (Binary (Literal l, (Term Sub), l'))), (Term Sub), r')) in
+                        check  lexpr' _ts'
+                    | _ -> 
+                        let lexpr' = (Binary (l_expr, (Term Sub), r_expr)) in
+                        check  lexpr' _ts'
+                    )
+                | Some ({ tokn=KPlus; _ }) ->
+                    let* r_expr, _ts' = _term (advance ts) in
+                    let lexpr' = (Binary (l_expr, (Term Add), r_expr)) in
+                    check  lexpr' _ts'
+                | _ -> 
+                    Ok (l_expr, ts)
+            )
+        in check  lexpr termseq' 
+
+    and _factor state' = 
+        let* (lexpr, facseq') = _unary state'  in
+        let rec check  l_expr ts = 
+            (*FIXME: precedence not working properly! *)
+            match  current ts with
+            | Some ({ tokn=(KDiv); _ }) ->
+                let* r_expr, _ts' = _term  (advance ts) in
+                (match (l_expr, r_expr) with
+                | (Literal _l, Binary (l', (Factor op'), r')) -> 
+                    let lexpr' = (Binary ((Grouping (Binary (l_expr, (Factor Div), l'))), (Factor op'), r')) in
+                    check  lexpr' _ts'
+                | (Literal _l, Binary (l', (Term op'), r')) -> 
+                    let lexpr' = (Binary ((Grouping (Binary (l_expr, (Factor Div), l'))), (Term op'), r')) in
+                    check  lexpr' _ts'
+                | _ -> 
+                    let lexpr' = (Binary (l_expr, (Factor Div), r_expr)) in
+                    check  lexpr' _ts'
+                )
+            | Some  ({ tokn=(KMult);_ })-> 
+                let* r_expr, _ts' = _term  (advance ts) in
+                (match (l_expr, r_expr) with
+                | (Literal _l, Binary (l', (Term op'), r')) -> 
+                    let lexpr' = (Binary (Grouping (Binary (l_expr, (Factor Mul), l')), (Term op'), r')) in 
+                    check  lexpr' _ts'
+                | _ ->   
+                    let lexpr' = (Binary (l_expr, (Factor Mul), r_expr)) in 
+                    check  lexpr' _ts'
+                )
+            | Some  ({ tokn=(TPipe);_ })-> 
+                let* _ts', r_expr = parse_ein_mask (advance ts) in
+                let lexpr' = (Reduce (l_expr, r_expr)) in 
+                check  lexpr' _ts'
+            | Some  (_t) ->
+                Ok (l_expr, ts)
+            | _ ->
+                Ok (l_expr, ts)
+        in check  lexpr facseq' 
+
+    and _unary state' = 
+        (match current state' with
+        | Some ({ tokn=(KMinus); _  }) ->
+            let* r_expr, _ts' = _unary (advance state')  in
+            Ok (Unary (Negate, r_expr), _ts')
+        | _ ->
+            _primary state' 
+        ) 
+
+    and _primary state' = 
+        (match current state' with 
+            | Some { tokn=(TNumeral n); _  } ->
+                Ok ((Literal (Number (float_of_int n))), (advance state'))
+            | Some { tokn=(TFloat n); _ } ->
+                Ok ((Literal (Number n)), (advance state'))
+            | Some { tokn=(TLeftParen); _ } ->
+                let* (lit, next) = _extract_group (advance state') in
+                let* next = (consume next TRightParen) in
+                Ok (Grouping lit, next) 
+            | Some { tokn=(TAt); _ } -> 
+                let* (next, tns) = (parse_reference (advance state')) in 
+                Ok (Literal (Tensor tns), next)
+            | Some { tokn=(TLeftBracket); _ } -> 
+                (* auto-advances the state *)
+                let* (next, tns) = (parse_static_array (advance state')) in 
+                Ok (Literal (Tensor (NdArray tns)), next)
+            | Some { tokn=(TAlphaNum _n); _ } ->
+                let* (next, (e, p)) = (parse_einsum_formulae (state')) in
+                Ok (Literal (EinSpec (e, p, None)), next)
+            | Some { tokn=t; _ } ->
+                Error (Format.sprintf "unexpected token %s !" (show_ttype t)) 
+            | _n -> 
+                Error (Format.sprintf "unhandled null expression") 
+        )
+
+    and _extract_group state' = 
+        _term state'
+    in 
+    let* (form, (rem, left)) =  _extract_group state in 
+    Ok ({ rem with prog=(Stmt form) }, left)
 ;;
 
 (* TODO: make errors some easily parseable and serializable type showing expected and current states *)
 let parse lstream = 
-    let rec _parse_lxms current = 
-        (if check TLeftParen (fst current) then
-            (let next = advance current in 
-                (if check TRightParen (fst next) then 
-                    Error (Format.sprintf "expected einsum expression at %s" (show_prattstate (fst next)))
-                    else
-                        ((>>==) (parse_formulae next) (fun state' -> 
-                            (if check TRightParen (fst state') then
-                                _parse_lxms (advance state')
-                                else
-                                    Error (Format.sprintf "Unclosed einsum formulae: %s" (show_prattstate (fst state')))
-                            )
-                        )) 
-                )
-            ) 
-            else (Ok current)
-        )
+    let _parse_lxms current = 
+        parse_expression current
     in
     _parse_lxms @@ advance (prattempty, lstream)
 ;;

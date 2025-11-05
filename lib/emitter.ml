@@ -8,6 +8,7 @@
  *
  *)
 
+open Parser;;
 open Genfunc;;
 open Ndmodel;;
 open Ndcontroller;;
@@ -434,7 +435,7 @@ and transform_mask _grid ndarr masks =
 ;;
 
 (* generates nested loops from a list of variable matches *)
-let genloop controller ps (parms: (int list * Parser.crange * Parser.mask list * (char * int) list) list) (out: int list) =
+let genloop sidx controller ps (parms: (int list * Parser.crange * Parser.mask list * (char * int) list) list) (out: int list) =
     (* load params into the  stack frame first as if they were function call arguments *)
     (* create the output kernel first *)
     let outkern    = ndarray_of_dim    out in
@@ -481,16 +482,18 @@ let genloop controller ps (parms: (int list * Parser.crange * Parser.mask list *
                 counter 
                 einmatch 
                 presource 
-                start-index 
+                start-index (compensated with some prefilled operations)
                 declared-vars 
                 referenced-parameters 
                 remainder-einmatches-and-params *)
-            let g = genl 0 hd ps 3 [] rest in 
-            { g with oprtns= [ IPush (SStr "    =====VM START====="); IEchoNl; IPop ] @ g.oprtns }
+            let g = genl 0 hd ps (sidx) [] rest in 
+            (*{ g with oprtns= [ IPush (SStr "    =====VM START====="); IEchoNl; IPop ] @ g.oprtns }*)
+            { g with oprtns= g.oprtns }
     )
 ;;
 
 let convert (s: presource) = 
+    (*let _ = Format.printf "\n %s \n" (show_presource s) in*)
     {
             oprtns =(Array.of_list s.oprtns) 
         ;   consts =(Array.of_list @@ List.rev s.consts)

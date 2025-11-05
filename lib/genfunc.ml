@@ -69,29 +69,6 @@ let homogenous (matshape) =
     check matshape []
 ;;
 
-module CharSet = Set.Make (Char);;
-
-type einmatch = {
-        label: char 
-    ;   param: int
-    ;   index: int 
-    ;   dimen: int
-    ;   outlc: int
-} [@@deriving show];;
-
-type eincomp = {
-       shape: int list
-    ;  elems: einmatch list
-    ;  chset: CharSet.t      [@opaque]
-    ;  param: crange
-    ;  masks: mask list
-} [@@deriving show];;
-
-type eintree = {
-        inps: eincomp list 
-    ;   outs: (einmatch list option * int list * mask list) (* output matches, final shape and post execution masks *)
-} [@@deriving show];;
-
 let compfromshape param pidx einchars masks dimens = 
     let l' = List.length einchars in 
     let g' = List.length dimens in
@@ -313,6 +290,34 @@ let shape_of_mask m map =
     in findshape m map 0
 ;;
 
+let calcmaskshapes m lshp = 
+    List.fold_left (fun acc maskval -> 
+        match acc with 
+        | Ok a ->
+            (>>==) (shape_of_mask maskval a) (fun rshp -> 
+                (match (Types.cardinal_of_shp rshp, Types.cardinal_of_shp a) with
+                    | (l, r) when l = r -> 
+                        Ok rshp 
+                    | (l, _d) when l = 1 -> 
+                        Ok rshp
+                    | _ -> 
+                        (match maskval with 
+                        | Axis (_, _) | Slice (_) ->  
+                            (* allow these transformations that can
+                               disappear or truncate a dimension *)
+                            Ok rshp
+                        | _ ->
+                            Error (Format.sprintf "improperly structured shape transformation: %s to %s!" 
+                                (Types.string_of_shape a) (Types.string_of_shape rshp)
+                            )
+                        )
+                )
+            )
+        | _ -> 
+            acc
+    ) (Ok lshp) m
+;;
+
 (* calculate shape from checking parameter structure *)
 let rec calcshape l c = 
     match c with 
@@ -330,33 +335,7 @@ let rec calcshape l c =
     | NdArray n ->
         (homogenous (metashape n))
     | Mask (r, m) -> 
-        (>>==) (calcshape l r) (fun lshp -> 
-            List.fold_left (fun acc maskval -> 
-                match acc with 
-                | Ok a ->
-                    (>>==) (shape_of_mask maskval a) (fun rshp -> 
-                        (match (Types.cardinal_of_shp rshp, Types.cardinal_of_shp a) with
-                            | (l, r) when l = r -> 
-                                Ok rshp 
-                            | (l, _d) when l = 1 -> 
-                                Ok rshp
-                            | _ -> 
-                                (match maskval with 
-                                | Axis (_, _) | Slice (_) ->  
-                                    (* allow these transformations that can
-                                       disappear or truncate a dimension *)
-                                    Ok rshp
-                                | _ ->
-                                    Error (Format.sprintf "improperly structured shape transformation: %s to %s!" 
-                                        (Types.string_of_shape a) (Types.string_of_shape rshp)
-                                    )
-                                )
-                        )
-                    )
-                | _ -> 
-                    acc
-            ) (Ok lshp) m
-        )
+        (>>==) (calcshape l r) (calcmaskshapes m)
     | Create c -> 
         (match c with
             | Diag  (_vl, shp) -> (
@@ -385,7 +364,7 @@ let rec calcshape l c =
         Error "unimplemented shape calculation!"
 ;;
 
-let parammatch ({ inp; _ }, par) = 
+let parammatch (({ inp; _ } as e), par) = 
     if List.length inp ==  List.length par then 
         (* Ensure input are unique - maybe use disjoint set *)
         let ins = (
@@ -403,7 +382,7 @@ let parammatch ({ inp; _ }, par) =
         else
             Ok (ins |> List.map (Result.get_ok))
     else
-        Error "Inputs don't correspond to parameters provided"
+        Error (Format.sprintf "Inputs don't correspond to parameters provided for %s" (show_einsum e))
 ;;
 
 (* check for duplicates via cb and run onxst if duplicate found *)
@@ -533,19 +512,87 @@ let find_dimen varname (eincomps: eincomp list) =
     in !dim
 ;;
 
-let transform (e: formula)  = 
-    let _ = Format.print_flush () in 
-    match e with 
-    | Stmt (Ein _e) ->  (>>==) (correspondence _e) (fun (lin, lout) -> 
-        match lout with 
-        | Some (vout, maskl) -> 
-            let upd = List.map (fun (x) -> { x with dimen = (find_dimen x.label lin) }) vout in
-            let eq = List.map (fun x -> x.dimen) upd in
-            Ok ({ inps=lin; outs=(Some upd, eq, maskl); })
-        | None -> 
-            Ok ({ inps=lin; outs=(None, [], []); })
+let rec shape_of_expr stm = 
+    (match stm with 
+        |  Literal (EinSpec (_ein, _par, _tree)) ->  
+            (match _tree with 
+                | Some x -> 
+                    let (_, shp, _) = x.outs in 
+                    Ok shp
+                | None -> 
+                    Error "tried checking einsum shape before parsing finished!"
+            )
+        | Literal _ | Factor _ | Term _ ->
+            Ok []
+        | Unary  (_u, e) -> 
+            shape_of_expr e
+        | Binary (l, op, r) -> 
+            (* TODO: check whether left and right maps agree *)
+            let* l'  = shape_of_expr l in 
+            let* r'  = shape_of_expr r in 
+            if List.for_all2 (=) l' r' then
+                (match op with 
+                    | (Factor Div) | (Factor Mul) | (Term   Add) | (Term   Sub) -> 
+                        Ok l' 
+                    | _ -> Error "unable to get final shape from binary operation"
+                )
+            else
+                (* TODO: maybe other operations like cross and dot product work?? *)
+                Error "binary operation correspondence error!"
+        | Reduce (ex, ml) -> 
+            let* ex' = shape_of_expr ex in 
+            calcmaskshapes ml ex'
+        | Grouping grp      -> 
+            shape_of_expr grp
     )
+;;
+
+let transform (e: formula)  = 
+
+    let rec walkformulae stm = 
+        (match stm with 
+            |  Literal (EinSpec (_ein, _par, _tree)) ->  
+                (match _tree with 
+                | Some _x -> Ok stm
+                | None -> 
+                    let* (lin, lout) = (correspondence (_ein, _par)) in 
+                    (match lout with 
+                        | Some (vout, maskl) -> 
+                            let upd = List.map (fun (x) -> { x with dimen = (find_dimen x.label lin) }) vout in
+                            let eq = List.map (fun x -> x.dimen) upd in
+                            let newtree = ({ inps=lin; outs=(Some upd, eq, maskl); }) in 
+                            let (_, _shp, _ ) = newtree.outs in 
+                            Ok (Literal (EinSpec (_ein, _par, Some newtree)))
+                        | None -> 
+                            let newtree = { inps=lin; outs=(None, [], []); } in
+                            Ok (Literal (EinSpec (_ein, _par, Some newtree)))
+                    )
+                )
+
+            | Literal _ | Factor _ | Term _ ->
+                Ok stm
+            | Unary  (u,e) -> 
+                let* e'  = walkformulae e in 
+                Ok (Unary (u, e'))
+            | Binary (l, op, r) -> 
+                (* TODO: check whether left and right maps agree *)
+                let* l'  = walkformulae l  in 
+                let* op' = walkformulae op in 
+                let* r'  = walkformulae r  in 
+                Ok (Binary (l', op', r'))
+            | Reduce (ex, ml) -> 
+                let* ex' = walkformulae ex in 
+                Ok (Reduce (ex', ml))
+            | Grouping grp      -> 
+                let* grp' = walkformulae grp in
+                Ok (Grouping grp')
+        )
+    in
+    match e with 
+    | Stmt stm -> 
+        let* stm' = (walkformulae stm) in 
+        Ok (Stmt stm')
     | _ -> 
-        failwith "Unimplemented transform"
+        failwith "Unimplemented formula transform"
 ;;
 

@@ -55,7 +55,8 @@ let cardinal_of_dim shp =
     Array.fold_left (fun acc v -> acc * v) 1 shp
 ;;
 
-let show_spinval s = 
+
+let rec show_spinval s = 
     match s with
     | SNil      -> "nil"
     | SNumber f -> Format.sprintf "num: %.2f" f
@@ -64,7 +65,27 @@ let show_spinval s =
     | SStr    s -> s 
     | SKern   k -> Format.sprintf "kern: %d" k
     | SAddr   a -> Format.sprintf "addr: [ %s ]" (string_of_dim a)
-    | SNdim  (d, n) -> string_of_dim @@  (shape_of_module d n)
+    | SNdim  (d, n) -> (string_of_dim (shape_of_module d n))
+and show_kernel sk = 
+    (match sk with 
+        | SNdim ((module M), _modl) as _g -> 
+            (
+                let n = show_spinval (sk) in 
+                let b = Buffer.create 256 in
+                let _ = Buffer.add_string b ("      " ^ n) in 
+                let _ = Buffer.add_char b '\n' in 
+                let _ = M.iteris (fun _ -> 
+                    Buffer.add_string b "\r    "
+                ) (fun _d v -> 
+                        Buffer.add_string b (Format.sprintf " |% 7.2f|" v)
+                    ) 
+                    (fun _ -> 
+                        Buffer.add_string b "    \n"
+                    ) _modl in
+                Format.printf "%s\n" (Buffer.contents b)
+            )
+        | _ -> failwith "invalid kernel!"
+    )
 ;;
 
 let pp_spinval _f _s = 
@@ -75,6 +96,28 @@ let sadd x y =
     match (x, y) with 
     | SNumber x', SNumber y' -> SNumber (x' +. y')
     | SIndex x',  SIndex  y' -> SIndex  (x' +  y')
+    (* Broadcast operations *)
+    | SIndex  x', SNdim ((module Y), d) -> 
+        let fx' = float_of_int x' in
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v +. fx')) d in 
+        SNdim ((module Y), d)
+    | SNdim ((module Y), d), SIndex  x' -> 
+        let fx' = float_of_int x' in
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v +. fx')) d in 
+        SNdim ((module Y), d)
+    | SNumber  fx', SNdim ((module Y), d) -> 
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v +. fx')) d in 
+        SNdim ((module Y), d)
+    | SNdim ((module Y), d), SNumber fx' -> 
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v +. fx')) d in 
+        SNdim ((module Y), d)
+    | SNdim ((module X), x), SNdim ((module Y), y) -> 
+        let z = Y.make (Y.shape y) 0. in
+        let _ = X.iteri (fun _dim v -> 
+            let v' = Y.get y _dim in 
+            Y.set z _dim (v +. v')
+        ) x in 
+        SNdim ((module Y), z)
     | _ -> failwith (Format.sprintf "Invalid add operands: %s + %s" (show_spinval x) (show_spinval y))
 ;;
 
@@ -96,7 +139,100 @@ let smul x y =
     match (x, y) with 
     | SNumber x', SNumber y' -> SNumber (x' *. y')
     | SIndex  x', SIndex  y' -> SIndex  (x' *  y')
+    (* Broadcast operations *)
+    | SIndex  x', SNdim ((module Y), d) -> 
+        let fx' = float_of_int x' in
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v *. fx')) d in 
+        SNdim ((module Y), d)
+    | SNdim ((module Y), d), SIndex  x' -> 
+        let fx' = float_of_int x' in
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v *. fx')) d in 
+        SNdim ((module Y), d)
+    | SNumber  fx', SNdim ((module Y), d) -> 
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v *. fx')) d in 
+        SNdim ((module Y), d)
+    | SNdim ((module Y), d), SNumber fx' -> 
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v *. fx')) d in 
+        SNdim ((module Y), d)
+    | SNdim ((module X), x), SNdim ((module Y), y) -> 
+        let z = Y.make (Y.shape y) 0. in
+        let _ = X.iteri (fun _dim v -> 
+            let v' = Y.get y _dim in 
+            let _ = Format.printf "setting %f\n" (v *. v) in
+            Y.set z _dim (v *. v')
+        ) x in 
+        SNdim ((module Y), z)
     | _ -> failwith "Invalid mul operands"
+;;
+
+
+let sdiv x y = 
+    match (x, y) with 
+    | SNumber x', SNumber y' -> SNumber (x' /. y')
+    | SIndex  x', SIndex  y' -> SIndex  (x' /  y')
+    (* Broadcast operations *)
+    | SIndex  x', SNdim ((module Y), d) -> 
+        let fx' = float_of_int x' in
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v /. fx')) d in 
+        SNdim ((module Y), d)
+    | SNdim ((module Y), d), SIndex  x' -> 
+        let fx' = float_of_int x' in
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v /. fx')) d in 
+        SNdim ((module Y), d)
+    | SNumber  fx', SNdim ((module Y), d) -> 
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v /. fx')) d in 
+        SNdim ((module Y), d)
+    | SNdim ((module Y), d), SNumber fx' -> 
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v /. fx')) d in 
+        SNdim ((module Y), d)
+    | SNdim ((module X), x), SNdim ((module Y), y) -> 
+        let z = Y.make (Y.shape y) 0. in
+        let _ = X.iteri (fun _dim v -> 
+            let v' = Y.get y _dim in 
+            Y.set z _dim (v /. v')
+        ) x in 
+        SNdim ((module Y), z)
+    | _ -> failwith "Invalid div operands"
+;;
+
+let ssub x y = 
+    match (x, y) with 
+    | SNumber x', SNumber y' -> SNumber (x' -. y')
+    | SIndex  x', SIndex  y' -> SIndex  (x' -  y')
+    (* Broadcast operations *)
+    | SIndex  x', SNdim ((module Y), d) -> 
+        let fx' = float_of_int x' in
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v -. fx')) d in 
+        SNdim ((module Y), d)
+    | SNdim ((module Y), d), SIndex  x' -> 
+        let fx' = float_of_int x' in
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v -. fx')) d in 
+        SNdim ((module Y), d)
+    | SNumber  fx', SNdim ((module Y), d) -> 
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v -. fx')) d in 
+        SNdim ((module Y), d)
+    | SNdim ((module Y), d), SNumber fx' -> 
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v -. fx')) d in 
+        SNdim ((module Y), d)
+    | SNdim ((module X), x), SNdim ((module Y), y) -> 
+        let z = Y.make (Y.shape y) 0. in
+        let _ = X.iteri (fun _dim v -> 
+            let v' = Y.get y _dim in 
+            Y.set z _dim (v -. v')
+        ) x in 
+        SNdim ((module Y), z)
+    | _ -> failwith "Invalid sub operands"
+;;
+
+let sneg x = 
+    match x with 
+    | SNumber x' -> SNumber (-. x')
+    | SIndex  x' -> SIndex  (-  x')
+    (* Broadcast operations *)
+    | SNdim ((module Y), d) -> 
+        let _ = Y.iteri (fun _dim v -> Y.set d _dim (v *. -1.)) d in 
+        SNdim ((module Y), d)
+    | _ -> failwith "Invalid sub operands"
 ;;
 
 let snot x = 
@@ -351,6 +487,9 @@ type instr =
     (* arith *)
     | IAdd               (* binary add *)
     | IMul               (* binary multiply *)
+    | ISub               (* binary subtract *)
+    | IDiv               (* binary divide *)
+    | INeg               (* unary negate *)
     (* instr *)
     | INop               (* No operation *)
     | IPop               (* Pop of the stack *)
@@ -377,7 +516,15 @@ type instr =
     | IEchoKern          (* dereference and print out kernel values *)
     | ILoadAddr  of int  (* create an address from the next n values on the stack *)
     | IApplyMasks
+    | IApplyMaskList of Parser.mask list
+    | ILoadFrame
+    | ISaveFrame         (* simulates a function call by saving the base pointer allowing the return of a function call to remain on the stack *)
 [@@deriving show];;
+
+
+let pprint_instr il = 
+    Array.iter (fun x -> print_endline (show_instr x)) il 
+;;
 
 type source = {
         oprtns: instr array
