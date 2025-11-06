@@ -17,7 +17,7 @@ let compose _lft _op _rgt =
 (* for loop behaviour  *)
 let loopblock startloc loopcounteridx bound = 
     (* WARNING -> MODIFYING THIS LIST AFFECTS VM OUTPUT SINCE JUMPS ARE HARD CODED!!!! *)
-    (* 8 is if the body that appears in the loop is empty *)
+    (* 8 is if the body that appears if the loop is empty *)
     let jmp  = ref 8 in
     let  blck = [
         (* load the indexes - loop initializer *)

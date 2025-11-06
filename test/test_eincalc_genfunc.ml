@@ -5,6 +5,8 @@ let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) =
     match (fst @@ Result.get_ok res).prog with 
     | Parser.Stmt (Literal (EinSpec (_, e, _))) -> 
             List.hd @@ e 
+    | Parser.Stmt (Grouping(Literal (EinSpec (_, e, _)))) -> 
+            List.hd @@ e 
     | _ -> 
             failwith "Unhandled fetch"
 ;; 
@@ -13,8 +15,10 @@ let fetch_form (res: (Parser.prattstate * Lexer.lexeme list, string) result) =
   match (fst @@ Result.get_ok res).prog with 
     | Parser.Stmt (Literal (EinSpec (f, e, _))) -> 
         (f, e) 
-    | _ -> 
-        failwith "Unhandled form"
+    | Parser.Stmt (Grouping (Literal (EinSpec (f, e, _)))) -> 
+        (f, e) 
+    | s -> 
+        failwith (Format.sprintf "Unhandled form: %s" (Parser.show_formula s))
 ;; 
 
 let lexparse x = 

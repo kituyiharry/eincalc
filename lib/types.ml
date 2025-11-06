@@ -277,7 +277,7 @@ let sallclose x y =
                     ) _dat in
                     SBool (!issame)
             )
-    | _ -> failwith (Format.sprintf "Invalid greater operands: %s > %s" (show_spinval x) (show_spinval y))
+    | _ -> failwith (Format.sprintf "Invalid operands: %s > %s" (show_spinval x) (show_spinval y))
 ;;
 
 let iterndarray f nda = 
