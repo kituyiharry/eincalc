@@ -31,6 +31,7 @@ type gridcontroller = {
         count: int                    (* count with new additional sheets *)
     ;   sheets: gridmodel GridTable.t (* Grids and their order and labels *)
     ;   active: string
+    ;   plotcb: ((string * Plotter.shape list) -> unit) 
 };;
 
 let create_controller () = 
@@ -38,6 +39,7 @@ let create_controller () =
         count= 0 
     ;   sheets=GridTable.create 4 
     ;   active=""
+    ;   plotcb =ignore
     }
 ;;
 
@@ -54,6 +56,17 @@ let new_sheet controller label =
             count = controller.count+1
         ;   active=label
     }
+;;
+
+let add_plot_cb controller cb = 
+    { controller with plotcb=cb }
+;;
+
+let create_default_controller label cb = 
+    new_sheet ({ 
+        count= 0 ; sheets=GridTable.create 16; 
+        active=""; plotcb=cb  
+    }) label
 ;;
 
 let fetch_grid_label controller label = 

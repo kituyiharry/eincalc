@@ -93,7 +93,6 @@ let apply_masks pr =
 let apply_masks_list pr ml = 
     (match (pop pr) with 
     | SKern idx -> 
-        let _ = Format.printf "mASKING idx %d !\n" idx in
         let s = Emitter.transform_mask pr.sheet (pr.source.kernels.(idx)) ml in 
         let _ = pr.source.kernels.(idx) <- s in 
         push pr (SKern idx)
@@ -106,7 +105,6 @@ let apply_masks_list pr ml =
         let s = Emitter.transform_mask pr.sheet (SNdim((module Ndarray.Scalar), sc)) ml in 
         push pr (s)
     |  SNdim n -> 
-        let _ = Format.printf "mASKING raw!\n" in
         let s = Emitter.transform_mask pr.sheet (SNdim n) ml in 
         push pr (s)
     | _ ->

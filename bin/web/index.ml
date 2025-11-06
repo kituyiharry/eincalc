@@ -10,10 +10,18 @@ let js_num  = Js.number_of_float
 open Draw
 
 let _ =
-    let sheet      = Eincalc.Ndcontroller.create_controller () in
-    let default    = "Default" in
-    let sheet      = Eincalc.Ndcontroller.new_sheet sheet default in
     let pltstate   = ref None in
+    let default    = "Default" in
+    let plotcb     = (fun (label, shapes)  -> 
+        (match !pltstate with 
+        | Some p -> 
+            let _ = Draw.draw_on_canvas label p shapes 
+            in ()
+        | _ -> 
+            Con.console##error "Parent node missing more rendering"
+        )
+    )  in
+    let sheet = Eincalc.Ndcontroller.create_default_controller default plotcb in
     (* NB: method names cant have underscores!! *)
     (* TODO: use a view interface to manage this object and the controller *)
     (* TODO: implement undo buffer *)
@@ -21,19 +29,9 @@ let _ =
 
         method renderarea node = (
             let plts  = Draw.init node in 
-            let plts' = Draw.add_canvas plts in
-            pltstate := Some plts';
+            pltstate := Some plts;
             Js._false
         )
-
-        method cleardrag _ = (
-            match !pltstate with 
-            | Some plts -> 
-                List.iter (fun c -> c.Canvas.is_dragging <- false;) plts.canvases;
-                Js._true
-            | _ -> 
-                Js._false 
-        ) 
 
         method get row col = (
             match Eincalc.Ndcontroller.fetch_grid_label sheet default with
@@ -81,14 +79,12 @@ let _ =
         (* TODO: use OptDef or Opt for null checks *)
         method executecode (value: Js.js_string Js.t) = (
             let vstr = Js.to_string value in
-            (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
-                    (*\n" vstr row col)  in*)
-            Eincalc.Repl.handle_scan_exp { sheet with active=default; } vstr
+            let _    = Eincalc.Repl.handle_scan_exp { sheet with active=default; } vstr
+            in Js._true
         )
 
         (* TODO: use OptDef or Opt for null checks *)
-        (* TODO: figuring out structure here is very rudimentary - make
-                   updates*)
+        (* TODO: figuring out structure here is very rudimentary - make updates *)
         method paste row col (value: Js.js_string Js.t) = (
             let vstr = Js.to_string value in
             let sep = if String.contains vstr '\t' then '\t' else ',' in

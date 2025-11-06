@@ -1,5 +1,4 @@
 (*
-    WARNING: this file was partially vibe-coded!!
     NB: common error i got is  when methods are accessed like properties eg 
 
     canvas##style##width   := (string_of_int display_width ^ "px");
@@ -25,6 +24,8 @@ let _layout_drawer = 56;;
 let _display_width =  400;;
 let _display_height = 240;;
 
+module CanvasTable = Hashtbl.Make (String);;
+
 (* ============================================================
    CANVAS MANAGER
    ============================================================ *)
@@ -44,6 +45,7 @@ module Canvas = struct
         pixel_ratio:           float;
         display_width:         int;
         display_height:        int;
+        label:                 string;
     } [@@deriving show]
 
     (* Get device pixel ratio *)
@@ -99,6 +101,7 @@ module Canvas = struct
             pixel_ratio;
             display_width=_display_width;
             display_height=_display_height;
+            label=canvas_id;
         }
     ;;
 
@@ -112,48 +115,50 @@ module Canvas = struct
     ;;
 
     (* Render a single shape *)
-    let render_shape ctx = function
+    let render_shape t = function
         | Box { x; y; width; height; color; linewidth } ->
-            ctx##.fillStyle := Js.string color;
-            ctx##fillRect (js_num x) (js_num y) (js_num width) (js_num height);
-            ctx##.strokeStyle := js_str "#333";
-            ctx##.lineWidth := js_num linewidth;
-            ctx##strokeRect (js_num x) (js_num y) (js_num width) (js_num height)
+            t.ctx##.fillStyle := Js.string color;
+            t.ctx##fillRect (js_num x) (js_num y) (js_num width) (js_num height);
+            t.ctx##.strokeStyle := js_str "#333";
+            t.ctx##.lineWidth := js_num linewidth;
+            t.ctx##strokeRect (js_num x) (js_num y) (js_num width) (js_num height)
 
         | Line { x; y; fx; fy; linewidth; color } ->
-            ctx##beginPath;
-            ctx##moveTo (js_num x) (js_num y);
-            ctx##lineTo (js_num fx) (js_num fy);
-            ctx##.strokeStyle := js_str color;
-            ctx##.lineWidth   := js_num linewidth;
-            ctx##stroke
+            t.ctx##beginPath;
+            t.ctx##moveTo (js_num x) (js_num y);
+            t.ctx##lineTo (js_num fx) (js_num fy);
+            t.ctx##.strokeStyle := js_str color;
+            t.ctx##.lineWidth   := js_num linewidth;
+            t.ctx##stroke
 
         | Spline { x; y; cp1x; cp1y; cp2x; cp2y; linewidth; color } ->
-            ctx##beginPath;
-            ctx##bezierCurveTo (js_num cp1x) (js_num cp1y) (js_num cp2x) (js_num cp2y) (js_num x) (js_num y);
-            ctx##.strokeStyle := js_str color;
-            ctx##.lineWidth   := js_num linewidth;
-            ctx##stroke
+            t.ctx##beginPath;
+            t.ctx##bezierCurveTo (js_num cp1x) (js_num cp1y) (js_num cp2x) (js_num cp2y) (js_num x) (js_num y);
+            t.ctx##.strokeStyle := js_str color;
+            t.ctx##.lineWidth   := js_num linewidth;
+            t.ctx##stroke
 
         | Circle { x; y; radius; color; linewidth } ->
-            ctx##.fillStyle := Js.string color;
-            ctx##beginPath;
-            ctx##arc (js_num x) (js_num y) (js_num radius) (js_num 0.) (js_num (2. *. Float.pi)) Js._false;
-            ctx##fill;
-            ctx##.strokeStyle := js_str "#333";
-            ctx##.lineWidth   := js_num linewidth;
-            ctx##stroke
+            t.ctx##.fillStyle := Js.string color;
+            t.ctx##beginPath;
+            t.ctx##arc (js_num x) (js_num y) (js_num radius) (js_num 0.) (js_num (2. *. Float.pi)) Js._false;
+            t.ctx##fill;
+            t.ctx##.strokeStyle := js_str "#333";
+            t.ctx##.lineWidth   := js_num linewidth;
+            t.ctx##stroke
 
         | Text { x; y; text; color } ->
-            ctx##.fillStyle := Js.string color;
-            ctx##.font := js_str "14px Arial";
-            ctx##fillText (js_str text) (js_num x) (js_num y)
+            t.ctx##.fillStyle := Js.string color;
+            t.ctx##.font := js_str "14px Arial";
+            t.ctx##fillText (js_str text) (js_num x) (js_num y)
+        | Clear -> 
+            clear t
     ;;
 
     (* Render all shapes *)
     let render_all t =
         clear t;
-        List.iter (render_shape t.ctx) t.shapes
+        List.iter (render_shape t) t.shapes
 
     (* Add a shape and re-render *)
     let add_shape t shape =
@@ -175,7 +180,7 @@ end
 
 (* Keep shape within canvas bounds *)
 let clamp_to_bounds t shape =
-    let width = float_of_int t.Canvas.display_width in
+    let width  = float_of_int t.Canvas.display_width  in
     let height = float_of_int t.Canvas.display_height in
     match shape with
     | Box b ->
@@ -201,6 +206,7 @@ let clamp_to_bounds t shape =
         let mcp2y = (max 0. (min l.cp2y width)) in
         Spline { l with x=mx; y=my; cp1x=mcp1x; cp1y=mcp1y;  cp2x=mcp2x; cp2y=mcp2y; }
     | Text _ -> shape
+    | Clear  -> shape
 ;;
 
 (* ============================================================
@@ -300,83 +306,50 @@ end
 
 type plots = { 
     parent:   Dom.element Js.t;
-    canvases: Canvas.t list; 
+    canvases: Canvas.t CanvasTable.t; 
 };;
 
 let init (node: Dom.element Js.t) = 
     {
-        parent=node
-        ;   canvases=[]  
+            parent=node
+        ;   canvases=CanvasTable.create 4
     }
 ;;
 
+let setup_canvas label parentnode canvaselt = 
+    ignore(EventHandlers.setup_drag_handler canvaselt);
+    (* add tailwind classes *)
+    canvaselt.canvas##.style##.position := (js_str "absolute");
+    canvaselt.canvas##.style##.left     := (js_str ("121px"));
+    canvaselt.canvas##.style##.top      := (js_str ("32px"));
+    canvaselt.canvas##.style##.border   := (js_str ("2px solid black"));
+    canvaselt.canvas##.style##.cursor   := (js_str ("grab"));
+    canvaselt.canvas##.style##.zIndex   := (js_str ("9999"));
+    canvaselt.canvas##.classList##add      (js_str "shadow-2xl");
+    canvaselt.canvas##.classList##add      (js_str "rounded");
+    canvaselt.canvas##.classList##add      (js_str "transition-shadow");
+    canvaselt.canvas##.classList##add      (js_str "duration-150");
+    canvaselt.canvas##.classList##add      (js_str "hover:shadow-primary-blue/50");
+    Canvas.clear canvaselt;
+    let _ = canvaselt.canvas##.id := (js_str label) in
+    let _ = Dom.appendChild parentnode canvaselt.canvas in
+    ()
+;;
+
 (* TODO: canvas may go off view completely - find a way to bring it back! *)
-let add_canvas plts = 
-    let canvaselt  = Canvas.create "#fff" in
-    let _ = (
-        canvaselt.canvas##.style##.position := (js_str "absolute");
-        canvaselt.canvas##.style##.left     := (js_str ("121px"));
-        canvaselt.canvas##.style##.top      := (js_str ("32px"));
-        canvaselt.canvas##.style##.border   := (js_str ("2px solid black"));
-        canvaselt.canvas##.style##.cursor   := (js_str ("grab"));
-        canvaselt.canvas##.style##.zIndex   := (js_str ("9999"));
-        canvaselt.canvas##.classList##add (js_str "shadow-2xl");
-        canvaselt.canvas##.classList##add (js_str "rounded");
-        canvaselt.canvas##.classList##add (js_str "transition-shadow");
-        canvaselt.canvas##.classList##add (js_str "duration-150");
-        canvaselt.canvas##.classList##add (js_str "hover:shadow-primary-blue/50");
-        Canvas.clear canvaselt;
-        Canvas.render_shape canvaselt.ctx (
-            Circle { 
-                x=((float_of_int (_display_width/2)) +. 5.); 
-                y=((float_of_int (_display_height/2)) -. 5.); 
-                linewidth=1.;
-                radius=(10.); 
-                color="green" 
-            })
-        ;
-        Canvas.render_shape canvaselt.ctx (
-            Box { 
-                x=((float_of_int (_display_width/2)) +. 20.); 
-                y=((float_of_int (_display_height/2))); 
-                width=10.;
-                height=10.;
-                linewidth=1.;
-                color="red" 
-            })
-        ;
-        Canvas.render_shape canvaselt.ctx (
-            Text { 
-                x=((float_of_int (_display_width/2))); 
-                y=((float_of_int (_display_height/2)) +. 20.); 
-                text="Point,Line,Plane";
-                color="blue";
-            })
-        ;
-        Canvas.render_shape canvaselt.ctx (
-            Line { 
-                x=((float_of_int (_display_width/4))); 
-                y=((float_of_int (_display_height/4))); 
-                fx=((float_of_int (_display_width  - _display_width/4))); 
-                fy=((float_of_int (_display_height - _display_height/4))); 
-                linewidth=2.;
-                color="gray";
-            })
-        ;
-        Canvas.render_shape canvaselt.ctx (
-            Spline { 
-                x=((float_of_int (_display_width/3))); 
-                y=((float_of_int (_display_height* 2/3))); 
-                cp1x=((float_of_int (_display_width * 2/3))); 
-                cp1y=((float_of_int (_display_height - _display_height/12))); 
-                cp2x=((float_of_int (_display_width/6))); 
-                cp2y=((float_of_int (_display_height*5/6))); 
-                linewidth=2.;
-                color="purple";
-            })
-        ;
-        ignore(EventHandlers.setup_drag_handler canvaselt);
+let draw_on_canvas label plts shapes = 
+    let canvaselt  = (
+        match CanvasTable.find_opt plts.canvases label with 
+        | Some canvaselt -> 
+            canvaselt
+        | None -> 
+            let canvaselt = Canvas.create   label in
+            let _         = setup_canvas    label plts.parent   canvaselt in
+            let _         = CanvasTable.add plts.canvases label canvaselt in
+            canvaselt
     ) in
-    let _ = Dom.appendChild plts.parent canvaselt.canvas in
-    { plts with canvases = canvaselt :: plts.canvases }
+    (* this will be added in reverse order so the list should already be in reverse ?? *)
+    let _ = List.iter (Canvas.add_shape canvaselt) shapes in
+    let _ = Canvas.render_all canvaselt in
+    plts
 ;;

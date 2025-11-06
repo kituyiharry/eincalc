@@ -103,6 +103,8 @@ and mask =
     | Sum
     (* cumulative sum *)
     | Cumsum
+    (* apply a function *)
+    | Map of (float -> float)
     (* stddev *)
     | Stddev
     (* reshape<[x,y,...]> *)
@@ -624,7 +626,7 @@ let parse_extract_slice_indices state =
                     |  _ -> Error ("bad slice value ")
                 )
             | None -> 
-                (Error "slice indexes can only be integer number (including negative)")
+                (Error "malformed slice specification?")
         )
     in collect_rem state [ ]
 ;;
@@ -1339,7 +1341,7 @@ let parse_ein_mask state =
                                     )
                                 )
                             | _ -> 
-                                Error "expected slice parameters"
+                                Error "expected slice parameters in brackets"
                             )
                         else Error "missing slice parameters!")
                     | TAlphaNum "plot" ->
@@ -1393,6 +1395,24 @@ let parse_ein_mask state =
                         Ok (advance state, Sum)
                     | TAlphaNum "cumsum" ->
                         Ok (advance state, Cumsum)
+                    | TAlphaNum "sin" ->
+                        Ok (advance state, Map(Float.sin))
+                    | TAlphaNum "cos" ->
+                        Ok (advance state, Map(Float.cos))
+                    | TAlphaNum "tan" ->
+                        Ok (advance state, Map(Float.tan))
+                    | TAlphaNum "tanh" ->
+                        Ok (advance state, Map(Float.tanh))
+                    | TAlphaNum "exp" ->
+                        Ok (advance state, Map(Float.exp))
+                    | TAlphaNum "log" ->
+                        Ok (advance state, Map(Float.log))
+                    | TAlphaNum "inv" ->
+                        Ok (advance state, Map((/.) 1.))
+                    | TAlphaNum "ceil" ->
+                        Ok (advance state, Map(Float.ceil))
+                    | TAlphaNum "floor" ->
+                        Ok (advance state, Map(Float.floor))
                     | TAlphaNum "stddev" ->
                         Ok (advance state, Stddev)
                     | TAlphaNum "mode" ->

@@ -232,6 +232,24 @@ let cumsumaxis (type data) axis (module M: Ndarray.NDarray with type t = data) (
 ;;
 
 (* make a new array with zscore values *)
+let apply (type data) (module M: Ndarray.NDarray with type t = data) (f: float -> float) (d: data) =
+    M.iteri (fun dim v -> 
+        M.set d dim (f v)
+    ) d
+;;
+
+
+let applyaxis (type data) axis (module M: Ndarray.NDarray with type t = data) (f: float -> float) (d: data)  =
+    let sum = ref 0. in
+    M.iteriaxis axis 
+        (ignore) 
+        (fun dim v -> 
+            M.set d dim (f v)
+        )
+    (fun _ -> sum := 0.) d
+;;
+
+(* make a new array with zscore values *)
 let zscore (type data) (module M: Ndarray.NDarray with type t = data) (d: data) =
     let (mnv, std, _) = tendencies (module M) d in
     let d' = M.make (M.shape d) 0. in

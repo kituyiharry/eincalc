@@ -10,7 +10,7 @@
   let canvas
 
   onMount(() => {
-    // controller.myLib.renderarea(plotArea);
+    controller.myLib.renderarea(plotArea);
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
@@ -367,7 +367,6 @@
   // Dragging and selection
   function handleMouseDown(e) {
       // ensure plots don't block
-      controller.myLib.cleardrag(e);
       e.stopPropagation();
 
       const rect = e.target.getBoundingClientRect();
@@ -402,7 +401,6 @@
 
   function handleMouseMove(e) {
       // ensure plots don't block
-      controller.myLib.cleardrag(e);
 
       const rect = e.target.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -536,7 +534,6 @@
   }
 
   function handleDoubleClick(e) {
-      controller.myLib.cleardrag(e);
       const rect = e.target.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;

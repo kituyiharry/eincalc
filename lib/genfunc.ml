@@ -146,6 +146,8 @@ let shape_of_mask m map =
             Ok []
         | Cumsum ->
             Ok map
+        | Map _ ->
+            Ok map
         | Reshape shp -> 
             if nest > 0 then Error "reshape not currently supported within axis"
             else Ok shp
@@ -161,6 +163,8 @@ let shape_of_mask m map =
             (if (sllen != mplen) then 
                 Error (Format.sprintf "slice parameters do not correspond to input (slice: %d != inp: %d)!" sllen mplen)
             else
+                (* TODO: should skipping over the whole slice return an empty
+                   tensor - right now we report an error *)
                 let rec shapeslice cons slice shape =
                     (match (slice, shape) with
                     | ((hd :: rem),(hd' :: rem')) ->  
@@ -187,7 +191,7 @@ let shape_of_mask m map =
                                         shapeslice ((Int.abs st) :: cons) rem rem'
                                     )
                             | (Some st, Some ln, None) -> 
-                                if (Int.abs st) > hd' || (ln >= hd') then 
+                                if (Int.abs st) > hd' || (ln > hd') then 
                                     Error "selection or length into slice exceeds dimension"
                                 else
                                     (if ln > 0 then
@@ -197,12 +201,13 @@ let shape_of_mask m map =
                                         Error "must be at least 1 length selection!"
                                     )
                             | (Some st, Some ln, Some sk) -> 
-                                if (Int.abs st) > hd' || (ln >= hd') || (sk >= hd') then 
+                                if (Int.abs st) > hd' || (ln > hd') || (sk >= hd') then 
                                     Error "selection or length or skip over slice exceeds dimension"
                                 else
                                     (if ln > 0 && sk > 0 then
                                         (* select alternating including start items from st *)
-                                        let sz = Int.div ln sk in
+                                        let sz = (Int.div ln sk)in
+                                        let sz = if Int.rem ln sk = 0 then sz else sz + 1 in
                                         shapeslice (sz :: cons) rem rem'
                                     else
                                         Error "must be at least 1 length selection or step!"
@@ -213,7 +218,8 @@ let shape_of_mask m map =
                                 else
                                     (if sk > 0 then
                                         (* select alternating including start items from st *)
-                                        let sz = Int.div hd' sk in
+                                        let sz = (Int.div hd' sk) in
+                                        let sz = if Int.rem hd' sk = 0 then sz else sz + 1 in
                                         shapeslice (sz :: cons) rem rem'
                                     else
                                         Error "must be at least 1 length selection!"
@@ -224,7 +230,8 @@ let shape_of_mask m map =
                                 else
                                     (if sk > 0 then
                                         (* select alternating including start items from st *)
-                                        let sz = Int.div hd' sk in
+                                        let sz = (Int.div hd' sk) in
+                                        let sz = if Int.rem hd' sk = 0 then sz else sz + 1 in
                                         shapeslice (sz :: cons) rem rem'
                                     else
                                         Error "must be at least 1 length selection!"
@@ -281,7 +288,7 @@ let shape_of_mask m map =
                             Error "reshape across multiple dimensions not supported"
                             (*Ok idim*)
                     )
-                | None -> Error "missing axis dimension index!"
+                | None -> Error "missing axis dimension in input (data could be lower dimension than expected!)!"
             ) 
         (*| Determ -> *)
             (*[]*)
@@ -304,7 +311,8 @@ let calcmaskshapes m lshp =
                         (match maskval with 
                         | Axis (_, _) | Slice (_) ->  
                             (* allow these transformations that can
-                               disappear or truncate a dimension *)
+                               disappear or truncate a dimension - errors will
+                               be caught *)
                             Ok rshp
                         | _ ->
                             Error (Format.sprintf "improperly structured shape transformation: %s to %s!" 
@@ -591,6 +599,8 @@ let transform (e: formula)  =
     match e with 
     | Stmt stm -> 
         let* stm' = (walkformulae stm) in 
+        let* shp  = (shape_of_expr stm') in
+        let  _    = Format.printf "final shape: %s\n" (Types.string_of_shape shp) in
         Ok (Stmt stm')
     | _ -> 
         failwith "Unimplemented formula transform"

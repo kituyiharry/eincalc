@@ -209,6 +209,9 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
             | Parser.Cumsum -> 
                 let _ = Masks.cumsumaxis axis (module M) data in
                 acc
+            | Parser.Map (f) -> 
+                let _ = Masks.applyaxis axis (module M) f data in
+                acc
             | Parser.Sum -> 
                 let ns = Array.make (len - 1) 0 in
                 (match collapse curdim ns len with 
@@ -360,6 +363,9 @@ and masked_to_ndarray _grid _masks _cl range =
                     | Parser.Cumsum -> 
                         let _ = Masks.cumsum (module M) data in
                         acc
+                    | Parser.Map (f) -> 
+                        let _ = Masks.apply (module M) f data in
+                        acc
                     (* FIXME: implement actual plotting *)
                     | Parser.Plot _pl -> 
                         acc
@@ -424,6 +430,9 @@ and transform_mask _grid ndarr masks =
                         acc
                     (* FIXME: implement actual plotting *)
                     | Parser.Plot _pl -> 
+                        acc
+                    | Parser.Map (f) -> 
+                        let _ = Masks.apply (module M) f data in
                         acc
                     | Parser.Axis (axis, masks) -> 
                         handle_masks _grid axis masks acc (module M) data
