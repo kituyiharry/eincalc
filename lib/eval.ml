@@ -23,7 +23,7 @@ type vm = {
     ;   mutable stkidx: int 
     ;   mutable frmptr: int
     ;   mutable oldframe: int list
-    ;   sheet:  spinmodel Grid.t
+    ;   sheet:  Ndcontroller.gridcontroller
 };;
 
 let debug_stack { spine; stkidx; source; _ } = 
@@ -287,11 +287,11 @@ let tosource (controller) (vw: program) =
 ;;
 
 let mkvm controller src = {
-    spine  = Array.make 256 SNil
+        spine    = Array.make 256 SNil
     ;   stkidx   = 0
     ;   frmptr   = 0 
     ;   oldframe = []
     ;   source   = src
-    ;   sheet    = (Ndcontroller.fetch_active_grid controller).grid
+    ;   sheet    = controller
 }
 

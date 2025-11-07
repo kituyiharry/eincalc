@@ -129,6 +129,64 @@ let as_slice (type adata) mask curshp curdim
     )
 ;;
 
+(* TODO: move validation to parser so its easier here  *)
+(* helpers for extracting props *)
+let find_default_value tbl key def apply = 
+    (match Hashtbl.find_opt tbl key with
+        | Some tok -> 
+            (apply tok)
+        | None -> 
+            def
+    )
+;;
+
+let select_num k tok = 
+    match tok with 
+    | Tokens.TFloat v -> v 
+    | Tokens.TNumeral i -> (float_of_int i)
+    | _ -> failwith ("expected float value for key " ^ k)
+;;
+
+
+let select_str k tok = 
+    match tok with 
+    | Tokens.TAlphaNum v -> v 
+    | _ -> failwith ("expected string value for key " ^ k)
+;;
+
+let transform_draw_elmnts elmnts = 
+    List.map (fun elts -> 
+        (match elts with 
+            | Box props -> 
+                Plotter.Box ({ 
+                    x      =    find_default_value props "x" 0. (select_num "box.x"); 
+                    y      =    find_default_value props "y" 0. (select_num "box.y"); 
+                    width  =    find_default_value props "w" 1. (select_num "box.w"); 
+                    height =    find_default_value props "h" 1. (select_num "box.h"); 
+                    color  =    find_default_value props "c" "red" (select_str "box.c"); 
+                    linewidth = find_default_value props "l" 1. (select_num "box.l"); 
+                }) 
+            | Circle props -> 
+                Plotter.Circle ({ 
+                    x      =    find_default_value props "x" 0. (select_num "circle.x"); 
+                    y      =    find_default_value props "y" 0. (select_num "circle.y"); 
+                    radius =    find_default_value props "r" 1. (select_num "circle.r"); 
+                    color  =    find_default_value props "c" "red" (select_str "circle.c"); 
+                    linewidth = find_default_value props "l" 1. (select_num "circle.l"); 
+                }) 
+            | Line props -> 
+                Plotter.Line ({ 
+                    x      =    find_default_value props "x"  0. (select_num "line.x"); 
+                    y      =    find_default_value props "y"  0. (select_num "line.y"); 
+                    fx     =    find_default_value props "fx" 1. (select_num "line.height"); 
+                    fy     =    find_default_value props "fy" 1. (select_num "line.height"); 
+                    color  =    find_default_value props "c"  "red" (select_str "line.color"); 
+                    linewidth = find_default_value props "l"  1. (select_num "line.x"); 
+                }) 
+        )
+    ) elmnts
+;;
+
 let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray with type t = data) (data: data) =
 
     (* a way to squish axes like mean *)
@@ -205,7 +263,7 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                 )
             | Parser.Write _cell -> 
                 let start = key_of_ref _cell in
-                let _ = Masks.writeaxis axis (module M) start data _grid in
+                let _ = Masks.writeaxis axis (module M) start data (Ndcontroller.fetch_active_grid _grid).grid in
                 acc
             | Parser.Cumsum -> 
                 let _ = Masks.cumsumaxis axis (module M) data in
@@ -228,7 +286,10 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
             | Parser.Reshape _ -> 
                 failwith "axis reshape not supported atm!!"
             (* FIXME: implement actual plotting *)
-            | Parser.Plot _ | Parser.Draw _ -> 
+            | Parser.Plot _ -> 
+                acc
+            | Parser.Draw  { handle; elmnts } -> 
+                let _ = _grid.plotcb (handle, (transform_draw_elmnts elmnts)) in
                 acc
             | Parser.Axis (_, _) -> 
                 failwith "nested axis operations not allowed!!"
@@ -258,10 +319,10 @@ let rec range_to_ndarray _grid n _cl shp =
     | Parser.Range (cells, celle) -> 
         let adds = key_of_ref cells in
         let adde = key_of_ref celle in
-        fetch_grid _grid adds adde (Fun.const 0.)
+        fetch_grid (Ndcontroller.fetch_active_grid _grid).grid adds adde (Fun.const 0.)
     | Parser.Scalar cell -> 
         let addr = key_of_ref cell in
-        fetch_grid _grid addr addr (Fun.const 0.)
+        fetch_grid (Ndcontroller.fetch_active_grid _grid).grid addr addr (Fun.const 0.)
     | Parser.Create (_c) -> (
         match _c with
         | Parser.Diag (v, s) -> 
@@ -359,7 +420,7 @@ and masked_to_ndarray _grid _masks _cl range =
                     | Parser.Write _cell -> 
                         (* execute an effect back to the grid *)
                         let start = key_of_ref _cell in
-                        let _ = Masks.write (module M) start data _grid in
+                        let _ = Masks.write (module M) start data (Ndcontroller.fetch_active_grid _grid).grid in
                         acc
                     | Parser.Cumsum -> 
                         let _ = Masks.cumsum (module M) data in
@@ -368,7 +429,10 @@ and masked_to_ndarray _grid _masks _cl range =
                         let _ = Masks.apply (module M) f data in
                         acc
                     (* FIXME: implement actual plotting *)
-                    | Parser.Plot _  | Parser.Draw _ -> 
+                    | Parser.Plot _  -> 
+                        acc
+                    | Parser.Draw  { handle; elmnts } -> 
+                        let _ = _grid.plotcb (handle, (transform_draw_elmnts elmnts)) in
                         acc
                     | Parser.Axis (axis, masks) -> 
                         handle_masks _grid axis masks acc (module M) data
@@ -419,7 +483,7 @@ and transform_mask _grid ndarr masks =
                     | Parser.Write _cell -> 
                         (* execute an effect back to the grid *)
                         let start = key_of_ref _cell in
-                        let _ = Masks.write (module M) start data _grid in
+                        let _ = Masks.write (module M) start data (Ndcontroller.fetch_active_grid _grid).grid in
                         acc
                     | Parser.Slice sl -> 
                         let curdim = M.shape data in
@@ -432,7 +496,8 @@ and transform_mask _grid ndarr masks =
                     (* FIXME: implement actual plotting and drawing *)
                     | Parser.Plot _pl -> 
                         acc
-                    | Parser.Draw _pl -> 
+                    | Parser.Draw { handle; elmnts } -> 
+                        let _ = _grid.plotcb (handle, (transform_draw_elmnts elmnts)) in
                         acc
                     | Parser.Map  f -> 
                         let _ = Masks.apply (module M) f data in
@@ -452,11 +517,11 @@ let genloop sidx controller ps (parms: (int list * Parser.crange * Parser.mask l
     (* create the output kernel first *)
     let outkern    = ndarray_of_dim    out in
     let outidx, ps = add_kernel outkern ps in 
-    let grid       = (Ndcontroller.fetch_active_grid controller).grid in
+    (*let grid       = (Ndcontroller.fetch_active_grid controller).grid in*)
 
     let (_idxs, ps) = List.fold_left (fun (kidxs, ps') (_shp, _cr, _msks, _cl) -> 
-        let  _ndim      = range_to_ndarray grid _cr _cl _shp in
-        let  _ndim'     = transform_mask   grid _ndim _msks in
+        let  _ndim      = range_to_ndarray controller _cr _cl _shp in
+        let  _ndim'     = transform_mask   controller _ndim _msks in
         let (_kdx, ps') = add_kernel       _ndim' ps' in
         (_kdx :: kidxs , ps')
     ) ([ ], ps) parms in

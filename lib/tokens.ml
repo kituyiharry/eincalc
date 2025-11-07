@@ -7,7 +7,6 @@
  *   redistribution of this app without express, written permission from our legal 
  *   department may entail severe civil or criminal penalties.
  *
- *   Token Types used to represent Steinmetz formulae
  *)
 type ttype =
     | TNumeral  of int    (* 0..9+ *)

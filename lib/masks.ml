@@ -38,7 +38,6 @@ let sumaxis (type data newdata) axis (module Mnew: Ndarray.NDarray with type t =
         ) d 
 ;;
 
-(* TODO: support slicing or partitioning along arbitrary axies *)
 let mean (type data) (module M: Ndarray.NDarray with type t = data) (d: data) = 
     let sum, count = ref 0., ref 0 in
     let _ = M.iteri (fun _dim v -> 

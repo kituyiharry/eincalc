@@ -268,6 +268,8 @@ let advance (state, rem) =
     | [] -> 
         ({ state with prev=state.curr; curr=(None) }, rem)
     | hd :: rest -> 
+        (*let _ = Format.printf "handled tok: %s\n" (show_lexeme (hd)) in*)
+        (*let _ = Format.print_flush () in*)
         ({ state with prev=state.curr; curr=(Some hd) }, rest)
 ;;
 
@@ -279,7 +281,7 @@ let consume state tt  =
              else
                 (Error (Format.sprintf "Expected consume %s found %s" (show_ttype tt) (show_ttype tokn)))
             )
-        | _ -> Error "failed consumption check with bad termination"
+        | _ -> Error ("failed consumption check with bad termination expecting " ^ (show_ttype tt))
     )
 ;;
 

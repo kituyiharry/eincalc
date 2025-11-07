@@ -167,7 +167,7 @@ let shape_of_mask m map =
                 if Result.is_error r then r else 
                 match e with 
                 | Box pr  -> (
-                    let keys = ["x";"y";"width";"height"] in
+                    let keys = ["x";"y";"w";"h"] in
                     let i,t = ensure_keys pr keys in
                     (if t then r else 
                         Error (Format.sprintf "missing property for %s box: %s"
@@ -175,7 +175,7 @@ let shape_of_mask m map =
                     )
                 )
                 | Circle pr -> (
-                    let keys = ["x";"y";"radius"] in
+                    let keys = ["x";"y";"r"] in
                     let i,t = ensure_keys pr keys in
                     (if t then r else 
                         Error (Format.sprintf "missing property for %s circle: %s"
@@ -183,7 +183,7 @@ let shape_of_mask m map =
                     )
                 ) 
                 | Line pr -> (
-                    let keys = ["x";"y";"radius";"fx";"fy"] in
+                    let keys = ["x";"y";"fx";"fy"] in
                     let i,t  = ensure_keys pr keys in
                     (if t then r else 
                         Error (Format.sprintf "missing property for %s Line: %s"

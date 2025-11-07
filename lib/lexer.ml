@@ -9,8 +9,6 @@
  *)
 open Tokens;;
 
-(* TODO: Maybe use array instead of list *)
-
 let (>>==) = Result.bind;;
 
 type lexeme = {
@@ -60,9 +58,9 @@ let scan_token (line, colm, sstr) index rest =
     | '}'  -> Ok ((mktok line colm TCloseCurly),  index, rest)
     | '='  -> Ok ((mktok line colm TEq),          index, rest)
 
-    | '*'  -> Ok ((mktok line colm KMult),       index, rest)
-    | '/'  -> Ok ((mktok line colm KDiv),        index, rest)
-    | '+'  -> Ok ((mktok line colm KPlus),       index, rest)
+    | '*'  -> Ok ((mktok line colm KMult),        index, rest)
+    | '/'  -> Ok ((mktok line colm KDiv),         index, rest)
+    | '+'  -> Ok ((mktok line colm KPlus),        index, rest)
 
     | '.'  ->
         (match rest with
@@ -74,18 +72,23 @@ let scan_token (line, colm, sstr) index rest =
     | '-'  -> (match rest with
             | ('>') :: rest' ->
                 Ok ((mktok line colm TArrow), index+1, rest')
-            (*| ns :: rest' when isDigit ns ->*)
-                (*(* TODO: may have fudged line tracking! *)*)
-                (*(>>==) (scan_token (line, colm+1, ns) index rest') (fun (tok, indx, rem) ->*)
-                    (*match tok.tokn with*)
-                    (*| TFloat   v -> (Ok ((mktok line colm (TFloat ((-1. *. v)))), indx, rem))*)
-                    (*| TNumeral v -> (Ok ((mktok line colm (TNumeral (- v))), indx, rem))*)
-                    (*| _ -> Error (line, colm, "bad unary operation on token")*)
-                (*)*)
             | _ ->
                 Ok ((mktok line colm KMinus),       index, rest)
-                (*Error (line, colm, Format.sprintf "expected einsum arrow function '->'")*)
         )
+    | '\'' -> 
+        let dbuf = Buffer.create 8 in
+        let drp  = ref 0 in
+        let _ = List.drop_while (fun c ->
+            let isd = not @@ Char.equal '\'' c in
+            if isd then (
+                incr drp;
+                Buffer.add_char dbuf c
+            );
+            isd
+        ) rest in
+        let alp = Buffer.contents dbuf in
+        Ok ((mktok line colm (TAlphaNum alp)), (index + !drp), (List.drop (!drp+1) rest))
+
     |  chr -> (
         let dbuf = Buffer.create 8 in
         let () = Buffer.add_char dbuf chr in
@@ -104,6 +107,7 @@ let scan_token (line, colm, sstr) index rest =
                     let alp = Buffer.contents dbuf |> int_of_string in
                     Ok ((mktok line colm (TNumeral alp)), index + !drp, rem)
                 | hd :: rest -> (
+                    (* floating point *)
                     if hd == '.' then (
                         Buffer.add_char dbuf hd;
                         let rem = List.drop_while (fun c ->

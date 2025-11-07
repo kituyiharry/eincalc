@@ -1,5 +1,5 @@
 (rule
  (mode promote)
- (targets index.js)
+ (targets eincalc.js)
  (deps ../../index.bc.js)
- (action (copy ../../index.bc.js index.js)))
+ (action (copy ../../index.bc.js eincalc.js)))

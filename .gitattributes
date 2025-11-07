@@ -1,0 +1,3 @@
+# Ignore changes in specific config files
+./bin/web/src/lib/eincalc.js -diff
+

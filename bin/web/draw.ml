@@ -21,7 +21,7 @@ let _layout_header = 104;;
 let _layout_drawer = 56;;
 
 (* Get display dimensions *)
-let _display_width =  400;;
+let _display_width =  320;;
 let _display_height = 240;;
 
 module CanvasTable = Hashtbl.Make (String);;

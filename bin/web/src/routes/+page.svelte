@@ -1,7 +1,7 @@
 <script>
   import { Canvas, Layer } from 'svelte-canvas';
   // TODO: standardize controller so that we can type it
-  import { default as controller } from '$lib/index';
+  import { default as controller } from '$lib/eincalc';
   import { onMount } from 'svelte';
 
   // editing support via floating input 
