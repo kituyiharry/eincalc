@@ -118,12 +118,13 @@ and mask =
     | Axis    of int * mask list  (* apply mask along an axis *)
     (* slice<[1, -1:10:3]> *)        
     | Slice   of slice list       (* slice an array - np slice syntax *)
-    (* plot<title, line<...>> *)
+    (*draw<handle, [height, width], [{...props},..]>*)
     | Draw    of { 
             handle: string 
         ;   bounds: int list (* only 1st 2 are accounted for *)
         ;   elmnts: draw list
     }
+    (* plot<title, line<...>> *)
     | Plot    of { 
             handle: string
         ;   oftype: plot 

@@ -88,7 +88,7 @@ let _ =
         (* TODO: figuring out structure here is very rudimentary - make updates *)
         method paste row col (value: Js.js_string Js.t) = (
             let vstr = Js.to_string value in
-            let sep = if String.contains vstr '\t' then '\t' else ',' in
+            let sep = if String.contains vstr '\t' then '\t' else if (not @@ String.contains vstr ',') then ' ' else ',' in
             (match Eincalc.Ndcontroller.paste_values sheet default sep (row, col) vstr with 
                 | Ok    _v -> 
                     Con.console##info "Pasted values!";
