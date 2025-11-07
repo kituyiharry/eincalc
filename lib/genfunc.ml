@@ -170,7 +170,7 @@ let shape_of_mask m map =
                     let keys = ["x";"y";"w";"h"] in
                     let i,t = ensure_keys pr keys in
                     (if t then r else 
-                        Error (Format.sprintf "missing property for %s box: %s"
+                        Error (Format.sprintf "missing property for %s Box: %s"
                         (handle)   (List.nth keys i))
                     )
                 )
@@ -178,7 +178,7 @@ let shape_of_mask m map =
                     let keys = ["x";"y";"r"] in
                     let i,t = ensure_keys pr keys in
                     (if t then r else 
-                        Error (Format.sprintf "missing property for %s circle: %s"
+                        Error (Format.sprintf "missing property for %s Circle: %s"
                         (handle)    (List.nth keys i))
                     )
                 ) 
@@ -190,6 +190,15 @@ let shape_of_mask m map =
                         (handle)    (List.nth keys i))
                     )
                 ) 
+                | Text pr -> (
+                    let keys = ["x";"y";"t"] in
+                    let i,t  = ensure_keys pr keys in
+                    (if t then r else 
+                        Error (Format.sprintf "missing property for %s Text: %s"
+                        (handle)    (List.nth keys i))
+                    )
+                )
+                | Clear -> r
             ) (Ok map) elmnts
         | Slice _slices -> 
             let sllen = List.length _slices in 

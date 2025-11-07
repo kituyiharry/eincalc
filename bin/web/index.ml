@@ -12,10 +12,10 @@ open Draw
 let _ =
     let pltstate   = ref None in
     let default    = "Default" in
-    let plotcb     = (fun (label, shapes)  -> 
+    let plotcb     = (fun (label, bounds, shapes)  -> 
         (match !pltstate with 
         | Some p -> 
-            let _ = Draw.draw_on_canvas label p shapes 
+            let _ = Draw.draw_on_canvas label bounds p shapes 
             in ()
         | _ -> 
             Con.console##error "Parent node missing more rendering"

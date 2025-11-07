@@ -43,8 +43,8 @@ module Canvas = struct
         mutable currenty:      int;
         mutable is_dragging:   bool;
         pixel_ratio:           float;
-        display_width:         int;
-        display_height:        int;
+        mutable display_width: int;
+        mutable display_height:int;
         label:                 string;
     } [@@deriving show]
 
@@ -116,10 +116,10 @@ module Canvas = struct
 
     (* Render a single shape *)
     let render_shape t = function
-        | Box { x; y; width; height; color; linewidth } ->
+        | Box { x; y; width; height; color; linewidth; border } ->
             t.ctx##.fillStyle := Js.string color;
             t.ctx##fillRect (js_num x) (js_num y) (js_num width) (js_num height);
-            t.ctx##.strokeStyle := js_str "#333";
+            t.ctx##.strokeStyle := js_str border;
             t.ctx##.lineWidth := js_num linewidth;
             t.ctx##strokeRect (js_num x) (js_num y) (js_num width) (js_num height)
 
@@ -138,19 +138,20 @@ module Canvas = struct
             t.ctx##.lineWidth   := js_num linewidth;
             t.ctx##stroke
 
-        | Circle { x; y; radius; color; linewidth } ->
+        | Circle { x; y; radius; color; linewidth; border } ->
             t.ctx##.fillStyle := Js.string color;
             t.ctx##beginPath;
             t.ctx##arc (js_num x) (js_num y) (js_num radius) (js_num 0.) (js_num (2. *. Float.pi)) Js._false;
             t.ctx##fill;
-            t.ctx##.strokeStyle := js_str "#333";
+            t.ctx##.strokeStyle := js_str border;
             t.ctx##.lineWidth   := js_num linewidth;
             t.ctx##stroke
 
-        | Text { x; y; text; color } ->
+        | Text { x; y; text; color; size } ->
             t.ctx##.fillStyle := Js.string color;
-            t.ctx##.font := js_str "14px Arial";
+            t.ctx##.font := js_str ((string_of_int size) ^ "px Outfit");
             t.ctx##fillText (js_str text) (js_num x) (js_num y)
+
         | Clear -> 
             clear t
     ;;
@@ -159,6 +160,11 @@ module Canvas = struct
     let render_all t =
         clear t;
         List.iter (render_shape t) t.shapes
+
+    (* Add a shape and re-render *)
+    let reset t =
+        t.shapes <- [];
+        ()
 
     (* Add a shape and re-render *)
     let add_shape t shape =
@@ -337,7 +343,7 @@ let setup_canvas label parentnode canvaselt =
 ;;
 
 (* TODO: canvas may go off view completely - find a way to bring it back! *)
-let draw_on_canvas label plts shapes = 
+let draw_on_canvas label bounds plts shapes = 
     let canvaselt  = (
         match CanvasTable.find_opt plts.canvases label with 
         | Some canvaselt -> 
@@ -349,6 +355,22 @@ let draw_on_canvas label plts shapes =
             canvaselt
     ) in
     (* this will be added in reverse order so the list should already be in reverse ?? *)
+    let _ = (
+        match bounds with 
+        | height :: width :: rest -> 
+            canvaselt.display_height <- height;
+            canvaselt.display_width <- width;
+            ignore(Canvas.setup_high_dpi canvaselt.canvas width height);  
+            ()
+        | square :: [] -> 
+            canvaselt.display_height <- square;
+            canvaselt.display_width  <- square;
+            ignore(Canvas.setup_high_dpi canvaselt.canvas square square);  
+            ()
+        | _ -> 
+            ()
+    ) in
+    let _ = Canvas.reset canvaselt in
     let _ = List.iter (Canvas.add_shape canvaselt) shapes in
     let _ = Canvas.render_all canvaselt in
     plts

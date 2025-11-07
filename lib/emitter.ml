@@ -147,10 +147,18 @@ let select_num k tok =
     | _ -> failwith ("expected float value for key " ^ k)
 ;;
 
+let select_nat k tok = 
+    match tok with 
+    | Tokens.TFloat v -> (int_of_float v) 
+    | Tokens.TNumeral i -> i
+    | _ -> failwith ("expected float value for key " ^ k)
+;;
 
 let select_str k tok = 
     match tok with 
     | Tokens.TAlphaNum v -> v 
+    | Tokens.TFloat v ->    (Float.to_string v)
+    | Tokens.TNumeral v ->  (Int.to_string v)
     | _ -> failwith ("expected string value for key " ^ k)
 ;;
 
@@ -165,6 +173,7 @@ let transform_draw_elmnts elmnts =
                     height =    find_default_value props "h" 1. (select_num "box.h"); 
                     color  =    find_default_value props "c" "red" (select_str "box.c"); 
                     linewidth = find_default_value props "l" 1. (select_num "box.l"); 
+                    border = find_default_value props "b" "white" (select_str "box.b")
                 }) 
             | Circle props -> 
                 Plotter.Circle ({ 
@@ -173,6 +182,7 @@ let transform_draw_elmnts elmnts =
                     radius =    find_default_value props "r" 1. (select_num "circle.r"); 
                     color  =    find_default_value props "c" "red" (select_str "circle.c"); 
                     linewidth = find_default_value props "l" 1. (select_num "circle.l"); 
+                    border = find_default_value props "b" "white" (select_str "circle.b")
                 }) 
             | Line props -> 
                 Plotter.Line ({ 
@@ -183,6 +193,16 @@ let transform_draw_elmnts elmnts =
                     color  =    find_default_value props "c"  "red" (select_str "line.color"); 
                     linewidth = find_default_value props "l"  1. (select_num "line.x"); 
                 }) 
+            | Text props -> 
+                Plotter.Text ({ 
+                    x      =    find_default_value props "x"  0. (select_num "text.x"); 
+                    y      =    find_default_value props "y"  0. (select_num "text.y"); 
+                    color  =    find_default_value props "c"  "green" (select_str "text.color"); 
+                    text   =    find_default_value props "t"  "" (select_str "text.text");
+                    size   =    find_default_value props "s" 14  (select_nat "text.size")
+                }) 
+            | Clear -> 
+                Plotter.Clear
         )
     ) elmnts
 ;;
@@ -288,8 +308,8 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
             (* FIXME: implement actual plotting *)
             | Parser.Plot _ -> 
                 acc
-            | Parser.Draw  { handle; elmnts } -> 
-                let _ = _grid.plotcb (handle, (transform_draw_elmnts elmnts)) in
+            | Parser.Draw  { handle; bounds; elmnts } -> 
+                let _ = _grid.plotcb (handle, bounds, (transform_draw_elmnts elmnts)) in
                 acc
             | Parser.Axis (_, _) -> 
                 failwith "nested axis operations not allowed!!"
@@ -431,8 +451,8 @@ and masked_to_ndarray _grid _masks _cl range =
                     (* FIXME: implement actual plotting *)
                     | Parser.Plot _  -> 
                         acc
-                    | Parser.Draw  { handle; elmnts } -> 
-                        let _ = _grid.plotcb (handle, (transform_draw_elmnts elmnts)) in
+                    | Parser.Draw  { handle; elmnts; bounds; } -> 
+                        let _ = _grid.plotcb (handle, bounds, (transform_draw_elmnts elmnts)) in
                         acc
                     | Parser.Axis (axis, masks) -> 
                         handle_masks _grid axis masks acc (module M) data
@@ -496,8 +516,8 @@ and transform_mask _grid ndarr masks =
                     (* FIXME: implement actual plotting and drawing *)
                     | Parser.Plot _pl -> 
                         acc
-                    | Parser.Draw { handle; elmnts } -> 
-                        let _ = _grid.plotcb (handle, (transform_draw_elmnts elmnts)) in
+                    | Parser.Draw { handle; elmnts; bounds } -> 
+                        let _ = _grid.plotcb (handle, bounds, (transform_draw_elmnts elmnts)) in
                         acc
                     | Parser.Map  f -> 
                         let _ = Masks.apply (module M) f data in

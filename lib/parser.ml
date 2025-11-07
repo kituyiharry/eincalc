@@ -84,6 +84,8 @@ and draw =
     | Box    of props 
     | Circle of props
     | Line   of props
+    | Text   of props
+    | Clear
 and plot = 
     | Line    of props
     | Bar     of props
@@ -119,6 +121,7 @@ and mask =
     (* plot<title, line<...>> *)
     | Draw    of { 
             handle: string 
+        ;   bounds: int list (* only 1st 2 are accounted for *)
         ;   elmnts: draw list
     }
     | Plot    of { 
@@ -724,6 +727,64 @@ let parse_extract_range state =
         (Error "expected number in extraction")
 ;;
 
+(* FIXME: replace parse_extract_shape with this one - requires handling the exit
+   condition differently - likely with an enclose! *)
+let parse_extract_shape_override state = 
+    match (fst state).curr with
+    | Some { tokn;_ } -> 
+        (
+            match tokn with 
+            | TNumeral v ->  
+                let rec collect_rem state' p  = 
+                    let next = advance state' in
+                    (match (fst next).curr with 
+                        | Some { tokn; _ } -> 
+                            (match tokn with
+                                | TComma -> 
+                                    collect_rem next p
+                                | TNumeral n -> 
+                                    collect_rem (next) (n :: p)
+                                | TFloat _f -> 
+                                    Error ("only numerals allowed in shape")
+                                | TRightBracket -> 
+                                    (* exit condition *)
+                                    Ok (next, (List.rev p))
+                                |  _ -> Error ("bad termination")
+                            )
+                        | None -> 
+                            Error ("Unterminated")
+                    )
+                in collect_rem state [ v ]
+            | TFloat f ->  
+                let v = int_of_float f in
+                let rec collect_rem state' p  = 
+                    let next = advance state' in
+                    (match (fst next).curr with 
+                        | Some { tokn; _ } -> 
+                            (match tokn with
+                                | TComma -> 
+                                    collect_rem next p
+                                | TNumeral n -> 
+                                    collect_rem (next) (n :: p)
+                                | TFloat _f -> 
+                                    collect_rem (next) ((int_of_float _f) :: p)
+                                | TRightBracket -> 
+                                    (* exit condition *)
+                                    Ok (next, (List.rev p))
+                                |  _ -> Error ("bad termination")
+                            )
+                        | None -> 
+                            Error ("Unterminated")
+                    )
+                in collect_rem state [ v ]
+            | _ -> 
+                (Error "the shapes can only be natural number (>= 0)")
+        )
+    | _ -> 
+        (Error "expected number in extraction")
+;;
+
+(** DEPRECATED **)
 let parse_extract_shape state = 
     match (fst state).curr with
     | Some { tokn;_ } -> 
@@ -750,8 +811,30 @@ let parse_extract_shape state =
                             Error ("Unterminated")
                     )
                 in collect_rem state [ v ]
+            | TFloat f ->  
+                let v = int_of_float f in
+                let rec collect_rem state' p  = 
+                    let next = advance state' in
+                    (match (fst next).curr with 
+                        | Some { tokn; _ } -> 
+                            (match tokn with
+                                | TComma -> 
+                                    collect_rem next p
+                                | TNumeral n -> 
+                                    collect_rem (next) (n :: p)
+                                | TFloat _f -> 
+                                    collect_rem (next) ((int_of_float _f) :: p)
+                                | TRightBracket -> 
+                                    (* exit condition *)
+                                    Ok (advance next, (List.rev p))
+                                |  _ -> Error ("bad termination")
+                            )
+                        | None -> 
+                            Error ("Unterminated")
+                    )
+                in collect_rem state [ v ]
             | _ -> 
-                (Error "shapes can only be natural number (>= 0)")
+                (Error "the shapes can only be natural number (>= 0)")
         )
     | _ -> 
         (Error "expected number in extraction")
@@ -1277,21 +1360,30 @@ let parse_num state =
 let parse_draw_params state = 
     (match current state with
     | Some ({ tokn=(TAlphaNum handle); _ }) -> 
-        (>>==) (consume (advance state) TComma) (fun state' -> 
-            (match (current state') with 
-                | Some { tokn=(TAlphaNum drw);_ } ->
-                    (>>==) (parse_key_value (advance state')) (fun (after, props) -> 
-                        (match drw with 
-                                | "box"    -> Ok (after, Draw({ handle; elmnts=[ (Box props) ] })) 
-                                | "circle" -> Ok (after, Draw({ handle; elmnts=[ (Circle props)] }))
-                                | "line" ->   Ok (after, Draw({ handle; elmnts=[ (Line props) ] }))
-                        | _ -> Error ("unknown draw call " ^ drw)
+            (>>==) (consume (advance state) TComma) (fun state' -> 
+                (>>==) (enclosed TLeftBracket TRightBracket (parse_extract_shape_override) state') (fun (state', bounds) -> 
+                    (>>==) (consume state' TComma) (fun state' ->
+                        (match (current state') with 
+                            | Some { tokn=(TAlphaNum drw);_ } ->
+                                if drw = "clear" then 
+                                    Ok (advance state', Draw { handle; bounds; elmnts=[ Clear ] })
+                                else 
+                                    (>>==) (parse_key_value (advance state')) (fun (after, props) -> 
+                                        (match drw with 
+                                            | "box" | "rect" -> Ok (after, Draw({
+                                                handle; bounds; elmnts=[ (Box props) ] })) 
+                                            | "circle" -> Ok (after, Draw({ handle; bounds; elmnts=[ (Circle props)] }))
+                                            | "line" ->   Ok (after, Draw({ handle; bounds; elmnts=[ (Line props) ] }))
+                                            | "text" ->   Ok (after, Draw({ handle; bounds; elmnts=[ Text props ] }))
+                                            | _ -> Error ("unknown draw call " ^ drw)
+                                        )
+                                    )
+                            | _ -> 
+                                Error ("expected draw type (box, line, circle ...)")
                         )
                     )
-                | _ -> 
-                    Error ("expected draw type (box, line, circle ...)")
+                ) 
             )
-        )
     | _ -> 
         Error "expected draw handle title"
     )
@@ -1301,33 +1393,42 @@ let parse_collect_draw_params state =
     (match current state with
         | Some ({ tokn=(TAlphaNum handle); _ }) -> 
             (>>==) (consume (advance state) TComma) (fun state' -> 
-                enclosed TLeftBracket TRightBracket (fun state' -> 
-                    let rec collect nxt buf = 
-                        (match (current nxt) with 
-                            | Some { tokn=(TAlphaNum drw);_ } ->
-                                let* after, props = (parse_key_value (advance nxt))  in
-                                (match drw with 
-                                    | "box"    -> 
-                                        collect after ((Box props) :: buf) 
-                                    | "circle" -> 
-                                        collect after ((Circle props) :: buf)
-                                    | "line" ->   
-                                        collect after ((Line props) :: buf)
+                (>>==) (enclosed TLeftBracket TRightBracket (parse_extract_shape_override) state') (fun (state', bounds) -> 
+                    (>>==) (consume state' TComma) (fun state' ->
+                        enclosed TLeftBracket TRightBracket (fun state' -> 
+                            let rec collect nxt buf = 
+                                (match (current nxt) with 
+                                    | Some { tokn=(TAlphaNum drw);_ } ->
+                                        if drw = "clear" then 
+                                            collect (advance nxt) (Clear :: buf) 
+                                        else 
+                                            let* after, props = (parse_key_value (advance nxt))  in
+                                            (match drw with 
+                                                | "box" | "rect"    -> 
+                                                    collect after ((Box props) :: buf) 
+                                                | "circle" -> 
+                                                    collect after ((Circle props) :: buf)
+                                                | "line" ->   
+                                                    collect after ((Line props) :: buf)
+                                                | "text" -> 
+                                                    collect after ((Text props) :: buf)
+                                                | _ -> 
+                                                    Error ("unknown draw call " ^ drw)
+                                            )
+                                    | Some { tokn=(TRightBracket);_ } ->
+                                        Ok (nxt, buf)
+                                    | Some { tokn=(TComma);_ } ->
+                                        collect (advance nxt) buf
                                     | _ -> 
-                                        Error ("unknown draw call " ^ drw)
-                                )
-                            | Some { tokn=(TRightBracket);_ } ->
-                                Ok (nxt, buf)
-                            | Some { tokn=(TComma);_ } ->
-                                collect (advance nxt) buf
-                            | _ -> 
-                                Error ("expected draw type (box, line, circle ...)")
-                        ) 
-                    in 
-                    (>>==) (collect state' []) (fun (after, elmnts) -> 
-                        Ok (after, Draw { handle; elmnts })
+                                        Error ("expected draw type (box, line, circle ...)")
+                                ) 
+                            in 
+                            (>>==) (collect state' []) (fun (after, elmnts) -> 
+                                Ok (after, Draw { handle; bounds; elmnts })
+                            )
+                        ) state'
                     )
-                ) state'
+                )
             )
         | _ -> 
             Error "expected draw handle title"

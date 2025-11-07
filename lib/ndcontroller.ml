@@ -31,7 +31,7 @@ type gridcontroller = {
         count: int                    (* count with new additional sheets *)
     ;   sheets: gridmodel GridTable.t (* Grids and their order and labels *)
     ;   active: string
-    ;   plotcb: ((string * Plotter.shape list) -> unit) 
+    ;   plotcb: ((string * int list * Plotter.shape list) -> unit) 
 };;
 
 let create_controller () = 
