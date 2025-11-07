@@ -266,7 +266,7 @@
   let visibleCells = new Set();
 
   let funcBudgetWidth  = $state(0)
-  let funcBlockHeight  = $state(80);
+  let funcBlockHeight  = $state(100);
 
   let funcText  = $state('=(ij -> ji | write<A1>, @rand<100,[10,10]>)')
   let funcStyle = $derived ({
@@ -666,7 +666,7 @@
                 onmouseup  ={handleMouseUp}
                 onmousemove={handleMouseMove}
                 onwheel={handleWheel} 
-                style={`display: block; cursor: ${cursorStyle};`}>
+                style={`display: block; cursor: ${cursorStyle}; font-family: Outfit`}>
                 {#key refresh}
                     <Layer 
                         render={ ({ context, width, height }) => { 
@@ -763,7 +763,7 @@
 
                                          // Apply text styles
                                         context.fillStyle = style.color;
-                                        context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize}px sans-serif`;
+                                        context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize}px Outfit`;
                                         // context.fillStyle = '#000';
 
                                          // Calculate text position based on alignment
@@ -830,7 +830,7 @@
                             context.fillStyle = '#f5f5f5';
                             context.fillRect(ROW_HEADER_WIDTH, 0, width - ROW_HEADER_WIDTH, HEADER_HEIGHT);
                             context.fillStyle = '#000';
-                            context.font = 'bold 12px sans-serif';
+                            context.font = ' bold 12px Outfit';
                             context.strokeStyle = '#ddd';
 
                             for (let col = startCol; col <= endCol; col++) {
@@ -894,10 +894,10 @@
                     <span class="p-4 text-center text-white">ƒ𝑥</span>
                 </div>
                 <textarea  
-                    class="font-light basis-8 px-4 py-2 text-[14px] resize-none 
-                    min-w-full 
+                    class="font-light basis-8 px-4 py-5 text-[16px] resize-none min-w-full 
                     text-black italic text-area textarea-neutral rounded-none"
                     bind:value={funcText}
+                    style="font-family: Google Sans code;"
                     onkeydown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                             if (funcText.startsWith('=')) {
@@ -983,6 +983,9 @@
                                 <input id="fontsize" 
                                     class="basis-2/3 range range-xs range-neutral" type="range" min="10" max="20" step="1" 
                                     bind:value={styleBuffer.fontSize}
+                                    ondblclick={() => {
+                                        applyStyleToSelection({ fontSize: styleBuffer.fontSize })
+                                    }}
                                     onchange={() => {
                                         applyStyleToSelection({ fontSize: styleBuffer.fontSize })
                                     }}  />

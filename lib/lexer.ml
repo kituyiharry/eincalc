@@ -56,6 +56,9 @@ let scan_token (line, colm, sstr) index rest =
     | '@'  -> Ok ((mktok line colm TAt),          index, rest)
     | '|'  -> Ok ((mktok line colm TPipe),        index, rest)
     | ':'  -> Ok ((mktok line colm TColon),       index, rest)
+    | '{'  -> Ok ((mktok line colm TOpenCurly),   index, rest)
+    | '}'  -> Ok ((mktok line colm TCloseCurly),  index, rest)
+    | '='  -> Ok ((mktok line colm TEq),          index, rest)
 
     | '*'  -> Ok ((mktok line colm KMult),       index, rest)
     | '/'  -> Ok ((mktok line colm KDiv),        index, rest)

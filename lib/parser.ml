@@ -79,16 +79,17 @@ and slice =
         ;   len:   int option 
         ;   skip:  int option
     }   (* start and length and skip *)
+and props = (string, ttype) Hashtbl.t [@opaque]
+and draw = 
+    | Box    of props 
+    | Circle of props
+    | Line   of props
 and plot = 
-    | Line 
-    | Bar 
-    | Hist 
-    | Pie
-    | Scatter of { 
-            xidx: int 
-        ;   yidx: int
-        ;
-    }
+    | Line    of props
+    | Bar     of props
+    | Hist    of props
+    | Pie     of props
+    | Scatter of props
 and mask = 
     (* TODO: robust scaling and unit vector norm *)
     (* minmax<x,y> *)
@@ -116,9 +117,13 @@ and mask =
     (* slice<[1, -1:10:3]> *)        
     | Slice   of slice list       (* slice an array - np slice syntax *)
     (* plot<title, line<...>> *)
+    | Draw    of { 
+            handle: string 
+        ;   elmnts: draw list
+    }
     | Plot    of { 
-            oftype: plot 
-        ;   title : string
+            handle: string
+        ;   oftype: plot 
     }
     (*| Binning *)
     (*| Unbox                     (* undo top dimension maybe by running a function over it ?? *) *)
@@ -274,7 +279,7 @@ let consume state tt  =
              else
                 (Error (Format.sprintf "Expected consume %s found %s" (show_ttype tt) (show_ttype tokn)))
             )
-        | _ -> Error "failed consumption check"
+        | _ -> Error "failed consumption check with bad termination"
     )
 ;;
 
@@ -287,7 +292,7 @@ let enclosed opentok closetok apply state =
                 Ok (final, outcome)
             )
         )
-        else Error "missing opening enclose token"
+        else Error (Format.sprintf "missing opening enclose token (%s)" (show_ttype opentok))
     )
 ;;
 
@@ -323,6 +328,37 @@ let rec takenum state =
 let validate word = 
     String.length word > 0 && String.is_valid_utf_8 word
 ;;
+
+let parse_key_value state = 
+    let prptbl = Hashtbl.create 8 in
+    enclosed TOpenCurly TCloseCurly (fun state' -> 
+        let rec collect cstate =
+            (match current cstate with 
+            | Some ({ tokn=(TAlphaNum key); _ }) -> 
+                (>>==) (consume (advance cstate) TEq) (fun cstate' -> 
+                    (match (current cstate') with 
+                    | Some ({ tokn=(TCloseCurly); _ }) -> 
+                        Error "missing key value"
+                    | Some ({ tokn; _ }) -> 
+                        let _ = Hashtbl.add prptbl key tokn in 
+                        collect (advance cstate')
+                    | _ -> 
+                        Error "terminated when parsing value for key"
+                    )
+                )
+            | Some ({ tokn=(TComma);_ }) -> 
+                collect (advance cstate)
+            | Some ({ tokn=(TCloseCurly);_ }) -> 
+                Ok ((cstate), prptbl)
+            | _ -> 
+                Error "bad termination when parsing key value, expected string key"
+            )
+        in 
+        collect state'
+    ) state 
+;;
+
+
 
 (* NB: inputs will be in reverse order of declaration! *)
 let parse_ein_inp ein word ml = 
@@ -719,43 +755,26 @@ let parse_extract_shape state =
         (Error "expected number in extraction")
 ;;
 
-let parse_scatter_axes state = 
-    (match (fst state).curr with 
-    | Some ({ tokn=(TNumeral x);_ }) -> 
-        let nxt = advance state in
-        (>>==) (consume nxt TComma) (fun state' -> 
-            (match (fst state').curr with  
-            | Some ({ tokn=(TNumeral y);_ }) -> 
-                Ok ((advance state'), (x, y))
-            | _ -> 
-                Error "expected numeral scatter axes"
-            ) 
-        )
-    | _ -> 
-        Error "expected numeral scatter axes"
-    )
-;;
-
 let parse_plot_params state = 
     (match (fst state).curr with 
         | Some ({ tokn=(TAlphaNum plot); _ }) -> 
-            (match plot with 
-                | "scatter" -> 
-                    (>>==) (enclosed TLeftAngle TRightAngle (parse_scatter_axes) (advance state)) 
-                    (fun (state', (xidx, yidx)) -> 
-                        Ok (state', Scatter { xidx; yidx; })
+            (>>==) (enclosed TLeftAngle TRightAngle (parse_key_value) (advance state)) 
+                (fun (state', props) -> 
+                    (match plot with 
+                        | "scatter" -> 
+                            Ok (state', Scatter props)
+                        | "line" -> 
+                            Ok ((advance state), Line props)
+                        | "hist" -> 
+                            Ok ((advance state), Hist props)
+                        | "pie" -> 
+                            Ok ((advance state), Pie props)
+                        | "bar" -> 
+                            Ok ((advance state), Bar props)
+                        | _ -> 
+                            Error "unrecognized plot"
                     )
-                | "line" -> 
-                    Ok ((advance state), Line)
-                | "hist" -> 
-                    Ok ((advance state), Hist)
-                | "pie" -> 
-                    Ok ((advance state), Pie)
-                | "bar" -> 
-                    Ok ((advance state), Bar)
-                | _ -> 
-                    Error "unrecognized plot"
-            )
+                )
         | _ -> 
             Error "expected a plot type"
     )
@@ -1253,6 +1272,66 @@ let parse_num state =
     )
 ;;
 
+let parse_draw_params state = 
+    (match current state with
+    | Some ({ tokn=(TAlphaNum handle); _ }) -> 
+        (>>==) (consume (advance state) TComma) (fun state' -> 
+            (match (current state') with 
+                | Some { tokn=(TAlphaNum drw);_ } ->
+                    (>>==) (parse_key_value (advance state')) (fun (after, props) -> 
+                        (match drw with 
+                                | "box"    -> Ok (after, Draw({ handle; elmnts=[ (Box props) ] })) 
+                                | "circle" -> Ok (after, Draw({ handle; elmnts=[ (Circle props)] }))
+                                | "line" ->   Ok (after, Draw({ handle; elmnts=[ (Line props) ] }))
+                        | _ -> Error ("unknown draw call " ^ drw)
+                        )
+                    )
+                | _ -> 
+                    Error ("expected draw type (box, line, circle ...)")
+            )
+        )
+    | _ -> 
+        Error "expected draw handle title"
+    )
+;;
+
+let parse_collect_draw_params state = 
+    (match current state with
+        | Some ({ tokn=(TAlphaNum handle); _ }) -> 
+            (>>==) (consume (advance state) TComma) (fun state' -> 
+                enclosed TLeftBracket TRightBracket (fun state' -> 
+                    let rec collect nxt buf = 
+                        (match (current nxt) with 
+                            | Some { tokn=(TAlphaNum drw);_ } ->
+                                let* after, props = (parse_key_value (advance nxt))  in
+                                (match drw with 
+                                    | "box"    -> 
+                                        collect after ((Box props) :: buf) 
+                                    | "circle" -> 
+                                        collect after ((Circle props) :: buf)
+                                    | "line" ->   
+                                        collect after ((Line props) :: buf)
+                                    | _ -> 
+                                        Error ("unknown draw call " ^ drw)
+                                )
+                            | Some { tokn=(TRightBracket);_ } ->
+                                Ok (nxt, buf)
+                            | Some { tokn=(TComma);_ } ->
+                                collect (advance nxt) buf
+                            | _ -> 
+                                Error ("expected draw type (box, line, circle ...)")
+                        ) 
+                    in 
+                    (>>==) (collect state' []) (fun (after, elmnts) -> 
+                        Ok (after, Draw { handle; elmnts })
+                    )
+                ) state'
+            )
+        | _ -> 
+            Error "expected draw handle title"
+    )
+;;
+
 let parse_ein_mask state = 
     (* TODO: support arbitrary expression operations *)
     let rec masklist state lst = 
@@ -1344,26 +1423,28 @@ let parse_ein_mask state =
                                 Error "expected slice parameters in brackets"
                             )
                         else Error "missing slice parameters!")
+                    | TAlphaNum "draw" -> 
+                        (enclosed TLeftAngle TRightAngle (parse_draw_params) (advance state)) 
+                    | TAlphaNum "drawall" -> 
+                        (enclosed TLeftAngle TRightAngle (parse_collect_draw_params) (advance state)) 
                     | TAlphaNum "plot" ->
-                        let nxt = advance state in
-                        (if check TLeftAngle (fst nxt) then 
-                            let nxt' = advance nxt in
+                        (enclosed TLeftAngle TRightAngle (fun nxt' -> 
                             (match (fst nxt').curr with 
-                                | Some ({ tokn=(TAlphaNum title); _ }) ->  
+                                | Some ({ tokn=(TAlphaNum handle); _ }) ->  
                                     (>>==) (consume (advance nxt') TComma) 
                                     (fun nxt' -> 
                                         (>>==) (parse_plot_params nxt')
                                         (fun (after, oftype) -> 
                                             (>>==) (consume after TRightAngle) 
                                             (fun after -> 
-                                                Ok (after, Plot { title; oftype; })
+                                                Ok (after, Plot { handle; oftype; })
                                             )
                                         )
                                     )
                                 | _ -> 
                                     Error "expected plot title and parameters"
                             )
-                        else Error "missing plot parameters!")
+                        ) (advance state))
                     | TAlphaNum "axis" ->
                         let nxt = advance state in
                         if check (TLeftAngle) (fst nxt) then
@@ -1395,6 +1476,7 @@ let parse_ein_mask state =
                         Ok (advance state, Sum)
                     | TAlphaNum "cumsum" ->
                         Ok (advance state, Cumsum)
+                    (* will be in radians *)
                     | TAlphaNum "sin" ->
                         Ok (advance state, Map(Float.sin))
                     | TAlphaNum "cos" ->

@@ -16,7 +16,8 @@ open Types;;
 
 (* TODO: unsafe assert *)
 let get_const idx { consts; _ } = 
-    Array.get consts idx
+    let () =  assert (idx < Array.length consts) in
+    Array.unsafe_get consts idx
 ;;
 
 (* structure foreshadowing the final source defined int types -> easier to work
@@ -227,7 +228,7 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
             | Parser.Reshape _ -> 
                 failwith "axis reshape not supported atm!!"
             (* FIXME: implement actual plotting *)
-            | Parser.Plot _pl -> 
+            | Parser.Plot _ | Parser.Draw _ -> 
                 acc
             | Parser.Axis (_, _) -> 
                 failwith "nested axis operations not allowed!!"
@@ -367,7 +368,7 @@ and masked_to_ndarray _grid _masks _cl range =
                         let _ = Masks.apply (module M) f data in
                         acc
                     (* FIXME: implement actual plotting *)
-                    | Parser.Plot _pl -> 
+                    | Parser.Plot _  | Parser.Draw _ -> 
                         acc
                     | Parser.Axis (axis, masks) -> 
                         handle_masks _grid axis masks acc (module M) data
@@ -428,10 +429,12 @@ and transform_mask _grid ndarr masks =
                         (* execute an effect back to the grid *)
                         let _ = Masks.cumsum (module M) data in
                         acc
-                    (* FIXME: implement actual plotting *)
+                    (* FIXME: implement actual plotting and drawing *)
                     | Parser.Plot _pl -> 
                         acc
-                    | Parser.Map (f) -> 
+                    | Parser.Draw _pl -> 
+                        acc
+                    | Parser.Map  f -> 
                         let _ = Masks.apply (module M) f data in
                         acc
                     | Parser.Axis (axis, masks) -> 

@@ -117,15 +117,19 @@ let compfromshape param pidx einchars masks dimens =
 
 let plot_shape_valid plt shp = 
     match plt with 
-    | (Scatter { xidx; yidx; }) -> 
-        let maxidx = List.length shp in
-        (if xidx >= maxidx || yidx >= maxidx then 
-            Error "scatter axis exceeds data bounds"
-        else
-            Ok shp
-        )
+    | (Scatter _) -> 
+        Ok shp
     | _ -> 
         Error "Unhandled shape"
+;;
+
+let ensure_keys tbl klist = 
+    let idx    = ref (-1) in
+    let exists = List.for_all (fun k -> 
+        ignore(incr idx);
+        Option.is_some (Hashtbl.find_opt tbl k) 
+    ) klist in 
+    (!idx, exists)
 ;;
 
 (* l holds the dimensions of the input, m is the mask and map is the infered shape *)
@@ -157,6 +161,36 @@ let shape_of_mask m map =
             (* ideally the plot doesn't modify any data! *)
             (* for each type of plot we need to verify some dimension *)
             plot_shape_valid plt map
+        | Draw ({ handle; elmnts }) -> 
+            (* TODO: verify draw calls ?? *)
+            List.fold_left (fun r e ->
+                if Result.is_error r then r else 
+                match e with 
+                | Box pr  -> (
+                    let keys = ["x";"y";"width";"height"] in
+                    let i,t = ensure_keys pr keys in
+                    (if t then r else 
+                        Error (Format.sprintf "missing property for %s box: %s"
+                        (handle)   (List.nth keys i))
+                    )
+                )
+                | Circle pr -> (
+                    let keys = ["x";"y";"radius"] in
+                    let i,t = ensure_keys pr keys in
+                    (if t then r else 
+                        Error (Format.sprintf "missing property for %s circle: %s"
+                        (handle)    (List.nth keys i))
+                    )
+                ) 
+                | Line pr -> (
+                    let keys = ["x";"y";"radius";"fx";"fy"] in
+                    let i,t  = ensure_keys pr keys in
+                    (if t then r else 
+                        Error (Format.sprintf "missing property for %s Line: %s"
+                        (handle)    (List.nth keys i))
+                    )
+                ) 
+            ) (Ok map) elmnts
         | Slice _slices -> 
             let sllen = List.length _slices in 
             let mplen = List.length map in
@@ -535,10 +569,24 @@ let rec shape_of_expr stm =
         | Unary  (_u, e) -> 
             shape_of_expr e
         | Binary (l, op, r) -> 
-            (* TODO: check whether left and right maps agree *)
+            (* TODO: check whether left and right maps agree and support
+               broadcasted operations! *)
             let* l'  = shape_of_expr l in 
             let* r'  = shape_of_expr r in 
-            if List.for_all2 (=) l' r' then
+            (if (List.length l' != List.length r') then
+                (match (l', r') with 
+                    | ([], rem) -> 
+                        Ok rem
+                    | (1 :: [], rem) -> 
+                        Ok rem
+                    | (rem, []) -> 
+                        Ok rem
+                    | (rem, 1 :: []) -> 
+                        Ok rem
+                    |  _ -> 
+                        Error "unmatched shapes cannot be broadcasted together"
+                )
+            else if List.for_all2 (=) l' r' then
                 (match op with 
                     | (Factor Div) | (Factor Mul) | (Term   Add) | (Term   Sub) -> 
                         Ok l' 
@@ -547,6 +595,7 @@ let rec shape_of_expr stm =
             else
                 (* TODO: maybe other operations like cross and dot product work?? *)
                 Error "binary operation correspondence error!"
+            )
         | Reduce (ex, ml) -> 
             let* ex' = shape_of_expr ex in 
             calcmaskshapes ml ex'

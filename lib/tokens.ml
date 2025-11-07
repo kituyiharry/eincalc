@@ -28,6 +28,9 @@ type ttype =
     | TAt                 (* @ *)
     | TPipe               (* | *)
     | TColon              (* : *)
+    | TOpenCurly          (* { *)
+    | TCloseCurly         (* } *)
+    | TEq                 (* = *)
 
     | KMinus              (* - *) 
     | KPlus               (* + *)
@@ -38,11 +41,8 @@ type ttype =
     (*| KDecl               (* declaration *)*)
     (*| KIdent of string    (* i,j,k.... *)*)
     (*| KNum   of int       (* 1..10 *)*)
-    (*| KEq                 (* = *)*)
     (*| KGreater            (* > *)*)
     (*| KLess               (* < *)*)
-    (*| KBlockStart         (* { *)*)
-    (*| KBlockEnd           (* } *)*)
     (*| KAddAssign          (* += *)*)
 
 [@@deriving show, eq];;
