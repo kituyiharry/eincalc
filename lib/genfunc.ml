@@ -304,7 +304,7 @@ let shape_of_mask m map =
                                         | (l, _d) when l = 1 -> 
                                             Ok rshp
                                         | _ -> 
-                                            Error (Format.sprintf "improperly structured shape transformation: %s to %s!" 
+                                            Error (Format.sprintf "deep improperly structured shape transformation: %s to %s!" 
                                                 (Types.string_of_shape a) (Types.string_of_shape rshp)
                                             )
                                     )
@@ -357,8 +357,8 @@ let calcmaskshapes m lshp =
                                disappear or truncate a dimension - errors will
                                be caught *)
                             Ok rshp
-                        | _ ->
-                            Error (Format.sprintf "improperly structured shape transformation: %s to %s!" 
+                        | m ->
+                            Error (Format.sprintf "improperly structured shape transformation for %s: %s to %s!" (show_mask m) 
                                 (Types.string_of_shape a) (Types.string_of_shape rshp)
                             )
                         )

@@ -11,6 +11,8 @@ open Draw
 
 let _ =
     let pltstate   = ref None in
+    let ntfclbck   = ref None in
+    let refcntr    = ref 0.   in
     let default    = "Default" in
     let plotcb     = (fun (label, bounds, shapes)  -> 
         (match !pltstate with 
@@ -22,11 +24,26 @@ let _ =
         )
     )  in
     let logger    = (fun (msg, lglvl) ->  
-        (match lglvl with 
-        | Eincalc.Ndcontroller.Error -> 
-            Con.console##error msg;
-        | _ -> 
-            Con.console##log msg;
+        refcntr  := !refcntr +. 1.;
+        (match !ntfclbck with 
+            | Some cb -> 
+                let obj = Js.Unsafe.obj [||] in
+                Js.Unsafe.set obj (Js.string "id")  (js_num !refcntr);
+                Js.Unsafe.set obj (Js.string "msg") (js_str msg);
+                (match lglvl with 
+                    | Eincalc.Ndcontroller.Error -> 
+                        Js.Unsafe.set obj (Js.string "level") (js_str "error");
+                        let _ = Js.Unsafe.fun_call cb [|obj|] in
+                        Con.console##error msg;
+                    | Eincalc.Ndcontroller.Info -> 
+                        Js.Unsafe.set obj (Js.string "level") (js_str "info");
+                        let _ = Js.Unsafe.fun_call cb [|obj|] in
+                        Con.console##log msg;
+                    | _ -> 
+                        Con.console##log msg;
+                )
+            | None    -> 
+                Con.console##error msg;
         )
     ) in 
     let sheet = Eincalc.Ndcontroller.create_default_controller default plotcb logger in
@@ -39,7 +56,13 @@ let _ =
         method renderarea node = (
             let plts  = Draw.init node in 
             pltstate := Some plts;
-            Js._false
+            Js._true
+        )
+
+        method notificationcallback (cb: Js.Unsafe.any Js.callback) = (
+            ntfclbck := Some cb;
+            Con.console##dir cb;
+            Js._true
         )
 
         method get row col = (

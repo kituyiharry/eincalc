@@ -9,8 +9,16 @@
   let plotArea 
   let canvas
 
+  /** 
+   * @type {{id: number, msg: string, level: string}[]}
+   */
+  let notifications = $state([])
+
   onMount(() => {
     controller.myLib.renderarea(plotArea);
+    controller.myLib.notificationcallback(function(obj){
+          notifications.push(obj);
+    });
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
@@ -617,6 +625,21 @@
     <div class="drawer-content" bind:this={plotArea} >
 
         <div class='h-[90%] w-[100vw]'>
+
+            <div class="mb-24 toast toast-end">
+                {#each notifications as n (n.id) }
+                    <div class={`alert ${n.level == "error" ? "alert-error" : "alert-info"}`}>
+                        <div class="flex flex-row w-64 justify-between"> 
+                            <span class="text-xs whitespace-pre-wrap">{n.msg}</span>
+                            <button onclick={() => {
+                                notifications.splice(notifications.findIndex(({ id }) => id == n.id), 1)
+                            }} class="btn btn-xs btn-circle btn-neutral btn-outline" aria-label="close">
+                                <i class="fa fa-xs fa-window-close"></i>
+                            </button>
+                        </div>
+                    </div>
+                {/each}
+            </div>
 
             <!--TODO: wheel and touch events may not work as well on layers - find out why ?? --->
             <input

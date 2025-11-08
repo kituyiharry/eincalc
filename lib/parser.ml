@@ -1048,21 +1048,22 @@ let parse_diag_reference state =
                         match tok with 
                         | TFloat fval -> 
                             (>>==) (consume next' TComma) (fun after -> 
-                                (match (fst after).curr with
-                                    | Some { tokn; _ } -> 
-                                        (match tokn with 
-                                            | TNumeral shp -> 
-                                                (>>==) (consume (advance after) TRightAngle) (fun final -> 
+                                let* num = takenum after in
+                                (match (num) with
+                                    (*| Some { tokn; _ } -> *)
+                                        (*(match tokn with *)
+                                            | TNumeral shp, after -> 
+                                                (>>==) (consume (after) TRightAngle) (fun final -> 
                                                     Ok (final, Create (Diag (fval, shp)))
                                                 )
-                                            | TFloat shp -> 
-                                                (>>==) (consume (advance after) TRightAngle) (fun final -> 
+                                            | TFloat shp, after -> 
+                                                (>>==) (consume (after) TRightAngle) (fun final -> 
                                                     Ok (final, Create (Diag (fval, (int_of_float shp))))
                                                 )
                                             | _ -> 
-                                                Error (Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn)))
-                                    | _ ->
-                                        Error "Expected shape filling spec"
+                                                Error (Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn))
+                                    (*| _ ->*)
+                                        (*Error "Expected shape filling spec"*)
                                 )
                             )
                         | TNumeral ival -> 
@@ -1073,11 +1074,11 @@ let parse_diag_reference state =
                                     (*| Some { tokn; _ } -> *)
                                         (*(match tokn with *)
                                             | (TNumeral shp, after) -> 
-                                                (>>==) (consume (advance after) TRightAngle) (fun final -> 
+                                                (>>==) (consume (after) TRightAngle) (fun final -> 
                                                     Ok (final, Create (Diag (fval, shp)))
                                                 )
                                             | (TFloat shp, after) -> 
-                                                (>>==) (consume (advance after) TRightAngle) (fun final -> 
+                                                (>>==) (consume (after) TRightAngle) (fun final -> 
                                                     Ok (final, Create (Diag (fval, (int_of_float shp))))
                                                 )
                                             | _ -> 
@@ -1340,7 +1341,7 @@ and parse_ein_params state =
             | _ -> 
                 Error "Bad token"
         )
-    | _ -> Error "Missing einsum parameters"
+    | None -> Error "badly terminated einsum expression"
 ;;
 
 let parse_num state = 
