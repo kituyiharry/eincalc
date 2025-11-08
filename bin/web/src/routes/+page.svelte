@@ -894,8 +894,8 @@
                     <span class="p-4 text-center text-white">ƒ𝑥</span>
                 </div>
                 <textarea  
-                    class="font-light basis-8 px-4 py-5 text-[16px] resize-none min-w-full 
-                    text-black italic text-area textarea-neutral rounded-none"
+                    class="font-light basis-8 px-4 py-2 text-[16px] resize-none min-w-full 
+                    text-black text-area textarea-neutral rounded-none"
                     bind:value={funcText}
                     style="font-family: Google Sans code;"
                     onkeydown={(e) => {

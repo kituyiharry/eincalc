@@ -370,7 +370,7 @@ let calcmaskshapes m lshp =
 ;;
 
 (* calculate shape from checking parameter structure *)
-let rec calcshape l c = 
+let rec calcshape c = 
     match c with 
     | Range (_cellstart, _cellend) -> 
         (* get the grid indexes for the references e.g A10 -> (9, 0) *)
@@ -386,7 +386,7 @@ let rec calcshape l c =
     | NdArray n ->
         (homogenous (metashape n))
     | Mask (r, m) -> 
-        (>>==) (calcshape l r) (calcmaskshapes m)
+        (>>==) (calcshape r) (calcmaskshapes m)
     | Create c -> 
         (match c with
             | Diag  (_vl, shp) -> (
@@ -422,7 +422,7 @@ let parammatch (({ inp; _ } as e), par) =
             List.combine inp par
             |> List.mapi (fun pidx ((Shape (l, _m)), param) ->
                 (* TODO: use Disjoint Set *)
-                (>>==) (calcshape (l) (Mask (param, _m))) (compfromshape param pidx l _m)
+                (>>==) (calcshape (Mask (param, _m))) (compfromshape param pidx l _m)
             )
         ) in 
         if List.exists (Result.is_error) ins then
@@ -573,6 +573,8 @@ let rec shape_of_expr stm =
                 | None -> 
                     Error "tried checking einsum shape before parsing finished!"
             )
+        | Literal (Tensor _n) -> 
+            calcshape _n
         | Literal _ | Factor _ | Term _ ->
             Ok []
         | Unary  (_u, e) -> 

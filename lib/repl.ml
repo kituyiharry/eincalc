@@ -9,17 +9,16 @@
  *)
 let handle_transform_formulae grid form = 
     let fs = Parser.show_program form in
-    let _ = Format.printf "%s\n\n" fs  in
-    match Eval.tosource grid form with 
+    (match Eval.tosource grid form with 
     | Ok    t -> 
         (*let _ = Format.printf "\n%s\n" (Emitter.show_presource t) in*)
         let _ = 
             Emitter.convert t
             |> Eval.mkvm grid 
             |> Eval.eval
-        in 
-        ()
-    | Error e -> Format.printf "Error: %s\n" e
+        in grid.onlog (fs, Ndcontroller.Info)
+    | Error e -> grid.onlog (Format.sprintf "Error: %s\n Ast: %s" e fs, Ndcontroller.Error)
+    )
 ;;
 
 let handle_parse_exp grid (lex: Lexer.lexeme list) = 
@@ -35,7 +34,8 @@ let handle_parse_exp grid (lex: Lexer.lexeme list) =
                     (*let _ = Format.printf "Tree: %s\n" (Parser.show_program prog) in *)
                     handle_transform_formulae grid prog
             )
-            | Error s   -> Format.printf "Parse Error: %s\n" s
+            | Error s   -> 
+                grid.onlog ((Format.sprintf "Parse Error: %s\n" s, Ndcontroller.Error))
         )
     )
 ;;
@@ -45,7 +45,8 @@ let handle_scan_exp grid (_exp: string) =
         Lexer.runall _exp
         |> (function 
             | Ok _res ->        handle_parse_exp grid _res
-            | Error (l,c,s) ->  Format.printf "Error: l:%d c:%d %s" l c s
+            | Error (l,c,s) ->  
+                grid.onlog ((Format.sprintf "Scan Error: l:%d c:%d %s" l c s, Ndcontroller.Error))
         )
     )
 ;;

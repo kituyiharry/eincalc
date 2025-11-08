@@ -21,7 +21,15 @@ let _ =
             Con.console##error "Parent node missing more rendering"
         )
     )  in
-    let sheet = Eincalc.Ndcontroller.create_default_controller default plotcb in
+    let logger    = (fun (msg, lglvl) ->  
+        (match lglvl with 
+        | Eincalc.Ndcontroller.Error -> 
+            Con.console##error msg;
+        | _ -> 
+            Con.console##log msg;
+        )
+    ) in 
+    let sheet = Eincalc.Ndcontroller.create_default_controller default plotcb logger in
 
     (* NB: method names cant have underscores!! *)
     (* TODO: use a view interface to manage this object and the controller *)

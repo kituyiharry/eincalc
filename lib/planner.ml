@@ -156,7 +156,11 @@ let prepare_expression ps controller ex =
             | Literal (Number n) -> 
                 Ok { ps with oprtns=(ps.oprtns @ [ IPush (SNumber n) ]) }
             | Literal (Tensor _n) -> 
-                Error "tensor op not supported now"
+                (* FIXME: its possible to sneak in a bad tensor operation *)
+                let* ishp = Genfunc.calcshape _n in
+                let g = range_to_ndarray controller _n ishp in 
+                Ok { ps with oprtns=(ps.oprtns @ [ IPush g ]) }
+                (*Error "tensor op not supported now"*)
             | Factor _ | Term _ ->
                 Ok ps
             | Unary  (u, e) -> 

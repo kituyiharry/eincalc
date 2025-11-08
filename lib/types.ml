@@ -158,7 +158,6 @@ let smul x y =
         let z = Y.make (Y.shape y) 0. in
         let _ = X.iteri (fun _dim v -> 
             let v' = Y.get y _dim in 
-            let _ = Format.printf "setting %f\n" (v *. v) in
             Y.set z _dim (v *. v')
         ) x in 
         SNdim ((module Y), z)

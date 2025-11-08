@@ -27,19 +27,28 @@ type gridmodel = {
     ;   code : string           (* code for this grid *)
 };;
 
+type loglevel = 
+    | Debug
+    | Info
+    | Warn 
+    | Error 
+;;
+
 type gridcontroller = { 
         count: int                    (* count with new additional sheets *)
     ;   sheets: gridmodel GridTable.t (* Grids and their order and labels *)
     ;   active: string
     ;   plotcb: ((string * int list * Plotter.shape list) -> unit) 
+    ;   onlog:  ((string * loglevel) -> unit)
 };;
 
 let create_controller () = 
     { 
-        count= 0 
-    ;   sheets=GridTable.create 4 
-    ;   active=""
-    ;   plotcb =ignore
+        count  = 0 
+    ;   sheets = GridTable.create 4 
+    ;   active = ""
+    ;   plotcb = ignore
+    ;   onlog  = (fun (b, _) -> Format.printf " %s\n" b)
     }
 ;;
 
@@ -62,10 +71,10 @@ let add_plot_cb controller cb =
     { controller with plotcb=cb }
 ;;
 
-let create_default_controller label cb = 
+let create_default_controller label cb logger  = 
     new_sheet ({ 
         count= 0 ; sheets=GridTable.create 16; 
-        active=""; plotcb=cb  
+        active=""; plotcb=cb; onlog=logger 
     }) label
 ;;
 

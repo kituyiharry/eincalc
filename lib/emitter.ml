@@ -321,7 +321,7 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
         acc
 ;;
 
-let rec range_to_ndarray _grid n _cl shp =
+let rec range_to_ndarray _grid n shp =
     (* spreadsheet cell *)
     (* TODO: optimization to avoid having to create tensors for some functions  *)
     match n with 
@@ -391,14 +391,14 @@ let rec range_to_ndarray _grid n _cl shp =
                 ) 
     )
     | Mask (_cr, _ml) -> 
-        masked_to_ndarray _grid _ml _cl _cr
+        masked_to_ndarray _grid _ml _cr
     | _ -> failwith "not implemented"
 (* TODO: remove all failwith calls and replace with Result *)
-and masked_to_ndarray _grid _masks _cl range = 
+and masked_to_ndarray _grid _masks range = 
     (* TODO: we may not need to recalculate *)
-    match calcshape _cl range with 
+    match calcshape range with 
     | Ok ishp -> 
-        let ndarr = range_to_ndarray _grid range _cl ishp in
+        let ndarr = range_to_ndarray _grid range ishp in
         List.fold_left (fun acc mask -> 
             (match acc with
             | SNdim ((module M), data) ->
@@ -540,7 +540,7 @@ let genloop sidx controller ps (parms: (int list * Parser.crange * Parser.mask l
     (*let grid       = (Ndcontroller.fetch_active_grid controller).grid in*)
 
     let (_idxs, ps) = List.fold_left (fun (kidxs, ps') (_shp, _cr, _msks, _cl) -> 
-        let  _ndim      = range_to_ndarray controller _cr _cl _shp in
+        let  _ndim      = range_to_ndarray controller _cr _shp in
         let  _ndim'     = transform_mask   controller _ndim _msks in
         let (_kdx, ps') = add_kernel       _ndim' ps' in
         (_kdx :: kidxs , ps')
