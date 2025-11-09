@@ -666,7 +666,7 @@ let parse_extract_slice_indices state =
                     | TRightBracket -> 
                         (* exit condition *)
                         Ok (advance next, (List.rev p))
-                    |  _ -> Error ("bad slice value ")
+                    |  _ -> Error ("bad slice value: negative slices not currently supported ")
                 )
             | None -> 
                 (Error "malformed slice specification?")

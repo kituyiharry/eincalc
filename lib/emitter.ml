@@ -95,31 +95,7 @@ let as_slice (type adata) mask curshp curdim
         | Ok sliceshp -> 
             (match ndarray_of_dim sliceshp with 
                 | SNdim ((module M'), data') -> 
-                    let slarr = Array.of_list @@ List.mapi (fun i slice ->
-                        (match slice with 
-                            | Parser.Along index -> 
-                                (index, curdim.(i), 1)
-                            | Parser.Select {start;len;skip} -> 
-                                (match (start,len,skip) with 
-                                    | (None, None, None) -> 
-                                        (0,  curdim.(i) - 1, 1)
-                                    | (Some st, None, None) -> 
-                                        (st, curdim.(i) - 1, 1)
-                                    | (Some st, Some ln, None) -> 
-                                        (st, ln, 1)
-                                    | (Some st, Some ln, Some sk) -> 
-                                        (st, ln, sk)
-                                    | (None, Some ln, Some sk) -> 
-                                        (0, ln, sk)
-                                    | (None, None, Some sk) -> 
-                                        (0, curdim.(i) - 1, sk)
-                                    | (None, Some ln, None) -> 
-                                        (0, ln, 1)
-                                    | (Some st, None, Some sk) ->
-                                        (st, curdim.(i) - 1, sk)
-                                )
-                        )
-                    ) sl in 
+                    let slarr = slicetoarr curdim sl in 
                     let _     = Masks.slice (module M) (module M') slarr data data' in
                     SNdim ((module M'), data')
                 | _ -> failwith "reshape error!"
@@ -303,7 +279,7 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                         failwith "axis collapse failure"
                 )
             | Parser.Slice sl -> 
-                let curshp = Array.to_seq curdim |> List.of_seq in
+                let curshp = Array.to_list curdim in
                 as_slice hd curshp curdim (module M) data sl
             | Parser.Reshape _ -> 
                 failwith "axis reshape not supported atm!!"

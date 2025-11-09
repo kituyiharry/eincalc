@@ -369,13 +369,14 @@ let writeaxis (type data) axis (module S: Ndarray.NDarray with type t = data) (r
         ) data
 ;;
 
-(* copies over data rather than creating a view to make life easier *)
+(* copies over data rather than creating a view to make life easier - see ndview
+   for a view based slice *)
 let slice (type adata bdata) 
     (module M: Ndarray.NDarray with type t = adata) 
     (module S: Ndarray.NDarray with type t = bdata) 
     (slicearr) (_maindata: adata) (_sliceddata: bdata) = 
     let dmaindim = M.shape _maindata   in
-    let dlen = Array.length dmaindim in
+    let dlen     = Array.length dmaindim in
     let dmainidx = Array.make dlen 0 in
     let _ =  
         (* set the start offset for each dimension *)

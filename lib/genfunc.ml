@@ -132,6 +132,116 @@ let ensure_keys tbl klist =
     (!idx, exists)
 ;;
 
+let rec shapeslice cons slice shape =
+    (match (slice, shape) with
+        | ((hd :: rem),(shplen :: rem')) ->  
+            (match hd with
+                | (Along num) ->  
+                    (if (Int.abs num) > shplen then
+                        Error "index into slice exceeds dimension"
+                        else
+                            shapeslice (1 :: cons) rem rem'
+                    )
+                | (Select {start;len;skip;}) -> 
+                    (match (start, len, skip) with 
+                        | (None, None, None) -> 
+                            shapeslice (shplen :: cons) rem rem'
+                        | (Some st, None, None) -> 
+                            if (Int.abs st) > shplen then 
+                                Error "selection into slice exceeds dimension"
+                            else
+                                (if st > 0 then
+                                    (* select everything items from st *)
+                                    shapeslice ((shplen - st) :: cons) rem rem'
+                                else
+                                    (* FIXME: numpy allows negative start to go beyond the dimension at which the whole slice! *)
+                                    shapeslice ((Int.abs st) :: cons) rem rem'
+                                )
+                        | (Some st, Some ln, None) -> 
+                            if (Int.abs st) > shplen || (ln > shplen) then 
+                                Error "selection or length into slice exceeds dimension"
+                            else
+                                (if ln > 0 then
+                                    (* select ln items from st *)
+                                    shapeslice ((ln - st) :: cons) rem rem'
+                                    else
+                                        Error "must be at least 1 length selection!"
+                                )
+                        | (Some st, Some ln, Some sk) -> 
+                            if (Int.abs st) > shplen || (ln > shplen) || (sk >= shplen) then 
+                                Error "selection or length or skip over slice exceeds dimension"
+                            else
+                                (if ln > 0 && sk > 0 then
+                                    (* select alternating including start items from st *)
+                                    let all = ln - st in
+                                    let sz = (Int.div (all) sk)in
+                                    let sz = if Int.rem all sk = 0 then sz else sz + 1 in
+                                    shapeslice (sz :: cons) rem rem'
+                                    else
+                                        Error "must be at least 1 length selection or step!"
+                                )
+                        | (Some st, None, Some sk) -> 
+                            if (Int.abs st) > shplen || (sk >= shplen) then 
+                                Error "selection or length or skip over slice exceeds dimension"
+                            else
+                                (if sk > 0 then
+                                    (* select alternating including start items from st *)
+                                    let all = shplen - st in
+                                    let sz = (Int.div all sk) in
+                                    let sz = if Int.rem all sk = 0 then sz else sz + 1 in
+                                    shapeslice (sz :: cons) rem rem'
+                                    else
+                                        Error "must be at least 1 length selection!"
+                                )
+                        | (_,  _, Some sk) -> 
+                            if (sk >= shplen) then 
+                                Error "selection skip over slice exceeds dimension"
+                            else
+                                (if sk > 0 then
+                                    (* select alternating including start items from st *)
+                                    let sz = (Int.div shplen sk) in
+                                    let sz = if Int.rem shplen sk = 0 then sz else sz + 1 in
+                                    shapeslice (sz :: cons) rem rem'
+                                    else
+                                        Error "must be at least 1 length selection!"
+                                )
+                        | _ -> 
+                            Error "unhandled selection format!"
+                    )
+            )
+        | _ -> 
+            Ok (List.rev cons)
+    )
+;;
+
+let slicetoarr curdim sl =  
+    Array.of_list @@ List.mapi (fun i slice ->
+        (match slice with 
+            | Parser.Along index -> 
+                (index, curdim.(i), 1)
+            | Parser.Select {start;len;skip} -> 
+                (match (start,len,skip) with 
+                    | (None, None, None) -> 
+                        (0,  curdim.(i) - 1, 1)
+                    | (Some st, None, None) -> 
+                        (st, curdim.(i) - 1, 1)
+                    | (Some st, Some ln, None) -> 
+                        (st, ln, 1)
+                    | (Some st, Some ln, Some sk) -> 
+                        (st, ln, sk)
+                    | (None, Some ln, Some sk) -> 
+                        (0, ln, sk)
+                    | (None, None, Some sk) -> 
+                        (0, curdim.(i) - 1, sk)
+                    | (None, Some ln, None) -> 
+                        (0, ln, 1)
+                    | (Some st, None, Some sk) ->
+                        (st, curdim.(i) - 1, sk)
+                )
+        )
+    ) sl 
+;;
+
 (* l holds the dimensions of the input, m is the mask and map is the infered shape *)
 let shape_of_mask m map = 
     let rec findshape m map nest =
@@ -161,7 +271,7 @@ let shape_of_mask m map =
             (* ideally the plot doesn't modify any data! *)
             (* for each type of plot we need to verify some dimension *)
             plot_shape_valid plt map
-        | Draw ({ handle; elmnts }) -> 
+        | Draw ({ handle; elmnts; _ }) -> 
             (* TODO: verify draw calls ?? *)
             List.fold_left (fun r e ->
                 if Result.is_error r then r else 
@@ -209,85 +319,7 @@ let shape_of_mask m map =
             else
                 (* TODO: should skipping over the whole slice return an empty
                    tensor - right now we report an error *)
-                let rec shapeslice cons slice shape =
-                    (match (slice, shape) with
-                    | ((hd :: rem),(hd' :: rem')) ->  
-                        (match hd with
-                        | (Along num) ->  
-                            (if (Int.abs num) > hd' then
-                                Error "index into slice exceeds dimension"
-                            else
-                                shapeslice (1 :: cons) rem rem'
-                            )
-                        | (Select {start;len;skip;}) -> 
-                            (match (start, len, skip) with 
-                            | (None, None, None) -> 
-                                shapeslice (hd' :: cons) rem rem'
-                            | (Some st, None, None) -> 
-                                if (Int.abs st) > hd' then 
-                                    Error "selection into slice exceeds dimension"
-                                else
-                                    (if st > 0 then
-                                        (* select everything items from st *)
-                                        shapeslice ((hd' - st) :: cons) rem rem'
-                                    else
-                                        (* TODO: numpy allows negative start to go beyond the dimension at which the whole slice! *)
-                                        shapeslice ((Int.abs st) :: cons) rem rem'
-                                    )
-                            | (Some st, Some ln, None) -> 
-                                if (Int.abs st) > hd' || (ln > hd') then 
-                                    Error "selection or length into slice exceeds dimension"
-                                else
-                                    (if ln > 0 then
-                                        (* select ln items from st *)
-                                        shapeslice (ln :: cons) rem rem'
-                                    else
-                                        Error "must be at least 1 length selection!"
-                                    )
-                            | (Some st, Some ln, Some sk) -> 
-                                if (Int.abs st) > hd' || (ln > hd') || (sk >= hd') then 
-                                    Error "selection or length or skip over slice exceeds dimension"
-                                else
-                                    (if ln > 0 && sk > 0 then
-                                        (* select alternating including start items from st *)
-                                        let sz = (Int.div ln sk)in
-                                        let sz = if Int.rem ln sk = 0 then sz else sz + 1 in
-                                        shapeslice (sz :: cons) rem rem'
-                                    else
-                                        Error "must be at least 1 length selection or step!"
-                                    )
-                            | (Some st, None, Some sk) -> 
-                                if (Int.abs st) > hd' || (sk >= hd') then 
-                                    Error "selection or length or skip over slice exceeds dimension"
-                                else
-                                    (if sk > 0 then
-                                        (* select alternating including start items from st *)
-                                        let sz = (Int.div hd' sk) in
-                                        let sz = if Int.rem hd' sk = 0 then sz else sz + 1 in
-                                        shapeslice (sz :: cons) rem rem'
-                                    else
-                                        Error "must be at least 1 length selection!"
-                                    )
-                            | (_,  _, Some sk) -> 
-                                if (sk >= hd') then 
-                                    Error "selection skip over slice exceeds dimension"
-                                else
-                                    (if sk > 0 then
-                                        (* select alternating including start items from st *)
-                                        let sz = (Int.div hd' sk) in
-                                        let sz = if Int.rem hd' sk = 0 then sz else sz + 1 in
-                                        shapeslice (sz :: cons) rem rem'
-                                    else
-                                        Error "must be at least 1 length selection!"
-                                    )
-                            | _ -> 
-                                Error "unhandled selection format!"
-                            )
-                        )
-                    | _ -> 
-                        Ok (List.rev cons)
-                    )
-                in shapeslice [] _slices map
+                shapeslice [] _slices map
             )
         | Axis (_c, _masks) -> 
             if nest > 0 then Error "axis mask cannot be nested in another axis mask due to ambiguity!" else  

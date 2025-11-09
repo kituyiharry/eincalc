@@ -279,6 +279,7 @@ let sallclose x y =
     | _ -> failwith (Format.sprintf "Invalid operands: %s > %s" (show_spinval x) (show_spinval y))
 ;;
 
+(* This is for raw tensors usually hand-written *)
 let iterndarray f nda = 
     let rec iternd nest f nda =
         match nda with 

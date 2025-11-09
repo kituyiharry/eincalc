@@ -11,7 +11,6 @@ open Parser;;
 open Emitter;;
 open Planner;;
 open Types;;
-open Ndmodel;;
 
 let (>>==) = Result.bind;;
 
