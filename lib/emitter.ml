@@ -203,6 +203,8 @@ let transform_draw_elmnts elmnts =
                 }) 
             | Clear -> 
                 Plotter.Clear
+            | Reset -> 
+                Plotter.Reset
         )
     ) elmnts
 ;;

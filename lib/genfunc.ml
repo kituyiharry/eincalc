@@ -199,6 +199,7 @@ let shape_of_mask m map =
                     )
                 )
                 | Clear -> r
+                | Reset -> r
             ) (Ok map) elmnts
         | Slice _slices -> 
             let sllen = List.length _slices in 

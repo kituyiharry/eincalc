@@ -61,7 +61,6 @@ let _ =
 
         method notificationcallback (cb: Js.Unsafe.any Js.callback) = (
             ntfclbck := Some cb;
-            Con.console##dir cb;
             Js._true
         )
 

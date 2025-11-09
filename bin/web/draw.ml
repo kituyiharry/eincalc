@@ -8,6 +8,18 @@
     the error will show up as confabulation of a method and a property
     but is cryptic to decode so... yeah
 
+    (* example draw calls *)
+    = 0 | draw<box, [200], reset> 
+        | draw<box, [200], clear> 
+        | draw<box, [200], circle{x=100,y=100,r=50,c=blue,b=red,l=2}>  
+        | draw<box, [200], rect{x=5,y=5,w=190,h=190,c='rgba(255,0,255,0.5)',b=red,l=2}>
+
+    = 0 | drawall<box, [200], [ 
+        reset, clear, 
+        circle{x=100,y=100,r=50,c=blue,b=red,l=2},
+        rect{x=5,y=5,w=190,h=190,c='rgba(255,0,255,1)',b=red,l=2}
+      ]>
+
 *)
 open Js_of_ocaml
 open Eincalc.Plotter;;
@@ -114,6 +126,11 @@ module Canvas = struct
         t.ctx##fillRect (js_num 0.) (js_num 0.) (js_num width) (js_num height)
     ;;
 
+    (* reset *)
+    let reset t =
+        t.shapes <- [];
+        ()
+
     (* Render a single shape *)
     let render_shape t = function
         | Box { x; y; width; height; color; linewidth; border } ->
@@ -154,22 +171,24 @@ module Canvas = struct
 
         | Clear -> 
             clear t
+        | Reset -> 
+            reset t
     ;;
 
     (* Render all shapes *)
     let render_all t =
         clear t;
-        List.iter (render_shape t) t.shapes
+        List.iter (render_shape t) (List.rev t.shapes)
 
-    (* Add a shape and re-render *)
-    let reset t =
-        t.shapes <- [];
-        ()
-
-    (* Add a shape and re-render *)
+    (* Add a shape and render it *)
     let add_shape t shape =
-        t.shapes <- shape :: t.shapes;
-        render_all t
+        if shape = Reset then 
+            t.shapes <- [] 
+        else
+            t.shapes <- shape :: t.shapes;
+        ()
+        (*render_all t*)
+        (*render_shape t shape*)
 
     (* Clear all shapes *)
     let clear_shapes t =
@@ -213,6 +232,7 @@ let clamp_to_bounds t shape =
         Spline { l with x=mx; y=my; cp1x=mcp1x; cp1y=mcp1y;  cp2x=mcp2x; cp2y=mcp2y; }
     | Text _ -> shape
     | Clear  -> shape
+    | Reset  -> shape
 ;;
 
 (* ============================================================
@@ -370,7 +390,7 @@ let draw_on_canvas label bounds plts shapes =
         | _ -> 
             ()
     ) in
-    let _ = Canvas.reset canvaselt in
+    (*let _ = Canvas.reset canvaselt in*)
     let _ = List.iter (Canvas.add_shape canvaselt) shapes in
     let _ = Canvas.render_all canvaselt in
     plts

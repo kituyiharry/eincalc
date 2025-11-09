@@ -20,7 +20,8 @@ type shape =
     | Text of   { x: float; y: float; text:   string; color:  color; size: int }
     | Line of   { x: float; y: float; fx: float; fy: float; linewidth: float; color: color }
     | Spline of { cp1x: float; cp1y: float; cp2x: float; cp2y: float; x: float; y: float; linewidth: float; color: color; }
-    | Clear
+    | Clear (* clears the canvas *)
+    | Reset (* clears the shape buffer - not the canvas - useful to prevent growth *)
 [@@deriving show];;
 
 

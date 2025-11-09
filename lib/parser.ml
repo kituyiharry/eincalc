@@ -86,6 +86,7 @@ and draw =
     | Line   of props
     | Text   of props
     | Clear
+    | Reset
 and plot = 
     | Line    of props
     | Bar     of props
@@ -1369,6 +1370,8 @@ let parse_draw_params state =
                             | Some { tokn=(TAlphaNum drw);_ } ->
                                 if drw = "clear" then 
                                     Ok (advance state', Draw { handle; bounds; elmnts=[ Clear ] })
+                                else if drw = "reset" then 
+                                    Ok (advance state', Draw { handle; bounds; elmnts=[ Reset ] })
                                 else 
                                     (>>==) (parse_key_value (advance state')) (fun (after, props) -> 
                                         (match drw with 
@@ -1403,6 +1406,8 @@ let parse_collect_draw_params state =
                                     | Some { tokn=(TAlphaNum drw);_ } ->
                                         if drw = "clear" then 
                                             collect (advance nxt) (Clear :: buf) 
+                                        else if drw = "reset" then 
+                                            collect (advance nxt) (Reset :: buf) 
                                         else 
                                             let* after, props = (parse_key_value (advance nxt))  in
                                             (match drw with 
@@ -1426,7 +1431,7 @@ let parse_collect_draw_params state =
                                 ) 
                             in 
                             (>>==) (collect state' []) (fun (after, elmnts) -> 
-                                Ok (after, Draw { handle; bounds; elmnts })
+                                Ok (after, Draw { handle; bounds; elmnts=(List.rev elmnts) })
                             )
                         ) state'
                     )

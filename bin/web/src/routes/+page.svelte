@@ -470,7 +470,7 @@
                               visibleCells.delete(key);
                           }
                       } else {
-                          for(var j = colend; j <= colstart; j++) {
+                          for(j = colend; j <= colstart; j++) {
                               const key = `${i},${j}`;
                               delete cellData[`${i},${j}`];
                               visibleCells.delete(key);
@@ -486,7 +486,7 @@
                               visibleCells.delete(key);
                           }
                       } else {
-                          for(var j = colend; j <= colstart; j++) {
+                          for(j = colend; j <= colstart; j++) {
                               const key = `${i},${j}`;
                               delete cellData[`${i},${j}`];
                               visibleCells.delete(key);
@@ -923,10 +923,10 @@
                     style="font-family: Google Sans code;"
                     onkeydown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
-                            if (funcText.startsWith('=')) {
-                                controller.myLib.executecode(funcText.substring(1));
+                            if (funcText.trim().startsWith('=')) {
+                                controller.myLib.executecode(funcText.trim().substring(1));
                             } else {
-                                controller.myLib.executecode(funcText);
+                                controller.myLib.executecode(funcText.trim());
                             }
                             // NB: this forces a refetch of data from the grid model
                             visibleCells.clear();
