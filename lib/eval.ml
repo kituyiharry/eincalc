@@ -32,14 +32,14 @@ let debug_stack { spine; stkidx; source; sheet; _ } =
         (match y with 
             | SNdim _n ->  
                 let s = (show_spinval y) in 
-                (*let k = (show_kernel y) in *)
-                let k = "" in 
-                sheet.onlog ((Format.sprintf "%s \n %s\n" s k), Ndcontroller.Info)
+                let k = (show_kernel y) in 
+                let _ = Format.printf "%s\n" k in 
+                sheet.onlog ((Format.sprintf "%s \n" s), Ndcontroller.Info)
             | SKern ix ->  
-                (*let k = (show_kernel source.kernels.(ix)) in*)
-                let k = "" in 
+                let k = (show_kernel source.kernels.(ix)) in
+                let _ = Format.printf "%s\n" k in 
                 let s = (show_spinval source.kernels.(ix)) in 
-                sheet.onlog ((Format.sprintf "%s \n %s\n" s k), Ndcontroller.Info)
+                sheet.onlog ((Format.sprintf "%s \n" s), Ndcontroller.Info)
             | _ ->
                 let s = Format.sprintf "%s\n" (Types.show_spinval y) in
                 (sheet.onlog (s, Ndcontroller.Info))

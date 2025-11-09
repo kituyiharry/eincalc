@@ -312,7 +312,7 @@ let rec takenum state =
     | Some ({ tokn=(TFloat v); _ }) -> 
         Ok ((TFloat v), (advance state)) 
     | Some ({ tokn=(TNumeral _v) as x; _ }) -> 
-        Ok (x, advance state)
+        Ok (x, (advance state))
     | Some ({ tokn=KMinus; _ }) -> 
         (let* (n, state') = takenum (advance state) in
             (match n with
@@ -434,6 +434,17 @@ let parse_static_array state =
         match (fst state').curr with
         | Some { tokn; _ } -> 
             (match tokn with
+                | KMinus -> 
+                    let* (num, after) = takenum state' in 
+                    let _ = Format.printf "found num %s!\n" (show_ttype num) in
+                    (match num with
+                    | TFloat v   ->  
+                        collect (after) (v :: numerals)
+                    | TNumeral n ->
+                        collect (after) ((float_of_int n) :: numerals)
+                    | _ ->
+                        Error "expected number in static array decl"
+                    )
                 | TFloat value ->  
                     collect (advance state') (value :: numerals)
                 | TNumeral value ->  
@@ -450,8 +461,8 @@ let parse_static_array state =
                     )
                 | TRightBracket -> 
                     Ok ((advance state'), (Itemize (List.rev numerals)))
-                | _ ->
-                    Error "Unexpected token in static array - only floats supported"
+                | n ->
+                    Error (Format.sprintf "Unexpected token %s in static array - only floats supported" (show_ttype n))
             ) 
         | _ -> Error "Unexpected close - need static array"
     in (collect state [])
@@ -676,55 +687,71 @@ let parse_extract_slice_indices state =
 
 
 let parse_extract_range state = 
-    match (fst state).curr with
-    | Some { tokn;_ } -> 
-        (
-            match tokn with 
-            | TNumeral v ->  
-                let rec collect_rem state' p  = 
-                    let next = advance state' in
-                    (match (fst next).curr with 
-                        | Some { tokn; _ } -> 
-                            (match tokn with
-                                | TComma -> 
-                                    collect_rem next p
-                                | TNumeral n -> 
-                                    collect_rem (next) ((float_of_int n) :: p)
-                                | TFloat f -> 
-                                    collect_rem (next) ((f) :: p)
-                                | TRightBracket -> 
-                                    (* exit condition *)
-                                    Ok (advance next, (List.rev p))
-                                |  _ -> Error ("bad termination")
+    let* (num, after) = takenum state in
+    match num with 
+    | TNumeral v ->  
+        let rec collect_rem state' p  = 
+            (*let next = advance state' in*)
+            (match (fst state').curr with 
+                | Some { tokn; _ } -> 
+                    (match tokn with
+                        | TComma -> 
+                            collect_rem (advance state') p
+                        | TNumeral n -> 
+                            collect_rem (advance state') ((float_of_int n) :: p)
+                        | TFloat f -> 
+                            collect_rem (advance state') ((f) :: p)
+                        | TRightBracket -> 
+                            (* exit condition *)
+                            Ok (advance state', (List.rev p))
+                        |  KMinus -> 
+                            let* (num, after) = takenum state' in 
+                            (match num with 
+                            | TFloat v -> 
+                                collect_rem (after) ((v) :: p)
+                            | TNumeral v -> 
+                                collect_rem (after) ((float_of_int v) :: p)
+                            | _ -> 
+                                Error ("bad value!")
                             )
-                        | None -> 
-                            Error ("Unterminated")
+                        |  _ -> Error ("bad termination")
                     )
-                in collect_rem state [ (float_of_int v) ]
-            | TFloat v   ->  
-                let rec collect_rem state' p  = 
-                    let next = advance state' in
-                    (match (fst next).curr with 
-                        | Some { tokn; _ } -> 
-                            (match tokn with
-                                | TComma -> 
-                                    collect_rem next p
-                                | TNumeral n -> 
-                                    collect_rem next ((float_of_int n) :: p)
-                                | TFloat f -> 
-                                    collect_rem next (f :: p)
-                                | TRightBracket -> 
-                                    (* exit condition *)
-                                    Ok (advance next, (List.rev p))
-                                |  _ -> Error ("bad termination")
+                | None -> 
+                    Error ("Unterminated")
+            )
+        in collect_rem after [ (float_of_int v) ]
+    | TFloat v   ->  
+        let rec collect_rem state' p  = 
+            (*let next = advance state' in*)
+            (match (fst state').curr with 
+                | Some { tokn; _ } -> 
+                    (match tokn with
+                        | TComma -> 
+                            collect_rem (advance state') p
+                        | TNumeral n -> 
+                            collect_rem (advance state') ((float_of_int n) :: p)
+                        | TFloat f -> 
+                            collect_rem (advance state') (f :: p)
+                        | TRightBracket -> 
+                            (* exit condition *)
+                            Ok (advance state', (List.rev p))
+                        |  KMinus -> 
+                            let* (num, after) = takenum state' in 
+                            (match num with 
+                            | TFloat v -> 
+                                collect_rem (after) ((v) :: p)
+                            | TNumeral v -> 
+                                collect_rem (after) ((float_of_int v) :: p)
+                            | _ -> 
+                                Error ("bad value!")
                             )
-                        | None -> 
-                            Error ("Unterminated")
+                            (*Error ("negative shapes not feasible!")*)
+                        |  _ -> Error ("bad termination")
                     )
-                in collect_rem state [ v ]
-            | _ -> 
-                (Error "shapes can only be natural number (>= 0)")
-        )
+                | None -> 
+                    Error ("Unterminated")
+            )
+        in collect_rem after [ v ]
     | _ -> 
         (Error "expected number in extraction")
 ;;
@@ -807,6 +834,7 @@ let parse_extract_shape state =
                                 | TRightBracket -> 
                                     (* exit condition *)
                                     Ok (advance next, (List.rev p))
+                                |  KMinus -> Error ("negative size shapes not feasible!")
                                 |  _ -> Error ("bad termination")
                             )
                         | None -> 
@@ -829,6 +857,7 @@ let parse_extract_shape state =
                                 | TRightBracket -> 
                                     (* exit condition *)
                                     Ok (advance next, (List.rev p))
+                                |  KMinus -> Error ("negative size shapes not feasible!")
                                 |  _ -> Error ("bad termination")
                             )
                         | None -> 
@@ -1347,16 +1376,14 @@ and parse_ein_params state =
 
 let parse_num state = 
 
-    (match (fst state).curr with 
-        | Some { tokn; _ } -> 
-            (match tokn with 
-            | TNumeral _ | TFloat _ -> 
-                (Ok ((advance state), tokn))
-            | _ ->
+    let* num = takenum state in
+    (match num with 
+        | ((TNumeral _) as tokn, after) ->
+            (Ok (after, tokn))
+        | ((TFloat _) as tokn, after) -> 
+            (Ok (after, tokn))
+        | _ ->
                 Error ("expected number")
-            )
-        | None ->
-            Error "expected number token"
     )
 ;;
 
@@ -1572,7 +1599,7 @@ let parse_ein_mask state =
                                                     )
                                             )
                                         | _ -> 
-                                            Error "expected axis number first"
+                                            Error "expected axis number first: must be a natural number >= 0"
                                     )
                                 | _ -> 
                                     Error "axis description missing"
