@@ -18,12 +18,14 @@ module type NDView = sig
     type gen
 
     val  make:    base -> gen -> t
+    val  set:     t -> int array -> float -> unit
     val  get:     t -> int array -> float
     val  shape:   t -> int array
     val  iteri:   (int array -> float -> unit) -> t -> unit
 end
 
 (* TODO: add assertions relating slices with the underlying data *)
+(* INFO: You can pseudo-clone by just taking a view of the whole data :-) *)
 module MakeSliceView(N: NDarray)  = struct 
 
     type base = N.t
@@ -65,6 +67,24 @@ module MakeSliceView(N: NDarray)  = struct
                 off + add
             ) dmainidx
         in N.get basedata dmainidx
+    ;;
+
+    (* INFO: in this case , the index is following the slice and not the underlying
+       shape *)
+    let set  { shape; sliceval; basedata; _ } (indx: int array) value  = 
+        let _ = assert (Array.length indx  = Array.length shape && Array.for_all2 (<) indx shape) in
+        let dmaindim = N.shape basedata in
+        let dlen     = Array.length dmaindim in
+        let dmainidx = Array.make dlen 0 in
+        let _ =  
+            (* set the start offset for each dimension *)
+            Array.mapi_inplace (fun i _ -> 
+                let (start, _, skip) = sliceval.(i) in 
+                let off = Types.offset dmainidx i dmaindim start in
+                let add = skip * indx.(i) in
+                off + add
+            ) dmainidx
+        in N.set basedata dmainidx value
     ;;
 
     let iteri apply { basedata;sliceval; shape;_ } = 
