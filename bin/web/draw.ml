@@ -84,6 +84,12 @@ module Canvas = struct
         let ctx = canvas##getContext Dom_html._2d_ in
         ctx##scale (js_num pixel_ratio) (js_num pixel_ratio);
 
+        (* make origin the center ? *)
+        (*ctx##translate *)
+            (*(js_num (float_of_int @@ display_width /  2)) *)
+            (*(js_num (float_of_int @@ display_height / 2))*)
+        (*;*)
+
         pixel_ratio
     ;;
 
@@ -162,7 +168,7 @@ module Canvas = struct
             t.ctx##fill;
             t.ctx##.strokeStyle := js_str border;
             t.ctx##.lineWidth   := js_num linewidth;
-            t.ctx##stroke
+            t.ctx##stroke;
 
         | Text { x; y; text; color; size } ->
             t.ctx##.fillStyle := Js.string color;

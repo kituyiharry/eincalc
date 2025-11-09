@@ -130,17 +130,22 @@ let collectrow g range r sparse apply =
     [0, 3] -> [ 0, 1, 2, 3 ]
     [3, 0] -> [ 3, 2, 1, 0 ]
 *)
-let genrange sc ec = 
+let genrange start fin = 
     (* only works for natural numbers!! *)
-    let _ = assert (sc > -1 && ec > -1) in
-    if sc <= ec then 
-        Seq.ints sc
-        |> Seq.take_while (fun i -> i <= ec) 
+    let _ = assert (start > -1 && fin > -1) in
+    if start <= fin then 
+        Seq.ints start
+        |> Seq.take_while (fun i -> i <= fin) 
     else
-        Seq.ints ec
-        |> Seq.map (fun m -> (sc - m, m))
-        |> Seq.take_while (fun (d, _m) -> d != -1)
-        |> Seq.map (fst)
+        let maxnm = (start - fin) + 1 in
+        let cntr  = ref 0 in
+        Seq.unfold (fun x -> 
+            if !cntr >= maxnm then 
+                None 
+            else 
+                let _ = incr cntr in
+                (Some (x, (x - 1)))
+        ) 24
 ;;
 
 (* fetch from 2d grid with a sparse function if it is not available  - the
@@ -150,6 +155,8 @@ let genrange sc ec =
    figure out a way to visualize this ?? *)
 (* TODO: assert r < r' and c < c' ?? or leave commutative and reverse if neg ?? *)
 let fetch_grid g (r, c) (r', c') sparse = 
+    (* 24,5  3,5 *)
+    let _ = Format.printf "fetch from  %d,%d len %d,%d" r c r' c' in
     match (r' - r, c' - c) with
     | (0,  0) ->
         let _scal = (module Scalar: NDarray with type t = float ref) in 

@@ -16,7 +16,7 @@ let handle_transform_formulae grid form =
             Emitter.convert t
             |> Eval.mkvm grid 
             |> Eval.eval
-        in grid.onlog (fs, Ndcontroller.Info)
+        in ()
     | Error e -> grid.onlog (Format.sprintf "Error: %s\n Ast: %s" e fs, Ndcontroller.Error)
     )
 ;;

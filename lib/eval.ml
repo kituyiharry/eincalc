@@ -25,16 +25,25 @@ type vm = {
     ;   sheet:  Ndcontroller.gridcontroller
 };;
 
-let debug_stack { spine; stkidx; source; _ } = 
-    let _ = Format.printf "Stacktrace ============\n" in
+let debug_stack { spine; stkidx; source; sheet; _ } = 
+    (*let _ = sheet.onlog ("Stacktrace ============", Ndcontroller.Info) in*)
     for i = (stkidx - 1) downto 0 do 
         let y = spine.(i) in
         (match y with 
-            | SNdim _n ->  (show_kernel y) 
-            | SKern ix -> (show_kernel source.kernels.(ix))
-            | _ -> 
-                let _ = Format.printf "%d -> %s\n" i (Types.show_spinval y) in
-                Format.print_flush ()
+            | SNdim _n ->  
+                let s = (show_spinval y) in 
+                (*let k = (show_kernel y) in *)
+                let k = "" in 
+                sheet.onlog ((Format.sprintf "%s \n %s\n" s k), Ndcontroller.Info)
+            | SKern ix ->  
+                (*let k = (show_kernel source.kernels.(ix)) in*)
+                let k = "" in 
+                let s = (show_spinval source.kernels.(ix)) in 
+                sheet.onlog ((Format.sprintf "%s \n %s\n" s k), Ndcontroller.Info)
+            | _ ->
+                let s = Format.sprintf "%s\n" (Types.show_spinval y) in
+                (sheet.onlog (s, Ndcontroller.Info))
+                (*Format.print_flush ()*)
         )
     done
 ;;
@@ -278,7 +287,7 @@ let eval (pr: vm) =
             (*(show_kernel) pr.source.kernels.(i - 1);*)
         (*done;*)
     (*in*)
-    Format.printf "\nexec %f secs\n" tval
+    pr.sheet.onlog ((Format.sprintf "\nexec %f secs\n" tval), Ndcontroller.Info)
 ;;
 
 let tosource (controller) (vw: program) = 

@@ -17,7 +17,10 @@
   onMount(() => {
     controller.myLib.renderarea(plotArea);
     controller.myLib.notificationcallback(function(obj){
-          notifications.push(obj);
+        notifications.push(obj);
+        setTimeout(() => { 
+            notifications.splice(notifications.findIndex(({ id }) => id == obj.id), 1)
+        }, 3000)
     });
 
     resizeCanvas();
@@ -488,7 +491,7 @@
                       } else {
                           for(j = colend; j <= colstart; j++) {
                               const key = `${i},${j}`;
-                              delete cellData[`${i},${j}`];
+                              delete cellData[key];
                               visibleCells.delete(key);
                           }
                       }
@@ -923,6 +926,7 @@
                     style="font-family: Google Sans code;"
                     onkeydown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
                             if (funcText.trim().startsWith('=')) {
                                 controller.myLib.executecode(funcText.trim().substring(1));
                             } else {

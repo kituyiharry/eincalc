@@ -163,9 +163,10 @@ let rec shapeslice cons slice shape =
                             else
                                 (if ln > 0 then
                                     (* select ln items from st *)
-                                    shapeslice ((ln - st) :: cons) rem rem'
-                                    else
-                                        Error "must be at least 1 length selection!"
+                                    let sz  = Int.min (ln) (shplen - st) in
+                                    shapeslice ((sz) :: cons) rem rem'
+                                else
+                                    Error "must be at least 1 length selection!"
                                 )
                         | (Some st, Some ln, Some sk) -> 
                             if (Int.abs st) > shplen || (ln > shplen) || (sk >= shplen) then 
@@ -173,9 +174,9 @@ let rec shapeslice cons slice shape =
                             else
                                 (if ln > 0 && sk > 0 then
                                     (* select alternating including start items from st *)
-                                    let all = ln - st in
-                                    let sz = (Int.div (all) sk)in
-                                    let sz = if Int.rem all sk = 0 then sz else sz + 1 in
+                                    let all = (Int.min (ln) (shplen - st)) in
+                                    let sz  = (Int.div (all) sk)in
+                                    let sz  = if Int.rem all sk = 0 then sz else sz + 1 in
                                     shapeslice (sz :: cons) rem rem'
                                     else
                                         Error "must be at least 1 length selection or step!"
@@ -659,7 +660,10 @@ let transform (e: formula)  =
                     let* (lin, lout) = (correspondence (_ein, _par)) in 
                     (match lout with 
                         | Some (vout, maskl) -> 
-                            let upd = List.map (fun (x) -> { x with dimen = (find_dimen x.label lin) }) vout in
+                            let upd = List.map (fun (x) -> 
+                                    { x with dimen = (find_dimen x.label lin) }
+                                ) vout 
+                            in
                             let eq = List.map (fun x -> x.dimen) upd in
                             let newtree = ({ inps=lin; outs=(Some upd, eq, maskl); }) in 
                             let (_, _shp, _ ) = newtree.outs in 

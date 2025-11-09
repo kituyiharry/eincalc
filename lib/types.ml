@@ -82,7 +82,7 @@ and show_kernel sk =
                     (fun _ -> 
                         Buffer.add_string b "    \n"
                     ) _modl in
-                Format.printf "%s\n" (Buffer.contents b)
+                (Buffer.contents b)
             )
         | _ -> failwith "invalid kernel!"
     )
