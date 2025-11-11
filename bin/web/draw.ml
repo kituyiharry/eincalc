@@ -383,7 +383,7 @@ let draw_on_canvas label bounds plts shapes =
     (* this will be added in reverse order so the list should already be in reverse ?? *)
     let _ = (
         match bounds with 
-        | height :: width :: rest -> 
+        | width :: height :: rest -> 
             canvaselt.display_height <- height;
             canvaselt.display_width <- width;
             ignore(Canvas.setup_high_dpi canvaselt.canvas width height);  

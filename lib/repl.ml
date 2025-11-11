@@ -11,7 +11,7 @@ let handle_transform_formulae grid form =
     let fs = Parser.show_program form in
     (match Eval.tosource grid form with 
     | Ok    t -> 
-        (*let _ = Format.printf "\n%s\n" (Emitter.show_presource t) in*)
+        let _ = Format.printf "\n%s\n" (fs) in
         let _ = 
             Emitter.convert t
             |> Eval.mkvm grid 

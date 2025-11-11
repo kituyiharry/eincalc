@@ -22,20 +22,23 @@ module type NDView = sig
     val  get:     t -> int array -> float
     val  shape:   t -> int array
     val  iteri:   (int array -> float -> unit) -> t -> unit
+    val  to_seq:  t -> float Seq.t
 end
+
+type 'a sliceview = {
+        (*(*slicedef: Parser.slice list*)*)
+        sliceval: (int * int * int) array
+    ;   basedata: 'a   [@opaque]
+    ;   shape   : int array
+} [@@deriving show]
 
 (* TODO: add assertions relating slices with the underlying data *)
 (* INFO: You can pseudo-clone by just taking a view of the whole data :-) *)
-module MakeSliceView(N: NDarray)  = struct 
+module MakeSliceView(N: NDarray) = struct 
 
     type base = N.t
     type gen  = Parser.slice list
-    type t    = { 
-            (*slicedef: Parser.slice list*)
-            sliceval: (int * int * int) array
-        ;   basedata: N.t
-        ;   shape   : int array
-    }
+    type t    = N.t sliceview
 
     let make data sdef = 
         match Genfunc.shapeslice [] sdef (Array.to_list (N.shape data)) with 
@@ -62,7 +65,8 @@ module MakeSliceView(N: NDarray)  = struct
             (* set the start offset for each dimension *)
             Array.mapi_inplace (fun i _ -> 
                 let (start, _, skip) = sliceval.(i) in 
-                let off = Types.offset dmainidx i dmaindim start in
+                (*let off = Types.offset dmainidx i dmaindim start in*)
+                let off = start in
                 let add = skip * indx.(i) in
                 off + add
             ) dmainidx
@@ -80,7 +84,7 @@ module MakeSliceView(N: NDarray)  = struct
             (* set the start offset for each dimension *)
             Array.mapi_inplace (fun i _ -> 
                 let (start, _, skip) = sliceval.(i) in 
-                let off = Types.offset dmainidx i dmaindim start in
+                let off = start in
                 let add = skip * indx.(i) in
                 off + add
             ) dmainidx
@@ -94,11 +98,12 @@ module MakeSliceView(N: NDarray)  = struct
         let dmainidx = Array.make dlen 0 in
         let sliceidx = Array.make slen 0 in
         let max      = Array.fold_left (fun x a -> x * a) 1 shape in
+        let cntarr   = Array.make (Array.length sliceval) 1 in
         let _ =  
             (* set the start offset for each dimension *)
             Array.mapi_inplace (fun i _ -> 
                 let (start, _, _) = sliceval.(i) in 
-                Types.offset dmainidx i dmaindim start 
+                start
             ) dmainidx
         in
         (for _i = 1 to (max) do 
@@ -107,8 +112,30 @@ module MakeSliceView(N: NDarray)  = struct
                itself*)
             let _ = apply sliceidx (N.get basedata dmainidx) in
             Types.incrindex slen sliceidx shape;
-            Types.incrbyselection dlen dmainidx dmaindim sliceval
+            Types.incrbyselection dlen dmainidx dmaindim sliceval cntarr 
         done)
+    ;;
+
+    let to_seq { basedata;sliceval; shape;_ } = 
+        let dmaindim = N.shape basedata in
+        let dlen     = Array.length dmaindim in
+        let dmainidx = Array.make dlen 0 in
+        let max      = Array.fold_left (fun x a -> x * a) 1 shape in
+        let cntarr   = Array.make (Array.length sliceval) 1 in
+        let _ =  
+            (* set the start offset for each dimension *)
+            Array.mapi_inplace (fun i _ -> 
+                let (start, _, _) = sliceval.(i) in 
+                start
+            ) dmainidx
+        in 
+        let cntr = ref 0 in
+        Seq.unfold (fun v -> 
+            if !cntr = max then None else
+                let _ = incr cntr in
+                let _ = Types.incrbyselection dlen dmainidx dmaindim sliceval cntarr in
+                Some (v, (N.get basedata dmainidx));
+        ) (N.get basedata dmainidx)
     ;;
 
 end 

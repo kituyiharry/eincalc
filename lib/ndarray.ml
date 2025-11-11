@@ -19,6 +19,16 @@ type 'a matrix     = 'a array array wrap
 type batches       = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Array3.t ;;
 type bigfloatarray = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Genarray.t ;;
 
+(* a minimal interface for better code sharing *)
+(* TODO: add slice and axis iterators here as well *)
+module type Viewable = sig 
+    type t
+    val  set:     t -> int array -> float -> unit
+    val  get:     t -> int array -> float
+    val  iteri:   (int array -> float -> unit) -> t -> unit
+    val  shape:   t -> int array
+end
+
 (* only support float data at this point *)
 (*
    TODO: define a tape protocol which describes the order of the elements when
@@ -26,12 +36,13 @@ type bigfloatarray = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.G
    order executions 
 *)
 module type NDarray = sig 
-    type t
+    include Viewable
+    (*type t*)
     val  make:    int array -> float -> t
-    val  set:     t -> int array -> float -> unit
-    val  get:     t -> int array -> float
-    val  iteri:   (int array -> float -> unit) -> t -> unit
-    val  shape:   t -> int array
+    (*val  set:     t -> int array -> float -> unit*)
+    (*val  get:     t -> int array -> float*)
+    (*val  iteri:   (int array -> float -> unit) -> t -> unit*)
+    (*val  shape:   t -> int array*)
     val  iteris:  (unit -> unit) -> (int array -> float -> unit) -> (unit -> unit) -> t -> unit
     val  iteriaxis: int -> (unit -> unit) -> (int array -> float -> unit) -> (unit -> unit) -> t -> unit
     val  init:    int array -> (int array -> float) -> t
@@ -71,7 +82,7 @@ module Scalar: NDarray with type t = float ref = struct
     ;;
 
     let shape _c = 
-        [||]
+        [|1|]
     ;;
 
     let init _dims f = 

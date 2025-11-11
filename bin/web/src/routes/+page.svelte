@@ -3,6 +3,8 @@
   // TODO: standardize controller so that we can type it
   import { default as controller } from '$lib/eincalc';
   import { onMount } from 'svelte';
+    import { Tween, tweened } from 'svelte/motion';
+    import { elasticIn } from 'svelte/easing';
 
   // editing support via floating input 
   let editor
@@ -277,13 +279,14 @@
   let visibleCells = new Set();
 
   let funcBudgetWidth  = $state(0)
-  let funcBlockHeight  = $state(100);
+  let funcBlockHeight  = Tween.of(() => 100, { duration: 200 });
 
-  let funcText  = $state('=(ij -> ji | write<A1>, @rand<100,[10,10]>)')
+  // let funcText  = $state('=(ij -> ji | write<B2>, @rand<100,[10,10]>)')
+  let funcText  = $state("=(@b4..c15) | plot<'Heat', [320,240], scatter<[::, 0:1:], [::, 1:1:], {xl='Temp',yl='Ice Cream',c='red',r=3}>>")
   let funcStyle = $derived ({
     position: 'fixed',
     bottom: `0px`,
-    height: `${funcBlockHeight}px`,
+    height: `${funcBlockHeight.current}px`,
     width:  `${funcBudgetWidth}px`,
     left:   `${DRAWER}px`
   });
@@ -470,13 +473,13 @@
                           for(j = colstart; j <= colend; j++) {
                               const key = `${i},${j}`;
                               delete cellData[key];
-                              visibleCells.delete(key);
+                              // visibleCells.delete(key);
                           }
                       } else {
                           for(j = colend; j <= colstart; j++) {
                               const key = `${i},${j}`;
                               delete cellData[`${i},${j}`];
-                              visibleCells.delete(key);
+                              // visibleCells.delete(key);
                           }
                       }
                   }
@@ -486,13 +489,13 @@
                           for(j = colstart; j <= colend; j++) {
                               const key = `${i},${j}`;
                               delete cellData[key];
-                              visibleCells.delete(key);
+                              // visibleCells.delete(key);
                           }
                       } else {
                           for(j = colend; j <= colstart; j++) {
                               const key = `${i},${j}`;
                               delete cellData[key];
-                              visibleCells.delete(key);
+                              // visibleCells.delete(key);
                           }
                       }
                   }
@@ -629,7 +632,7 @@
 
         <div class='h-[90%] w-[100vw]'>
 
-            <div class="mb-24 toast toast-end">
+            <div class="mt-24 ml-12 toast toast-start toast-top">
                 {#each notifications as n (n.id) }
                     <div class={`alert ${n.level == "error" ? "alert-error" : "alert-info"}`}>
                         <div class="flex flex-row w-64 justify-between"> 
@@ -913,31 +916,50 @@
                 {/key}
             </Canvas>
 
-            <div class="flex flex-row bg-transparent backdrop-blur-sm border-t
+            <div class="flex flex-col bg-transparent backdrop-blur-sm border-t
                 border-t-black resize-y" 
                 style={Object.entries(funcStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}>
-                <div class="flex bg-black items-center basis-4">
-                    <span class="p-4 text-center text-white">ƒ𝑥</span>
+                <div aria-hidden="true" aria-label="drag" 
+                    ondblclick={(e) => { 
+                        if (e.shiftKey) { 
+                            funcBlockHeight.set(Math.max(
+                             funcBlockHeight.current - 20, 
+                             70,
+                            ))
+                        } else {
+                            funcBlockHeight.set(Math.min(
+                                funcBlockHeight.current + 20, 
+                                200
+                            ))
+                        } 
+                    }} 
+                    class="divider p-0 m-0 h-2 bg-gray-200" style="cursor:
+                        s-resize;"> 
                 </div>
-                <textarea  
-                    class="font-light basis-8 px-4 py-2 text-[16px] resize-none min-w-full 
-                    text-black text-area textarea-neutral rounded-none"
-                    bind:value={funcText}
-                    style="font-family: Google Sans code;"
-                    onkeydown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            if (funcText.trim().startsWith('=')) {
-                                controller.myLib.executecode(funcText.trim().substring(1));
-                            } else {
-                                controller.myLib.executecode(funcText.trim());
+                <div class="flex flex-row bg-transparent h-full"> 
+                    <div class="flex bg-black items-center basis-4">
+                        <span class="p-4 text-center text-white">ƒ𝑥</span>
+                    </div>
+                    <textarea  
+                        class="font-light basis-8 px-4 py-2 text-[16px] resize-none min-w-full 
+                        text-black text-area textarea-neutral rounded-none"
+                        bind:value={funcText}
+                        style="font-family: Google Sans code;"
+                        onkeydown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                if (funcText.trim().startsWith('=')) {
+                                    controller.myLib.executecode(funcText.trim().substring(1));
+                                } else {
+                                    controller.myLib.executecode(funcText.trim());
+                                }
+                                // NB: this forces a refetch of data from the grid model
+                                visibleCells.clear();
+                                cellData = {};
                             }
-                            // NB: this forces a refetch of data from the grid model
-                            visibleCells.clear();
-                            cellData = {};
-                        }
-                    }}
-                ></textarea>
+                        }}
+                    ></textarea>
+                </div>
             </div>
         </div>
 

@@ -92,7 +92,12 @@ and plot =
     | Bar     of props
     | Hist    of props
     | Pie     of props
-    | Scatter of props
+    (* TODO: don't restrict to slices, maybe up a level to support axis or cell ranges
+       directly - think this out *)
+    | Scatter of { 
+            slices: slice list list 
+        ;   props: props
+    }
 and mask = 
     (* TODO: robust scaling and unit vector norm *)
     (* minmax<x,y> *)
@@ -129,6 +134,7 @@ and mask =
     | Plot    of { 
             handle: string
         ;   oftype: plot 
+        ;   bounds: int list
     }
     (*| Binning *)
     (*| Unbox                     (* undo top dimension maybe by running a function over it ?? *) *)
@@ -299,7 +305,8 @@ let enclosed opentok closetok apply state =
                 Ok (final, outcome)
             )
         )
-        else Error (Format.sprintf "missing opening enclose token (%s)" (show_ttype opentok))
+        else Error (Format.sprintf "missing opening enclose token (%s) found %s" (show_ttype opentok) 
+        (show_prattstate (fst state)))
     )
 ;;
 
@@ -346,6 +353,10 @@ let parse_key_value state =
                     (match (current cstate') with 
                     | Some ({ tokn=(TCloseCurly); _ }) -> 
                         Error "missing key value"
+                    | Some ({ tokn=KMinus; _}) ->
+                        let* (num, after) = takenum cstate' in 
+                        let _ = Hashtbl.add prptbl key num in 
+                        collect after 
                     | Some ({ tokn; _ }) -> 
                         let _ = Hashtbl.add prptbl key tokn in 
                         collect (advance cstate')
@@ -675,8 +686,8 @@ let parse_extract_slice_indices state =
                                 Error "bad slice arg"
                         )
                     | TRightBracket -> 
-                        (* exit condition *)
-                        Ok (advance next, (List.rev p))
+                        (* exit condition - leave as is to match it in enclose calls *)
+                        Ok (next, (List.rev p))
                     |  _ -> Error ("bad slice value: negative slices not currently supported ")
                 )
             | None -> 
@@ -806,8 +817,8 @@ let parse_extract_shape_override state =
                             Error ("Unterminated")
                     )
                 in collect_rem state [ v ]
-            | _ -> 
-                (Error "the shapes can only be natural number (>= 0)")
+            | t -> 
+                Error (Format.sprintf "the shapes|bounds can only be natural number (>= 0): found %s" (show_ttype t))
         )
     | _ -> 
         (Error "expected number in extraction")
@@ -871,37 +882,152 @@ let parse_extract_shape state =
         (Error "expected number in extraction")
 ;;
 
-let parse_plot_params state = 
-    (match (fst state).curr with 
-        | Some ({ tokn=(TAlphaNum plot); _ }) -> 
-            (>>==) (enclosed TLeftAngle TRightAngle (parse_key_value) (advance state)) 
-                (fun (state', props) -> 
-                    (match plot with 
-                        | "scatter" -> 
-                            Ok (state', Scatter props)
-                        | "line" -> 
-                            Ok ((advance state), Line props)
-                        | "hist" -> 
-                            Ok ((advance state), Hist props)
-                        | "pie" -> 
-                            Ok ((advance state), Pie props)
-                        | "bar" -> 
-                            Ok ((advance state), Bar props)
-                        | _ -> 
-                            Error "unrecognized plot"
+let parse_ones_reference state = 
+    let next = advance state in 
+    (match (fst next).curr with 
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TLeftAngle -> 
+                    let after = advance next in 
+                    (match (fst after).curr with
+                        | Some { tokn; _ } -> 
+                            (match tokn with 
+                                | TLeftBracket -> 
+                                    (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                        (>>==) (consume after' TRightAngle) (fun final -> 
+                                            Ok (final, Create (Ones shp))
+                                        )
+                                    )
+                                | _ -> 
+                                    Error "Expected shape spec"
+                            )
+                        | _ ->
+                            Error "Missing shape spec"
                     )
-                )
-        | _ -> 
-            Error "expected a plot type"
+                | _ -> 
+                    Error ("Expected shape spec in angle brackets")
+            )
+        | None -> 
+            Error ("Expected shape spec")
     )
 ;;
 
-let parse_ref_angle_var state = 
-    (match (fst state).curr with 
-        | Some  {tokn; _} ->
-            Ok (advance state, tokn)
-        | _ -> 
-            (Error "Expected angle variable!")
+let parse_zeros_reference state = 
+    let next = advance state in 
+    (match (fst next).curr with 
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TLeftAngle -> 
+                    let after = advance next in 
+                    (match (fst after).curr with
+                        | Some { tokn; _ } -> 
+                            (match tokn with 
+                                | TLeftBracket -> 
+                                    (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                        (>>==) (consume after' TRightAngle) (fun final -> 
+                                            Ok (final, Create (Ones shp))
+                                        )
+                                    )
+                                | _ -> 
+                                    Error "Expected shape spec"
+                            )
+                        | _ ->
+                            Error "Missing shape spec"
+                    )
+                | _ -> 
+                    Error ("Expected shape spec in angle brackets")
+            )
+        | None -> 
+            Error ("Expected shape spec")
+    )
+;;
+
+let parse_alt_reference state = 
+    let next = advance state in 
+    (match (fst next).curr with 
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TLeftAngle -> 
+                    let after = advance next in 
+                    (match (fst after).curr with
+                        | Some { tokn; _ } -> 
+                            (match tokn with 
+                                | TLeftBracket -> 
+                                    (>>==) (parse_extract_range (advance after)) (fun (after', slc) -> 
+                                        (>>==) (consume after' TComma) (fun final -> 
+                                            (>>==) (parse_extract_shape (advance final)) (fun (after', shp) -> 
+                                                (>>==) (consume after' TRightAngle) (fun final -> 
+                                                    Ok (final, Create (Alt (slc, shp)))
+                                                ) 
+                                            )
+                                        )
+                                    )
+                                | _ -> 
+                                    Error "Expected shape spec"
+                            )
+                        | _ ->
+                            Error "Missing shape spec"
+                    )
+                | _ -> 
+                    Error ("Expected shape spec in angle brackets")
+            )
+        | None -> 
+            Error ("Expected shape spec")
+    )
+;;
+
+let parse_fill_reference state = 
+    let next = advance state in 
+    (match (fst next).curr with 
+        | Some { tokn; _ } -> 
+            (match tokn with
+                | TLeftAngle -> 
+                    (>>==) (takenum (advance next)) (fun (tok, next')-> 
+                        match tok with 
+                        | TFloat fval -> 
+                            (>>==) (consume next' TComma) (fun after -> 
+                                (match (fst after).curr with
+                                    | Some { tokn; _ } -> 
+                                        (match tokn with 
+                                            | TLeftBracket -> 
+                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                    (>>==) (consume after' TRightAngle) (fun final -> 
+                                                        Ok (final, Create (Fill (fval, shp)))
+                                                    )
+                                                )
+                                            | _ -> 
+                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                    | _ ->
+                                        Error "Expected shape filling spec"
+                                )
+                            )
+                        | TNumeral ival -> 
+                            let fval = float_of_int ival in
+                            (>>==) (consume next' TComma) (fun after -> 
+                                (match (fst after).curr with
+                                    | Some { tokn; _ } -> 
+                                        (match tokn with 
+                                            | TLeftBracket -> 
+                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                    (>>==) (consume after' TRightAngle) (fun final -> 
+                                                        Ok (final, Create (Fill (fval, shp)))
+                                                    )
+                                                )
+                                            | _ -> 
+                                                Error "Expected shape spec"
+                                        )
+                                    | _ ->
+                                        Error "Expected shape fill spec"
+                                )
+                            )
+                        | _ -> 
+                            Error "Expected fill value as float"
+                    )
+                | _ -> 
+                    Error ("Expected shape spec in angle brackets")
+            )
+        | None -> 
+            Error ("Expected shape spec")
     )
 ;;
 
@@ -1128,155 +1254,6 @@ let parse_diag_reference state =
     )
 ;;
 
-let parse_fill_reference state = 
-    let next = advance state in 
-    (match (fst next).curr with 
-        | Some { tokn; _ } -> 
-            (match tokn with
-                | TLeftAngle -> 
-                    (>>==) (takenum (advance next)) (fun (tok, next')-> 
-                        match tok with 
-                        | TFloat fval -> 
-                            (>>==) (consume next' TComma) (fun after -> 
-                                (match (fst after).curr with
-                                    | Some { tokn; _ } -> 
-                                        (match tokn with 
-                                            | TLeftBracket -> 
-                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                    (>>==) (consume after' TRightAngle) (fun final -> 
-                                                        Ok (final, Create (Fill (fval, shp)))
-                                                    )
-                                                )
-                                            | _ -> 
-                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
-                                    | _ ->
-                                        Error "Expected shape filling spec"
-                                )
-                            )
-                        | TNumeral ival -> 
-                            let fval = float_of_int ival in
-                            (>>==) (consume next' TComma) (fun after -> 
-                                (match (fst after).curr with
-                                    | Some { tokn; _ } -> 
-                                        (match tokn with 
-                                            | TLeftBracket -> 
-                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                    (>>==) (consume after' TRightAngle) (fun final -> 
-                                                        Ok (final, Create (Fill (fval, shp)))
-                                                    )
-                                                )
-                                            | _ -> 
-                                                Error "Expected shape spec"
-                                        )
-                                    | _ ->
-                                        Error "Expected shape fill spec"
-                                )
-                            )
-                        | _ -> 
-                            Error "Expected fill value as float"
-                    )
-                | _ -> 
-                    Error ("Expected shape spec in angle brackets")
-            )
-        | None -> 
-            Error ("Expected shape spec")
-    )
-;;
-
-let parse_ones_reference state = 
-    let next = advance state in 
-    (match (fst next).curr with 
-        | Some { tokn; _ } -> 
-            (match tokn with
-                | TLeftAngle -> 
-                    let after = advance next in 
-                    (match (fst after).curr with
-                        | Some { tokn; _ } -> 
-                            (match tokn with 
-                                | TLeftBracket -> 
-                                    (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                        (>>==) (consume after' TRightAngle) (fun final -> 
-                                            Ok (final, Create (Ones shp))
-                                        )
-                                    )
-                                | _ -> 
-                                    Error "Expected shape spec"
-                            )
-                        | _ ->
-                            Error "Missing shape spec"
-                    )
-                | _ -> 
-                    Error ("Expected shape spec in angle brackets")
-            )
-        | None -> 
-            Error ("Expected shape spec")
-    )
-;;
-
-let parse_zeros_reference state = 
-    let next = advance state in 
-    (match (fst next).curr with 
-        | Some { tokn; _ } -> 
-            (match tokn with
-                | TLeftAngle -> 
-                    let after = advance next in 
-                    (match (fst after).curr with
-                        | Some { tokn; _ } -> 
-                            (match tokn with 
-                                | TLeftBracket -> 
-                                    (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                        (>>==) (consume after' TRightAngle) (fun final -> 
-                                            Ok (final, Create (Ones shp))
-                                        )
-                                    )
-                                | _ -> 
-                                    Error "Expected shape spec"
-                            )
-                        | _ ->
-                            Error "Missing shape spec"
-                    )
-                | _ -> 
-                    Error ("Expected shape spec in angle brackets")
-            )
-        | None -> 
-            Error ("Expected shape spec")
-    )
-;;
-
-let parse_alt_reference state = 
-    let next = advance state in 
-    (match (fst next).curr with 
-        | Some { tokn; _ } -> 
-            (match tokn with
-                | TLeftAngle -> 
-                    let after = advance next in 
-                    (match (fst after).curr with
-                        | Some { tokn; _ } -> 
-                            (match tokn with 
-                                | TLeftBracket -> 
-                                    (>>==) (parse_extract_range (advance after)) (fun (after', slc) -> 
-                                        (>>==) (consume after' TComma) (fun final -> 
-                                            (>>==) (parse_extract_shape (advance final)) (fun (after', shp) -> 
-                                                (>>==) (consume after' TRightAngle) (fun final -> 
-                                                    Ok (final, Create (Alt (slc, shp)))
-                                                ) 
-                                            )
-                                        )
-                                    )
-                                | _ -> 
-                                    Error "Expected shape spec"
-                            )
-                        | _ ->
-                            Error "Missing shape spec"
-                    )
-                | _ -> 
-                    Error ("Expected shape spec in angle brackets")
-            )
-        | None -> 
-            Error ("Expected shape spec")
-    )
-;;
-
 let parse_reference state = 
     match (fst state).curr with
     | Some { tokn;_ } -> 
@@ -1304,8 +1281,8 @@ let parse_reference state =
                     (parse_param_data _start next)
                     else (Error "Invalid range value")
                 )
-            | _ -> 
-                Error "Unhandled reference"
+            | tkn -> 
+                Error (Format.sprintf "Unhandled reference: %s" (show_ttype tkn))
         )
     | _ -> 
         Error "Unfinished reference"
@@ -1372,6 +1349,52 @@ and parse_ein_params state =
                 Error "Bad token"
         )
     | None -> Error "badly terminated einsum expression"
+;;
+
+let parse_scatter_params state = 
+    let* after, xslices = enclosed TLeftBracket TRightBracket (fun state' -> 
+        (* get x,y as slices into the data *)
+        (parse_extract_slice_indices state')
+    ) (state) in 
+    let* next = consume after TComma in
+    let* proc, yslices = enclosed TLeftBracket TRightBracket (fun state' -> 
+        (* get x,y as slices into the data *)
+        (parse_extract_slice_indices state')
+    ) (next) in 
+    let* comm  = consume proc TComma in
+    let* (final, props) = parse_key_value comm in
+    Ok (final, Scatter { slices=[xslices;yslices]; props; })
+;;
+
+let parse_plot_params state = 
+    (match (fst state).curr with 
+        | Some ({ tokn=(TAlphaNum plottype); _ }) -> 
+            (match plottype with 
+                | "scatter" -> 
+                    enclosed TLeftAngle TRightAngle (parse_scatter_params) (advance state)
+                | "line" -> 
+                    Ok ((advance state), Line (Hashtbl.create 2))
+                | "hist" -> 
+                    Ok ((advance state), Hist (Hashtbl.create 2))
+                | "pie" -> 
+                    Ok ((advance state), Pie  (Hashtbl.create 2))
+                | "bar" -> 
+                    Ok ((advance state), Bar  (Hashtbl.create 2))
+                | _ -> 
+                    Error "unrecognized plot"
+            )
+        | _ -> 
+            Error "expected a plot type"
+    )
+;;
+
+let parse_ref_angle_var state = 
+    (match (fst state).curr with 
+        | Some  {tokn; _} ->
+            Ok (advance state, tokn)
+        | _ -> 
+            (Error "Expected angle variable!")
+    )
 ;;
 
 let parse_num state = 
@@ -1552,7 +1575,7 @@ let parse_ein_mask state =
                             | Some ({ tokn=TLeftBracket; _ }) ->  
                                 (>>==) (parse_extract_slice_indices (advance nxt')) 
                                 (fun (after, slices) -> 
-                                    (>>==) (consume after TRightAngle) (fun after -> 
+                                    (>>==) (consume (advance after) TRightAngle) (fun after -> 
                                         Ok (after, Slice slices)
                                     )
                                 )
@@ -1568,14 +1591,12 @@ let parse_ein_mask state =
                         (enclosed TLeftAngle TRightAngle (fun nxt' -> 
                             (match (fst nxt').curr with 
                                 | Some ({ tokn=(TAlphaNum handle); _ }) ->  
-                                    (>>==) (consume (advance nxt') TComma) 
-                                    (fun nxt' -> 
-                                        (>>==) (parse_plot_params nxt')
+                                    let*  nxt' = consume (advance nxt') TComma in
+                                    let* (proc, bounds) = (enclosed TLeftBracket TRightBracket (parse_extract_shape_override) nxt') in
+                                    let* comm = consume proc TComma in
+                                    ((>>==) ((parse_plot_params comm))
                                         (fun (after, oftype) -> 
-                                            (>>==) (consume after TRightAngle) 
-                                            (fun after -> 
-                                                Ok (after, Plot { handle; oftype; })
-                                            )
+                                            Ok (after, Plot { handle; bounds; oftype; })
                                         )
                                     )
                                 | _ -> 
@@ -1639,11 +1660,11 @@ let parse_ein_mask state =
                     | t -> 
                         Error (Format.sprintf "Unknown mask function: %s" (show_ttype t))
                 ) (fun (state', mask) -> 
-                    if check TPipe (fst state') then
-                        (masklist (advance state') (mask :: lst))
-                    else
-                        Ok (state', List.rev (mask :: lst))
-                )
+                        if check TPipe (fst state') then
+                            (masklist (advance state') (mask :: lst))
+                        else
+                            Ok (state', List.rev (mask :: lst))
+                    )
             | None -> 
                 Error "expected mask function"
         ) in 
@@ -1672,14 +1693,14 @@ let parse_einsum pratt =
                                 (* no params *)
                                 Ok (prt, ((reorder @@ parse_ein_inp ein v []), []), rem')
                         ) else (
-                            Error (Format.sprintf "Input indices invalid - please use at least one ascii chars at %s" 
+                                Error (Format.sprintf "Input indices invalid - please use at least one ascii chars at %s" 
                                     (show_prattstate @@ fst state))
                             )
                         )
                     | _ -> 
                         let prt', rem' = state in
                         Ok (prt', ((reorder ein), []), rem')
-                        (*Error (Format.sprintf "Unimplemented at %s" (show_prattstate (fst state)))*)
+                    (*Error (Format.sprintf "Unimplemented at %s" (show_prattstate (fst state)))*)
                 )
             | _ -> 
                 Error (Format.sprintf "Unfinished einsum expression at %s" (show_prattstate (fst state)))
@@ -1699,8 +1720,8 @@ let parse_einsum pratt =
                             if check TPipe (fst next') then
                                 (>>==) (parse_ein_mask (advance next')) (
                                     fun (state'', ml) -> 
-                                        let upd  = parse_ein_out (fst ein) v ml in
-                                        Ok (state'', (upd, snd ein))
+                                    let upd  = parse_ein_out (fst ein) v ml in
+                                    Ok (state'', (upd, snd ein))
                                 )
                             else
                                 let upd  = parse_ein_out (fst ein) v [] in
@@ -1714,9 +1735,9 @@ let parse_einsum pratt =
                     Error "Unexpected einsum result"
             )
         ) else (
-            (* arrow can be optional *)
-            Ok ((current, lxm), ein) 
-        ))
+                (* arrow can be optional *)
+                Ok ((current, lxm), ein) 
+            ))
     )
 ;;
 
@@ -1731,16 +1752,16 @@ let parse_einsum_expr pratt =
 let parse_einsum_formulae state = 
     let rec _extract (state, (ein, par)) =
         (if check TComma (fst state) then 
-                ((>>==) (parse_ein_params (advance state)) (fun (next, rnge) -> 
-                  (* check for masks which are piped to parameters *)
-                    if check TPipe (fst next) then
-                        (>>==) (parse_ein_mask (advance next)) (fun (next', ml) -> 
-                            _extract (next', (ein, (Mask (rnge, ml)) :: par))
-                        )
-                    else
-                        _extract (next, (ein, rnge :: par))
-                ))
-                (*(Fun.compose _extract add_crange)) *)
+            ((>>==) (parse_ein_params (advance state)) (fun (next, rnge) -> 
+                (* check for masks which are piped to parameters *)
+                if check TPipe (fst next) then
+                    (>>==) (parse_ein_mask (advance next)) (fun (next', ml) -> 
+                        _extract (next', (ein, (Mask (rnge, ml)) :: par))
+                    )
+                else
+                    _extract (next, (ein, rnge :: par))
+            ))
+            (*(Fun.compose _extract add_crange)) *)
             (* a right paren shows the end of parameter sequence - dont advance in this case *)
             else if not @@ check TRightParen (fst state) then 
                 ((>>==) (parse_ein_params (state)) (fun (next, rnge) -> 
@@ -1769,15 +1790,15 @@ let parse_expression state =
                 | Some ({ tokn=KMinus; _ }) ->
                     let* r_expr, _ts' = _term (advance ts) in
                     (match (l_expr, r_expr) with 
-                    | (Literal _l, Binary (_, (Factor _), _)) ->   
-                        let lexpr' = (Binary (l_expr, (Term Sub), (Grouping r_expr))) in
-                        check  lexpr' _ts'
-                    | (Literal l, Binary (l', (Term _t), r')) ->   
-                        let lexpr' = (Binary ((Grouping (Binary (Literal l, (Term Sub), l'))), (Term Sub), r')) in
-                        check  lexpr' _ts'
-                    | _ -> 
-                        let lexpr' = (Binary (l_expr, (Term Sub), r_expr)) in
-                        check  lexpr' _ts'
+                        | (Literal _l, Binary (_, (Factor _), _)) ->   
+                            let lexpr' = (Binary (l_expr, (Term Sub), (Grouping r_expr))) in
+                            check  lexpr' _ts'
+                        | (Literal l, Binary (l', (Term _t), r')) ->   
+                            let lexpr' = (Binary ((Grouping (Binary (Literal l, (Term Sub), l'))), (Term Sub), r')) in
+                            check  lexpr' _ts'
+                        | _ -> 
+                            let lexpr' = (Binary (l_expr, (Term Sub), r_expr)) in
+                            check  lexpr' _ts'
                     )
                 | Some ({ tokn=KPlus; _ }) ->
                     let* r_expr, _ts' = _term (advance ts) in
@@ -1796,25 +1817,25 @@ let parse_expression state =
             | Some ({ tokn=(KDiv); _ }) ->
                 let* r_expr, _ts' = _term  (advance ts) in
                 (match (l_expr, r_expr) with
-                | (Literal _l, Binary (l', (Factor op'), r')) -> 
-                    let lexpr' = (Binary ((Grouping (Binary (l_expr, (Factor Div), l'))), (Factor op'), r')) in
-                    check  lexpr' _ts'
-                | (Literal _l, Binary (l', (Term op'), r')) -> 
-                    let lexpr' = (Binary ((Grouping (Binary (l_expr, (Factor Div), l'))), (Term op'), r')) in
-                    check  lexpr' _ts'
-                | _ -> 
-                    let lexpr' = (Binary (l_expr, (Factor Div), r_expr)) in
-                    check  lexpr' _ts'
+                    | (Literal _l, Binary (l', (Factor op'), r')) -> 
+                        let lexpr' = (Binary ((Grouping (Binary (l_expr, (Factor Div), l'))), (Factor op'), r')) in
+                        check  lexpr' _ts'
+                    | (Literal _l, Binary (l', (Term op'), r')) -> 
+                        let lexpr' = (Binary ((Grouping (Binary (l_expr, (Factor Div), l'))), (Term op'), r')) in
+                        check  lexpr' _ts'
+                    | _ -> 
+                        let lexpr' = (Binary (l_expr, (Factor Div), r_expr)) in
+                        check  lexpr' _ts'
                 )
             | Some  ({ tokn=(KMult);_ })-> 
                 let* r_expr, _ts' = _term  (advance ts) in
                 (match (l_expr, r_expr) with
-                | (Literal _l, Binary (l', (Term op'), r')) -> 
-                    let lexpr' = (Binary (Grouping (Binary (l_expr, (Factor Mul), l')), (Term op'), r')) in 
-                    check  lexpr' _ts'
-                | _ ->   
-                    let lexpr' = (Binary (l_expr, (Factor Mul), r_expr)) in 
-                    check  lexpr' _ts'
+                    | (Literal _l, Binary (l', (Term op'), r')) -> 
+                        let lexpr' = (Binary (Grouping (Binary (l_expr, (Factor Mul), l')), (Term op'), r')) in 
+                        check  lexpr' _ts'
+                    | _ ->   
+                        let lexpr' = (Binary (l_expr, (Factor Mul), r_expr)) in 
+                        check  lexpr' _ts'
                 )
             | Some  ({ tokn=(TPipe);_ })-> 
                 let* _ts', r_expr = parse_ein_mask (advance ts) in
@@ -1828,11 +1849,11 @@ let parse_expression state =
 
     and _unary state' = 
         (match current state' with
-        | Some ({ tokn=(KMinus); _  }) ->
-            let* r_expr, _ts' = _unary (advance state')  in
-            Ok (Unary (Negate, r_expr), _ts')
-        | _ ->
-            _primary state' 
+            | Some ({ tokn=(KMinus); _  }) ->
+                let* r_expr, _ts' = _unary (advance state')  in
+                Ok (Unary (Negate, r_expr), _ts')
+            | _ ->
+                _primary state' 
         ) 
 
     and _primary state' = 

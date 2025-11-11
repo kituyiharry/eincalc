@@ -69,6 +69,105 @@ let homogenous (matshape) =
     check matshape []
 ;;
 
+let rec shapeslice cons slice shape =
+    (match (slice, shape) with
+        | ((hd :: rem),(shplen :: rem')) ->  
+            (match hd with
+                | (Along num) ->  
+                    (if (Int.abs num) > shplen then
+                        Error "index into slice exceeds dimension"
+                        else
+                            shapeslice (1 :: cons) rem rem'
+                    )
+                | (Select {start;len;skip;}) -> 
+                    (match (start, len, skip) with 
+                        | (None, None, None) -> 
+                            shapeslice (shplen :: cons) rem rem'
+                        | (Some st, None, None) -> 
+                            if (Int.abs st) > shplen then 
+                                Error "selection into slice exceeds dimension"
+                            else
+                                (if st >= 0 then
+                                    (* select everything items from st *)
+                                    let f = Int.max (shplen - st) 1 in
+                                    shapeslice (f :: cons) rem rem'
+                                else
+                                    (* FIXME: numpy allows negative start to go beyond the dimension at which the whole slice! *)
+                                    Error "negative slice start not supported!"
+                                )
+                        | (Some st, Some ln, None) -> 
+                            if (Int.abs st) > shplen || (ln > shplen) then 
+                                Error "selection or length into slice exceeds dimension"
+                            else
+                                (if ln > 0 then
+                                    (* select ln items from st *)
+                                    let f = Int.max (shplen - st) 1 in
+                                    let sz  = Int.min (ln) f in
+                                    shapeslice ((sz) :: cons) rem rem'
+                                else
+                                    Error "must be at least 1 length selection!"
+                                )
+                        | (Some st, Some ln, Some sk) -> 
+                            if (Int.abs st) > shplen || (ln > shplen) || (sk >= shplen) then 
+                                Error "selection or length or skip over slice exceeds dimension"
+                            else
+                                (if ln > 0 && sk > 0 then
+                                    (* select alternating including start items from st *)
+                                    let all = (Int.min (ln) (shplen - st)) in
+                                    let sz  = (Int.div (all) sk)in
+                                    let sz  = if Int.rem all sk = 0 then sz else sz + 1 in
+                                    shapeslice (sz :: cons) rem rem'
+                                    else
+                                        Error "must be at least 1 length selection or step!"
+                                )
+                        | (Some st, None, Some sk) -> 
+                            if (Int.abs st) > shplen || (sk >= shplen) then 
+                                Error "selection or length or skip over slice exceeds dimension"
+                            else
+                                (if sk > 0 then
+                                    (* select alternating including start items from st *)
+                                    let all = shplen - st in
+                                    let sz = (Int.div all sk) in
+                                    let sz = if Int.rem all sk = 0 then sz else sz + 1 in
+                                    shapeslice (sz :: cons) rem rem'
+                                    else
+                                        Error "must be at least 1 length selection!"
+                                )
+                        | (_,  _, Some sk) -> 
+                            if (sk >= shplen) then 
+                                Error "selection skip over slice exceeds dimension"
+                            else
+                                (if sk > 0 then
+                                    (* select alternating including start items from st *)
+                                    let sz = (Int.div shplen sk) in
+                                    let sz = if Int.rem shplen sk = 0 then sz else sz + 1 in
+                                    shapeslice (sz :: cons) rem rem'
+                                    else
+                                        Error "must be at least 1 length selection!"
+                                )
+                        | (None, Some ln, None) -> 
+                            (*Error "unhandled selection format!"*)
+                            if (ln > shplen) then 
+                                Error "selection or length or skip over slice exceeds dimension"
+                            else
+                                let st = 0 in
+                                let sk = 1 in
+                                (if ln > 0 then
+                                    (* select alternating including start items from st *)
+                                    let all = (Int.min (ln) (shplen - st)) in
+                                    let sz  = (Int.div (all) sk)in
+                                    let sz  = if Int.rem all sk = 0 then sz else sz + 1 in
+                                    shapeslice (sz :: cons) rem rem'
+                                    else
+                                        Error "must be at least 1 length selection or step!"
+                                )
+                    )
+            )
+        | _ -> 
+            Ok (List.rev cons)
+    )
+;;
+
 let compfromshape param pidx einchars masks dimens = 
     let l' = List.length einchars in 
     let g' = List.length dimens in
@@ -115,14 +214,6 @@ let compfromshape param pidx einchars masks dimens =
         Error (Format.sprintf "dimension subscript requests %d dimensions but argument %d has %d" l' (pidx+1) g')
 ;;
 
-let plot_shape_valid plt shp = 
-    match plt with 
-    | (Scatter _) -> 
-        Ok shp
-    | _ -> 
-        Error "Unhandled shape"
-;;
-
 let ensure_keys tbl klist = 
     let idx    = ref (-1) in
     let exists = List.for_all (fun k -> 
@@ -132,87 +223,68 @@ let ensure_keys tbl klist =
     (!idx, exists)
 ;;
 
-let rec shapeslice cons slice shape =
-    (match (slice, shape) with
-        | ((hd :: rem),(shplen :: rem')) ->  
-            (match hd with
-                | (Along num) ->  
-                    (if (Int.abs num) > shplen then
-                        Error "index into slice exceeds dimension"
-                        else
-                            shapeslice (1 :: cons) rem rem'
-                    )
-                | (Select {start;len;skip;}) -> 
-                    (match (start, len, skip) with 
-                        | (None, None, None) -> 
-                            shapeslice (shplen :: cons) rem rem'
-                        | (Some st, None, None) -> 
-                            if (Int.abs st) > shplen then 
-                                Error "selection into slice exceeds dimension"
-                            else
-                                (if st > 0 then
-                                    (* select everything items from st *)
-                                    shapeslice ((shplen - st) :: cons) rem rem'
-                                else
-                                    (* FIXME: numpy allows negative start to go beyond the dimension at which the whole slice! *)
-                                    shapeslice ((Int.abs st) :: cons) rem rem'
-                                )
-                        | (Some st, Some ln, None) -> 
-                            if (Int.abs st) > shplen || (ln > shplen) then 
-                                Error "selection or length into slice exceeds dimension"
-                            else
-                                (if ln > 0 then
-                                    (* select ln items from st *)
-                                    let sz  = Int.min (ln) (shplen - st) in
-                                    shapeslice ((sz) :: cons) rem rem'
-                                else
-                                    Error "must be at least 1 length selection!"
-                                )
-                        | (Some st, Some ln, Some sk) -> 
-                            if (Int.abs st) > shplen || (ln > shplen) || (sk >= shplen) then 
-                                Error "selection or length or skip over slice exceeds dimension"
-                            else
-                                (if ln > 0 && sk > 0 then
-                                    (* select alternating including start items from st *)
-                                    let all = (Int.min (ln) (shplen - st)) in
-                                    let sz  = (Int.div (all) sk)in
-                                    let sz  = if Int.rem all sk = 0 then sz else sz + 1 in
-                                    shapeslice (sz :: cons) rem rem'
-                                    else
-                                        Error "must be at least 1 length selection or step!"
-                                )
-                        | (Some st, None, Some sk) -> 
-                            if (Int.abs st) > shplen || (sk >= shplen) then 
-                                Error "selection or length or skip over slice exceeds dimension"
-                            else
-                                (if sk > 0 then
-                                    (* select alternating including start items from st *)
-                                    let all = shplen - st in
-                                    let sz = (Int.div all sk) in
-                                    let sz = if Int.rem all sk = 0 then sz else sz + 1 in
-                                    shapeslice (sz :: cons) rem rem'
-                                    else
-                                        Error "must be at least 1 length selection!"
-                                )
-                        | (_,  _, Some sk) -> 
-                            if (sk >= shplen) then 
-                                Error "selection skip over slice exceeds dimension"
-                            else
-                                (if sk > 0 then
-                                    (* select alternating including start items from st *)
-                                    let sz = (Int.div shplen sk) in
-                                    let sz = if Int.rem shplen sk = 0 then sz else sz + 1 in
-                                    shapeslice (sz :: cons) rem rem'
-                                    else
-                                        Error "must be at least 1 length selection!"
-                                )
-                        | _ -> 
-                            Error "unhandled selection format!"
-                    )
+let draw_shape_valid handle elmnts map = 
+    List.fold_left (fun r e ->
+        if Result.is_error r then r else 
+            match e with 
+            | Box pr  -> (
+                let keys = ["x";"y";"w";"h"] in
+                let i,t = ensure_keys pr keys in
+                (if t then r else 
+                    Error (Format.sprintf "missing property for %s Box: %s"
+                        (handle)   (List.nth keys i))
+                )
             )
-        | _ -> 
-            Ok (List.rev cons)
-    )
+            | Circle pr -> (
+                let keys = ["x";"y";"r"] in
+                let i,t = ensure_keys pr keys in
+                (if t then r else 
+                    Error (Format.sprintf "missing property for %s Circle: %s"
+                        (handle)    (List.nth keys i))
+                )
+            ) 
+            | Line pr -> (
+                let keys = ["x";"y";"fx";"fy"] in
+                let i,t  = ensure_keys pr keys in
+                (if t then r else 
+                    Error (Format.sprintf "missing property for %s Line: %s"
+                        (handle)    (List.nth keys i))
+                )
+            ) 
+            | Text pr -> (
+                let keys = ["x";"y";"t"] in
+                let i,t  = ensure_keys pr keys in
+                (if t then r else 
+                    Error (Format.sprintf "missing property for %s Text: %s"
+                        (handle)    (List.nth keys i))
+                )
+            )
+            | Clear -> r
+            | Reset -> r
+    ) (Ok map) elmnts
+
+;;
+
+let plot_shape_valid plt shp = 
+    let shp = (match shp with | [] -> [1] | o -> o) in
+    match plt with 
+    | (Scatter { slices; props; _ }) -> 
+        (match slices with 
+            | xslice :: yslice :: _ ->  
+                let* xshp = shapeslice [] xslice shp in
+                let* yshp = shapeslice [] yslice shp in
+                if (Types.cardinal_of_shp xshp != Types.cardinal_of_shp yshp) then
+                    Error (
+                        Format.sprintf "plot axis slices cannot be broadcasted together! %s != %s\n" 
+                            (Types.string_of_shape xshp) (Types.string_of_shape yshp)
+                    ) 
+                else
+                    Ok shp
+            | _ -> 
+                Error "expected at least 2 slices for x and y and an optional slice for labels"
+        )
+    | _ -> 
+        Error "Unhandled shape"
 ;;
 
 let slicetoarr curdim sl =  
@@ -223,21 +295,21 @@ let slicetoarr curdim sl =
             | Parser.Select {start;len;skip} -> 
                 (match (start,len,skip) with 
                     | (None, None, None) -> 
-                        (0,  curdim.(i) - 1, 1)
+                        (0,  curdim.(i), 1)
                     | (Some st, None, None) -> 
-                        (st, curdim.(i) - 1, 1)
+                        (st, curdim.(i)-st, 1)
                     | (Some st, Some ln, None) -> 
                         (st, ln, 1)
                     | (Some st, Some ln, Some sk) -> 
                         (st, ln, sk)
                     | (None, Some ln, Some sk) -> 
-                        (0, ln, sk)
+                        (0,  ln, sk)
                     | (None, None, Some sk) -> 
-                        (0, curdim.(i) - 1, sk)
+                        (0, curdim.(i), sk)
                     | (None, Some ln, None) -> 
                         (0, ln, 1)
                     | (Some st, None, Some sk) ->
-                        (st, curdim.(i) - 1, sk)
+                        (st, curdim.(i)-st, sk)
                 )
         )
     ) sl 
@@ -274,44 +346,7 @@ let shape_of_mask m map =
             plot_shape_valid plt map
         | Draw ({ handle; elmnts; _ }) -> 
             (* TODO: verify draw calls ?? *)
-            List.fold_left (fun r e ->
-                if Result.is_error r then r else 
-                match e with 
-                | Box pr  -> (
-                    let keys = ["x";"y";"w";"h"] in
-                    let i,t = ensure_keys pr keys in
-                    (if t then r else 
-                        Error (Format.sprintf "missing property for %s Box: %s"
-                        (handle)   (List.nth keys i))
-                    )
-                )
-                | Circle pr -> (
-                    let keys = ["x";"y";"r"] in
-                    let i,t = ensure_keys pr keys in
-                    (if t then r else 
-                        Error (Format.sprintf "missing property for %s Circle: %s"
-                        (handle)    (List.nth keys i))
-                    )
-                ) 
-                | Line pr -> (
-                    let keys = ["x";"y";"fx";"fy"] in
-                    let i,t  = ensure_keys pr keys in
-                    (if t then r else 
-                        Error (Format.sprintf "missing property for %s Line: %s"
-                        (handle)    (List.nth keys i))
-                    )
-                ) 
-                | Text pr -> (
-                    let keys = ["x";"y";"t"] in
-                    let i,t  = ensure_keys pr keys in
-                    (if t then r else 
-                        Error (Format.sprintf "missing property for %s Text: %s"
-                        (handle)    (List.nth keys i))
-                    )
-                )
-                | Clear -> r
-                | Reset -> r
-            ) (Ok map) elmnts
+            draw_shape_valid handle elmnts map
         | Slice _slices -> 
             let sllen = List.length _slices in 
             let mplen = List.length map in

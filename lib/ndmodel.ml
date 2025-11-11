@@ -157,7 +157,7 @@ let genrange start fin =
 let fetch_grid g (r, c) (r', c') sparse = 
     (* 24,5  3,5 *)
     let _ = Format.printf "fetch from  %d,%d len %d,%d" r c r' c' in
-    match (r' - r, c' - c) with
+    let n = (match (r' - r, c' - c) with
     | (0,  0) ->
         let _scal = (module Scalar: NDarray with type t = float ref) in 
         let (module Scalar) = _scal in
@@ -210,4 +210,6 @@ let fetch_grid g (r, c) (r', c') sparse =
             |> Seq.iter (ignore)
         in 
         (SNdim(_scal, _sdat))
+    ) in 
+    n
 ;;

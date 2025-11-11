@@ -105,7 +105,7 @@ let stddevaxis (type data newdata) axis (module Mnew: Ndarray.NDarray with type 
 ;;
 
 (* smallest value *)
-let minmaxvalue (type data) (module M: Ndarray.NDarray with type t = data) (d: data) = 
+let minmaxvalue (type data) (module M: Ndarray.Viewable with type t = data) (d: data) = 
     let mnmx = ref None in
     let _ = M.iteri (fun _dim v -> 
         (* TODO: maybe we don't need to set it on every call ? *)
@@ -295,6 +295,8 @@ let minmaxscale (type data) (module M: Ndarray.NDarray with type t = data) (d: d
     let mn, mx = minmaxvalue (module M) d in
     let rdiff  = b  -. a   in 
     let mdiff  = mx -. mn in
+    (* avoid div by 0 *)
+    let mdiff  = if mdiff = 0. then 1. else mdiff in
     let d' = M.make (M.shape d) 0. in
     let _ = M.iteri (fun dim v -> 
         M.set d' dim (a +. (((v -. mn) *. rdiff) /. mdiff ))
@@ -378,16 +380,19 @@ let slice (type adata bdata)
     let dmaindim = M.shape _maindata   in
     let dlen     = Array.length dmaindim in
     let dmainidx = Array.make dlen 0 in
+    let cntarr   = Array.make (Array.length slicearr) 1 in
     let _ =  
         (* set the start offset for each dimension *)
         Array.mapi_inplace (fun i _ -> 
             let (start, _, _) = slicearr.(i) in 
-            Types.offset dmainidx i dmaindim start 
+            (*Types.offset dmainidx i dmaindim start *)
+            start
         ) dmainidx
     in
     S.iteri (fun d _ -> 
         S.set _sliceddata d (M.get _maindata dmainidx);
-        Types.incrbyselection dlen dmainidx dmaindim slicearr; 
+        Types.incrbyselection dlen dmainidx dmaindim slicearr cntarr; 
+        Format.printf "next %s\n" (Types.string_of_dim dmainidx);
     ) _sliceddata
 ;;
 

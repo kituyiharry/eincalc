@@ -425,37 +425,38 @@ let decrindex len indx dims =
 (* TODO: lastoffset dual for this which gets the final index along a dimension
    for use in a decreasebyselection variant *)
 let offset indx i dims direc = 
-    if direc >= 0 then 
-        (indx.(i) + direc) mod (dims.(i) - 1)
+    let den = dims.(i) - 1 in
+    let off = if direc >= 0 then 
+        (indx.(i) + direc) mod (if den = 0 then 1 else den)
     else
-        (dims.(i) + direc) mod (dims.(i) - 1)
+        (dims.(i) + direc) mod (if den = 0 then 1 else den)
+    in 
+    (*let _ = Format.printf "offset %s at %d over %s by %d\n" (string_of_dim indx) i (string_of_dim dims) off in*)
+    off
 ;;
 
 (* TODO: needs testing!! *)
 (* TODO: decrease dual for this *)
 
 (* increase but within bounds in selections *)
-let incrbyselection len indx dims selec = 
+let incrbyselection len indx dims selec cntarr = 
     let brk = ref false in
     for i = (len - 1) downto 0 do
-        let (start, count, step) = selec.(i) in 
+        let (start, maxcnt, step) = selec.(i) in 
         (if !brk then () else 
-            (if indx.(i) >= (start + count) then 
-                indx.(i) <- (offset indx i dims start) 
-                else
-                    (* check if we went past the bounds in which case we reset *)
-                    let n = ((indx.(i)) + step) in
-                    if n > (dims.(i) - 1) then 
-                        (* simulate a blank slate - otherwise the index gets
+            if (cntarr.(i) + 1) > maxcnt then 
+                (* simulate a blank slate - otherwise the index gets
                            stuck. we don't break to increase the next dimen *)
-                        let _ = indx.(i) <- 0 in
-                        let _ = indx.(i) <- (offset indx i dims start) in 
-                        ()
-                    else 
-                        let _ = indx.(i) <- (n) in 
-                        let _ = brk := true in 
-                        ()
-            )
+                let _ = indx.(i) <- start in
+                cntarr.(i) <- 1;
+                (*let _ = indx.(i) <- (offset indx i dims start) in *)
+                ()
+            else 
+                let n = ((indx.(i)) + step) in
+                let _ = indx.(i) <- (n) in 
+                let _ = brk := true in 
+                cntarr.(i) <- cntarr.(i) + 1;
+                ()
         )
     done
 ;;

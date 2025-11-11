@@ -10,6 +10,7 @@
 
 open Parser;;
 open Genfunc;;
+open Ndview;;
 open Ndmodel;;
 open Ndcontroller;;
 open Types;;
@@ -123,11 +124,31 @@ let select_num k tok =
     | _ -> failwith ("expected float value for key " ^ k)
 ;;
 
+let select_bounds = function 
+    | x :: y :: _ -> (x, y) 
+    | x :: _ -> (x, x) 
+    | []    -> failwith "bounds selection unreachable case!"
+;;
+
+let select_positive_num k tok = 
+    match tok with 
+    | Tokens.TFloat v when v >= 0. -> v 
+    | Tokens.TNumeral i when i >= 0  -> (float_of_int i)
+    | _ -> failwith ("expected positive float value for key " ^ k)
+;;
+
 let select_nat k tok = 
     match tok with 
     | Tokens.TFloat v -> (int_of_float v) 
     | Tokens.TNumeral i -> i
     | _ -> failwith ("expected float value for key " ^ k)
+;;
+
+let select_positive_nat k tok = 
+    match tok with 
+    | Tokens.TFloat v   when v >= 0. -> (int_of_float v) 
+    | Tokens.TNumeral i when i >= 0 -> i
+    | _ -> failwith ("expected positive float value for key " ^ k)
 ;;
 
 let select_str k tok = 
@@ -143,39 +164,39 @@ let transform_draw_elmnts elmnts =
         (match elts with 
             | Box props -> 
                 Plotter.Box ({ 
-                    x      =    find_default_value props "x" 0. (select_num "box.x"); 
-                    y      =    find_default_value props "y" 0. (select_num "box.y"); 
-                    width  =    find_default_value props "w" 1. (select_num "box.w"); 
-                    height =    find_default_value props "h" 1. (select_num "box.h"); 
+                    x      =    find_default_value props "x" 0. (select_positive_num "box.x"); 
+                    y      =    find_default_value props "y" 0. (select_positive_num "box.y"); 
+                    width  =    find_default_value props "w" 1. (select_positive_num "box.w"); 
+                    height =    find_default_value props "h" 1. (select_positive_num "box.h"); 
                     color  =    find_default_value props "c" "red" (select_str "box.c"); 
-                    linewidth = find_default_value props "l" 1. (select_num "box.l"); 
-                    border = find_default_value props "b" "white" (select_str "box.b")
+                    linewidth = find_default_value props "l" 1. (select_positive_num "box.l"); 
+                    border =    find_default_value props "b" "white" (select_str "box.b")
                 }) 
             | Circle props -> 
                 Plotter.Circle ({ 
-                    x      =    find_default_value props "x" 0. (select_num "circle.x"); 
-                    y      =    find_default_value props "y" 0. (select_num "circle.y"); 
-                    radius =    find_default_value props "r" 1. (select_num "circle.r"); 
+                    x      =    find_default_value props "x" 0. (select_positive_num "circle.x"); 
+                    y      =    find_default_value props "y" 0. (select_positive_num "circle.y"); 
+                    radius =    find_default_value props "r" 1. (select_positive_num "circle.r"); 
                     color  =    find_default_value props "c" "red" (select_str "circle.c"); 
-                    linewidth = find_default_value props "l" 1. (select_num "circle.l"); 
-                    border = find_default_value props "b" "white" (select_str "circle.b")
+                    linewidth = find_default_value props "l" 1. (select_positive_num "circle.l"); 
+                    border =    find_default_value props "b" "white" (select_str "circle.b")
                 }) 
             | Line props -> 
                 Plotter.Line ({ 
-                    x      =    find_default_value props "x"  0. (select_num "line.x"); 
-                    y      =    find_default_value props "y"  0. (select_num "line.y"); 
-                    fx     =    find_default_value props "fx" 1. (select_num "line.height"); 
-                    fy     =    find_default_value props "fy" 1. (select_num "line.height"); 
+                    x      =    find_default_value props "x"  0. (select_positive_num "line.x"); 
+                    y      =    find_default_value props "y"  0. (select_positive_num "line.y"); 
+                    fx     =    find_default_value props "fx" 1. (select_positive_num "line.height"); 
+                    fy     =    find_default_value props "fy" 1. (select_positive_num "line.height"); 
                     color  =    find_default_value props "c"  "red" (select_str "line.color"); 
-                    linewidth = find_default_value props "l"  1. (select_num "line.x"); 
+                    linewidth = find_default_value props "l"  1. (select_positive_num "line.x"); 
                 }) 
             | Text props -> 
                 Plotter.Text ({ 
-                    x      =    find_default_value props "x"  0. (select_num "text.x"); 
-                    y      =    find_default_value props "y"  0. (select_num "text.y"); 
+                    x      =    find_default_value props "x"  0. (select_positive_num "text.x"); 
+                    y      =    find_default_value props "y"  0. (select_positive_num "text.y"); 
                     color  =    find_default_value props "c"  "green" (select_str "text.color"); 
                     text   =    find_default_value props "t"  "" (select_str "text.text");
-                    size   =    find_default_value props "s" 14  (select_nat "text.size")
+                    size   =    find_default_value props "s" 14  (select_positive_nat "text.size")
                 }) 
             | Clear -> 
                 Plotter.Clear
@@ -183,6 +204,34 @@ let transform_draw_elmnts elmnts =
                 Plotter.Reset
         )
     ) elmnts
+;;
+
+let _plot_padding = 30;;
+
+let handle_plot_type (type data) xbound ybound handle plt grid (module M: Ndarray.NDarray with type t = data) (data: data) = 
+    let pltctx: Plotter.plotctx = { xbound; ybound; handle; plotcb=grid.plotcb; padding=50 } in
+    match plt with
+    | Scatter { slices; props; _  } -> 
+        (match slices with
+        | x :: y :: _ -> 
+            let module SliceView = MakeSliceView(M) in 
+            let xview   = SliceView.make data x in
+            let yview   = SliceView.make data y in
+            let xlabel  = find_default_value props "xl" ""    (select_str "scatter.xlabel") in
+            let ylabel  = find_default_value props "yl" ""    (select_str "scatter.ylabel") in
+            let radius  = find_default_value props "r" 3.     (select_positive_num "scatter.r") in
+            let color   = find_default_value props "c" "red"  (select_str "scatter.c") in
+            let border  = find_default_value props "b" "white"(select_str "scatter.b") in
+            let padding = find_default_value props "p"_plot_padding (select_positive_nat "scatter.p") in
+            let ctx: Plotter.scatterctx = {
+                plot={ pltctx with padding=padding };xlabel;ylabel;color;border;radius
+            } in 
+            Plotter.scatter ctx (module SliceView) xview yview 
+        | _ -> 
+            failwith "should be unreachable in scatter plot"
+        )
+    | _  ->
+        ()
 ;;
 
 let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray with type t = data) (data: data) =
@@ -284,7 +333,9 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
             | Parser.Reshape _ -> 
                 failwith "axis reshape not supported atm!!"
             (* FIXME: implement actual plotting *)
-            | Parser.Plot _ -> 
+            | Parser.Plot { handle; oftype=ptype; bounds } -> 
+                let width, height = select_bounds bounds in
+                let _ = handle_plot_type width height handle ptype _grid (module M) data in
                 acc
             | Parser.Draw  { handle; bounds; elmnts } -> 
                 let _ = _grid.plotcb (handle, bounds, (transform_draw_elmnts elmnts)) in
@@ -427,7 +478,9 @@ and masked_to_ndarray _grid _masks range =
                         let _ = Masks.apply (module M) f data in
                         acc
                     (* FIXME: implement actual plotting *)
-                    | Parser.Plot _  -> 
+                    | Parser.Plot { handle; oftype=ptype; bounds }  -> 
+                        let width, height = select_bounds bounds in
+                        let _ = handle_plot_type width height handle ptype _grid (module M) data in
                         acc
                     | Parser.Draw  { handle; elmnts; bounds; } -> 
                         let _ = _grid.plotcb (handle, bounds, (transform_draw_elmnts elmnts)) in
@@ -492,7 +545,9 @@ and transform_mask _grid ndarr masks =
                         let _ = Masks.cumsum (module M) data in
                         acc
                     (* FIXME: implement actual plotting and drawing *)
-                    | Parser.Plot _pl -> 
+                    | Parser.Plot { handle; oftype=ptype; bounds } -> 
+                        let width, height = select_bounds bounds in
+                        let _ = handle_plot_type width height handle ptype _grid (module M) data in
                         acc
                     | Parser.Draw { handle; elmnts; bounds } -> 
                         let _ = _grid.plotcb (handle, bounds, (transform_draw_elmnts elmnts)) in
