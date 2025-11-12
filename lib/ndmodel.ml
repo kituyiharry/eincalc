@@ -26,7 +26,6 @@ type gridref = (string * int)
 let key_of_ref ((col, row): gridref) = 
     let col = String.fold_left (fun acc c -> 
         (acc * ((Char.code 'Z' - Char.code 'A') + 1))
-
             + 
         ((Char.code c - Char.code 'A') + 1)
     ) 0 (String.uppercase_ascii col) in 
@@ -75,7 +74,6 @@ let rand_grid b (r, c) =
     ) in 
     g
 ;;
-
 
 let enum_grid (r, c) = 
     let n = ref 0. in
@@ -145,7 +143,7 @@ let genrange start fin =
             else 
                 let _ = incr cntr in
                 (Some (x, (x - 1)))
-        ) 24
+        ) start
 ;;
 
 (* fetch from 2d grid with a sparse function if it is not available  - the
