@@ -51,7 +51,7 @@ let _ =
     (* NB: method names cant have underscores!! *)
     (* TODO: use a view interface to manage this object and the controller *)
     (* TODO: implement undo buffer *)
-    let _ = Js.export "myLib" (object%js (_self)
+    let _ = Js.export_all (object%js (_self)
 
         method renderarea node = (
             let plts  = Draw.init node in 

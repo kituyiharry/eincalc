@@ -1,10 +1,16 @@
 <script>
+  import { default as eincalc } from '$lib/eincalcwrapper';
   import { Canvas, Layer } from 'svelte-canvas';
   // TODO: standardize controller so that we can type it
-  import { default as controller } from '$lib/eincalc';
   import { onMount } from 'svelte';
-    import { Tween, tweened } from 'svelte/motion';
-    import { elasticIn } from 'svelte/easing';
+  import { Tween }   from 'svelte/motion';
+
+  // I actually have to do this - Thanks OCaml ??!!!
+  var controller = { 
+    myLib: eincalc['default']
+  }
+
+  // console.dir([ eincalc, eincalc['default'], controller ]);
 
   // editing support via floating input 
   let editor

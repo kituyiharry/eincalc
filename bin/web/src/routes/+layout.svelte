@@ -1,6 +1,7 @@
 <script>
 	import '../app.css';
-    import '$lib/assets/font-awesome.min.css';
+    // NB: had to change the URL option in the css file!
+    import '$lib/assets/font-awesome.css';
 	import favicon from '$lib/assets/favicon.svg';
     import kookaburra from '$lib/assets/Kookaboora.jpeg'
     import github from '$lib/assets/github-mark.svg'
@@ -10,6 +11,7 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+    <!--<link rel="stylesheet" href="/fonts/fontawesome-webfont.woff">-->
 </svelte:head>
 
 <div class="min-h-full" style="font-family: Outfit;">

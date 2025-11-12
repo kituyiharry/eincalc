@@ -3,7 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vitest/config';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { viteCommonjs } from '@originjs/vite-plugin-commonjs'
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
+//import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 
 export default defineConfig({
@@ -12,7 +12,7 @@ export default defineConfig({
 		sveltekit(),
 		devtoolsJson(),
         viteCommonjs(),
-        nodePolyfills(),
+        //nodePolyfills(),
 	],
 	test: {
 		expect: { requireAssertions: true },
