@@ -67,7 +67,7 @@ dune build --profile release && cd ./bin/web && bun i && bun dev
 
 ### Formulae
 
-##### Operators 
+##### Tutorial 
 
 These functions can be executed in the repl or the formula input of the web
 version. Only number and text values can be written into the cell
@@ -75,14 +75,14 @@ version. Only number and text values can be written into the cell
 Add 2 numbers 
 
 ```
-> =2+2 
+ =2+2 
 ```
 
 Compute result and write to cell A1. (Parantheses aid in clarity of the
 expression)
 
 ```
-> =((6 / 3) + 3) | write<A1>
+ =((6 / 3) + 3) | write<A1>
 ```
 
 Multiply 2 Arrays and write result to B2. (Note that tensor result will be
@@ -90,26 +90,26 @@ interpreted in Row major form whilst being written to the grid). Eincalc will
 check whether the operations can be broadcasted together
 
 ```
-> =([ 1,2,3 ] * [ 4, 5, 6 ]) | write<B2>
+ =([ 1,2,3 ] * [ 4, 5, 6 ]) | write<B2>
 ```
 
 Add 5 to each element fetched from the grid and write back to the grid
 
 ```
-> =((@B2..D2) + 5)
+ =((@B2..D2) + 5)
 ```
 
 Or write it back in reverse (the start and end cells in the range are swapped
 for this effect) 
 
 ```
-> =((@D2..B2) + 5)
+ =((@D2..B2) + 5)
 ```
 
 You can use einsum to transpose a matrix, multiply all elements by 3 and write it to the grid 
 
 ```
-> = ((ij -> ji, [[[1,2,3]],[[4,5,6]]]) | write<B6>
+ = ((ij -> ji, [[[1,2,3]],[[4,5,6]]]) | write<B6>
 ```
 
 `PS: You cannot evaluate expressions within an einsum expression at the moment`
@@ -117,7 +117,7 @@ You can use einsum to transpose a matrix, multiply all elements by 3 and write i
 Generate random matrices  and multiply them using einsum then write them back
 
 ```
-> =(ij, jk -> ik, @rand<100,[6,6]>, @rand<100,[6,6]>) | write<A1>
+ =(ij, jk -> ik, @rand<100,[6,6]>, @rand<100,[6,6]>) | write<A1>
 ```
 
 
