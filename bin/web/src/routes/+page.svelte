@@ -287,8 +287,7 @@
   let funcBudgetWidth  = $state(0)
   let funcBlockHeight  = Tween.of(() => 100, { duration: 200 });
 
-  // let funcText  = $state('=(ij -> ji | write<B2>, @rand<100,[10,10]>)')
-  let funcText  = $state("=(@b4..c15) | plot<'Heat', [320,240], scatter<[::, 0:1:], [::, 1:1:], {xl='Temp',yl='Ice Cream',c='red',r=3}>>")
+  let funcText  = $state('=(ij -> ji | write<B2>, @rand<100,[10,10]>)')
   let funcStyle = $derived ({
     position: 'fixed',
     bottom: `0px`,
@@ -579,17 +578,21 @@
       const cellKey = `${editingCell.row},${editingCell.col}`;
       const editOut = editValue.trim();
       if (editOut.startsWith('=')) {
-        const num = parseFloat(editOut.substring(1));  
-        controller.myLib.gridaddnumber(editingCell.row, editingCell.col, num);
+        // executed code and write it back into this cell
+        const cellStart = `${getColumnLabel(editingCell.col)}${editingCell.row+1}`;
+        let code = `(${editOut.substring(1)}) | write<${cellStart}>`;
+        controller.myLib.executecode(code);
+        cellData = {};
+        visibleCells.clear();
       } else {
-        const num = parseFloat(editOut.substring(1));  
+        const num = parseFloat(editOut);  
         if (isNaN(num)) {
             controller.myLib.gridaddstring(editingCell.row, editingCell.col, editOut);
         } else {
             controller.myLib.gridaddnumber(editingCell.row, editingCell.col, num);
         }
+        cellData[cellKey] = editOut;
       }
-      cellData[cellKey] = editValue;
       editingCell = null;
       refresh++;
     }
@@ -1036,9 +1039,9 @@
                             <div class="divider py-0 my-0"></div>
                             <div class="flex flex-row py-4 px-3 items-center justify-between w-full">
                                 <input id="fontsize" 
-                                    class="basis-2/3 range range-xs range-neutral" type="range" min="10" max="20" step="1" 
+                                class="basis-2/3 range range-xs range-neutral" type="range" min="10" max="20" step="1" 
                                     bind:value={styleBuffer.fontSize}
-                                    ondblclick={() => {
+                                    onclick={() => {
                                         applyStyleToSelection({ fontSize: styleBuffer.fontSize })
                                     }}
                                     onchange={() => {
@@ -1119,9 +1122,13 @@
                                     class="basis-2/3 range range-xs range-neutral" 
                                     type="color"
                                     bind:value={styleBuffer.color}
+                                    onclick={() => {
+                                        applyStyleToSelection({ color: styleBuffer.color })
+                                    }}  
                                     onchange={() => {
                                         applyStyleToSelection({ color: styleBuffer.color })
-                                    }}  />
+                                    }}  
+                                />
                                 <label for="fontcolor" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
                                     <span>{styleBuffer.color}</span>
                                 </label>
@@ -1148,9 +1155,13 @@
                                 <input id="bordersize" 
                                     class="basis-2/3 range range-xs range-neutral" type="range" min="1" max="4" step="1" 
                                     bind:value={styleBuffer.borderWidth}
+                                    onclick={() => {
+                                        applyStyleToSelection({ borderWidth: styleBuffer.borderWidth })
+                                    }}
                                     onchange={() => {
                                         applyStyleToSelection({ borderWidth: styleBuffer.borderWidth })
-                                    }} />
+                                    }}
+                                />
                                 <label for="bordersize" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
                                     <span>{styleBuffer.borderWidth} em </span>
                                 </label>
@@ -1161,9 +1172,13 @@
                                     class="basis-2/3 range range-xs range-neutral" 
                                     type="color"
                                     bind:value={styleBuffer.backgroundColor}
+                                    onclick={() => {
+                                        applyStyleToSelection({ backgroundColor: styleBuffer.backgroundColor })
+                                    }}  
                                     onchange={() => {
                                         applyStyleToSelection({ backgroundColor: styleBuffer.backgroundColor })
-                                    }}  />
+                                    }}  
+                                />
                                 <label for="backgroundcolor" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
                                     <span>{styleBuffer.backgroundColor }</span>
                                 </label>
@@ -1174,9 +1189,13 @@
                                     class="basis-2/3 range range-xs range-neutral" 
                                     type="color"
                                     bind:value={styleBuffer.borderColor}
+                                    onclick={() => {
+                                        applyStyleToSelection({ borderColor: styleBuffer.borderColor })
+                                    }} 
                                     onchange={() => {
                                         applyStyleToSelection({ borderColor: styleBuffer.borderColor })
-                                    }}  />
+                                    }} 
+                                />
                                 <label for="bordercolor" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
                                     <span>{styleBuffer.borderColor}</span>
                                 </label>

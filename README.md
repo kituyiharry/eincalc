@@ -78,7 +78,45 @@ dune build utop
 These functions can be executed in the repl or the formula input of the web
 version. Only number and text values can be written into the cell
 
-Add 2 numbers 
+
+> You can use these functions in any cell or in the formulae
+> box. At the moment cell changes are not reactive so changing dependant cells
+> will not reflect. Also formulaes are NOT stored in the cells (for now). These
+> features will be added in the future.  
+
+
+> When using in a cell, you MUST start the cell with an `=`  sign otherwise it
+> is interpreted directly as either text or number
+
+
+You can use generators to initialize cells with data too. Here are a few.
+
+- Random numbers with an upper bound of 100, reshaped into a 5x5 matrix
+```
+=@rand<100,[5,5]>
+```
+
+- Enumarate from 0 with 10 step increments into a 5-length vector
+```
+=@enum<0,10,[5]>
+```
+
+- Fill with a value into a 5 length vector
+```
+=@fill<0,10,[5]>
+```
+
+- Diagonal 4x4 matrix with 2 along the diagonal
+```
+=@diag<2,4>
+```
+
+- Add a list of values directly (only numbers supported for now)
+```
+=[1,2,3,4,5,6,7,8,9,10]
+```
+
+Lets Add 2 numbers.
 
 ```
  =2+2 
@@ -118,7 +156,7 @@ You can use einsum to transpose a matrix, multiply all elements by 3 and write i
  = ((ij -> ji, [[[1,2,3]],[[4,5,6]]]) | write<B6>
 ```
 
-`PS: You cannot evaluate expressions within an einsum expression at the moment`
+> PS: You cannot evaluate expressions within an einsum expression at the moment
 
 Generate random matrices  and multiply them using einsum then write them back
 
@@ -126,13 +164,9 @@ Generate random matrices  and multiply them using einsum then write them back
  =(ij, jk -> ik, @rand<100,[6,6]>, @rand<100,[6,6]>) | write<A1>
 ```
 
-
 Same as above but with z-score normalization. The masks can be used within
 einsum expression but math expressions don't work.
 
 ```
 =(ij, jk -> ik, @rand<100,[6,6]> | zscore, @rand<100,[6,6]> | zscore) | write<A1>
 ```
-```
-
-

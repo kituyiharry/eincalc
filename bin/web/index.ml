@@ -109,6 +109,7 @@ let _ =
 
         (* TODO: use OptDef or Opt for null checks *)
         method executecode (value: Js.js_string Js.t) = (
+            (* TODO: if it starts with `=` we evaluate it *)
             let vstr = Js.to_string value in
             let _    = Eincalc.Repl.handle_scan_exp { sheet with active=default; } vstr
             in Js._true
