@@ -154,6 +154,8 @@ and 'a ndarray =
     | Itemize of 'a list          (* The columns *)
     | Collect of 'a ndarray list  (* The rows    *)
 and  crange  = 
+    (* TODO: Support single range with a size e.g. @D2..[3,3] - how would
+       multidimensional work in this ?? *)
     | Range    of cell * cell    (* spreadsheet cell *)
     | Scalar   of cell
     | NdArray  of float ndarray

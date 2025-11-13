@@ -23,6 +23,8 @@ the grid for easier management. At the moment it supports.
     - [x] Axis based operations (e.g Mean along an axis)
     - [x] Reading and Writing values to cells
 - [ ] 🚧 Draw and Plotting
+- [ ] 🚧 Javascript and OCaml API 
+- [ ] 🚧 Headless support (with Canvas or Svg)
 - [ ] 🚧 Generator functions (not yet lazy)
     - [x] Random number 
     - [x] Diagonal matrices
