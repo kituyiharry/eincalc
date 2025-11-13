@@ -474,12 +474,13 @@ let indexsequence dimens =
         let _     = Array.unsafe_set idx (len - 1) 1 in
         Seq.append (Seq.return (Array.make len 0)) (Seq.unfold (fun b -> 
             if Array.for_all2 (fun x y -> x = (y - 1)) b dimens then 
-                let _ = incrindex len count dimens in
+                (*let _ = incrindex len count dimens in*)
                 None
             else 
                 let _ = incrindex len count dimens in
-                let _ = Array.blit count 0 b 0 len in
-                Some (b, count)
+                (*let _ = Array.blit count 0 b 0 len in*)
+                (*Some (b, count)*)
+                Some (count, count)
         ) idx)
 ;;
 

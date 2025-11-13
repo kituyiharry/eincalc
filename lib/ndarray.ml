@@ -14,6 +14,10 @@ type 'a wrap = {
     ;
 };;
 
+(* TODO: because ocaml arrays are heap managed, consider moving everything to
+   Genfunc ONLY for large arrays past a certain size. small arrays can be
+   handled by Array module quite OK *)
+
 type 'a vector     = 'a array wrap
 type 'a matrix     = 'a array array wrap
 type batches       = (float, Bigarray.float64_elt, Bigarray.c_layout) Bigarray.Array3.t ;;
