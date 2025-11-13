@@ -102,7 +102,7 @@ let plain_grid size =
 let collectrow g range r sparse apply = 
     range
     |> Seq.map (fun c'' -> 
-        let _ = Format.printf "grid: %d-%d\n" r, c'' in 
+        (*let _ = Format.printf "grid: %d-%d\n" r, c'' in *)
         (match Grid.find_opt g (r, c'') with 
             | Some  v -> 
                 (match v with 
@@ -154,7 +154,7 @@ let genrange start fin =
 (* TODO: assert r < r' and c < c' ?? or leave commutative and reverse if neg ?? *)
 let fetch_grid g (r, c) (r', c') sparse = 
     (* 24,5  3,5 *)
-    let _ = Format.printf "fetch from  %d,%d len %d,%d" r c r' c' in
+    (*let _ = Format.printf "fetch from  %d,%d len %d,%d" r c r' c' in*)
     let n = (match (r' - r, c' - c) with
     | (0,  0) ->
         let _scal = (module Scalar: NDarray with type t = float ref) in 

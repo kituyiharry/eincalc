@@ -206,10 +206,8 @@ let transform_draw_elmnts elmnts =
     ) elmnts
 ;;
 
-let _plot_padding = 30;;
-
 let handle_plot_type (type data) xbound ybound handle plt grid (module M: Ndarray.NDarray with type t = data) (data: data) = 
-    let pltctx: Plotter.plotctx = { xbound; ybound; handle; plotcb=grid.plotcb; padding=50 } in
+    let pltctx: Plotter.plotctx = { xbound; ybound; handle; plotcb=grid.plotcb; padding=30 } in
     match plt with
     | Scatter { slices; props; _  } -> 
         (match slices with
@@ -222,7 +220,7 @@ let handle_plot_type (type data) xbound ybound handle plt grid (module M: Ndarra
             let radius  = find_default_value props "r" 3.     (select_positive_num "scatter.r") in
             let color   = find_default_value props "c" "red"  (select_str "scatter.c") in
             let border  = find_default_value props "b" "white"(select_str "scatter.b") in
-            let padding = find_default_value props "p"_plot_padding (select_positive_nat "scatter.p") in
+            let padding = find_default_value props "p" 30     (select_positive_nat "scatter.p") in
             let ctx: Plotter.scatterctx = {
                 plot={ pltctx with padding=padding };xlabel;ylabel;color;border;radius
             } in 

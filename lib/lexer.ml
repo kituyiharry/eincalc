@@ -39,6 +39,8 @@ let isAlphaNum c =
     isDigit c || isAlpha c
 ;;
 
+let dbuf = Buffer.create 8;;
+
 let scan_token (line, colm, sstr) index rest =
     match sstr with
     | '('  -> Ok ((mktok line colm TLeftParen),   index, rest)
@@ -76,7 +78,8 @@ let scan_token (line, colm, sstr) index rest =
                 Ok ((mktok line colm KMinus),       index, rest)
         )
     | '\'' -> 
-        let dbuf = Buffer.create 8 in
+        (*let dbuf = Buffer.create 8 in*)
+        let _ = Buffer.clear dbuf in
         let drp  = ref 0 in
         let _ = List.drop_while (fun c ->
             let isd = not @@ Char.equal '\'' c in
@@ -90,7 +93,8 @@ let scan_token (line, colm, sstr) index rest =
         Ok ((mktok line colm (TAlphaNum alp)), (index + !drp), (List.drop (!drp+1) rest))
 
     |  chr -> (
-        let dbuf = Buffer.create 8 in
+        let _ = Buffer.clear dbuf in
+        (*let dbuf = Buffer.create 8 in*)
         let () = Buffer.add_char dbuf chr in
         let drp = ref 0 in
         if isDigit chr then

@@ -16,6 +16,8 @@ let (>>==) = Result.bind;;
 
 (* TODO: constant time VM operations *)
 
+let _stack_size = 256;;
+
 type vm = {
         spine:  spinval array
     ;   source: source
@@ -28,7 +30,7 @@ type vm = {
 let debug_stack { spine; stkidx; source; sheet; _ } = 
     (*let _ = sheet.onlog ("Stacktrace ============", Ndcontroller.Info) in*)
     for i = (stkidx - 1) downto 0 do 
-        let y = spine.(i) in
+        let y = Array.unsafe_get spine i in
         (match y with 
             | SNdim _n ->  
                 let s = (show_spinval y) in 
@@ -49,15 +51,20 @@ let debug_stack { spine; stkidx; source; sheet; _ } =
 ;;
 
 let get_stack idx ({ frmptr; spine; _ }) = 
-    Array.get spine (frmptr + idx)
+    let off = frmptr + idx in
+    let _   = assert (off < _stack_size) in
+    Array.unsafe_get spine (off)
 ;;
 
 let set_stack idx sval { frmptr; spine; _ } = 
-    Array.set spine (frmptr + idx) sval
+    let off = frmptr + idx in
+    let _   = assert (off < _stack_size) in
+    Array.unsafe_set spine (off) sval
 ;;
 
 let push s sval = 
-    let _ = Array.set s.spine (s.stkidx) sval in 
+    let _   = assert (s.stkidx < _stack_size) in
+    let _ = Array.unsafe_set s.spine (s.stkidx) sval in 
     s.stkidx <- (s.stkidx + 1)
 ;;
 
@@ -295,7 +302,7 @@ let tosource (controller) (vw: program) =
 ;;
 
 let mkvm controller src = {
-        spine    = Array.make 256 SNil
+        spine    = Array.make _stack_size SNil
     ;   stkidx   = 0
     ;   frmptr   = 0 
     ;   oldframe = []
