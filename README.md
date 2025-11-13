@@ -111,7 +111,8 @@ You can use generators to initialize cells with data too. Here are a few.
 =@diag<2,4>
 ```
 
-- Add a list of values directly (only numbers supported for now)
+- Add a list of values directly (only numbers supported for now, text arrays
+will fail until future release!)
 ```
 =[1,2,3,4,5,6,7,8,9,10]
 ```
@@ -170,3 +171,25 @@ einsum expression but math expressions don't work.
 ```
 =(ij, jk -> ik, @rand<100,[6,6]> | zscore, @rand<100,[6,6]> | zscore) | write<A1>
 ```
+
+Same as above but we slice the lower right half. 
+
+```
+=(ij, jk -> ik, @rand<100,[6,6]> | zscore, @rand<100,[6,6]> | zscore) | slice<[3::, 3::]> | write<A1>
+```
+
+
+
+Plotting and Drawing some values (Still needs a lot of work)
+```
+=(([[1,2,3,4,5,6,7,8,9,10],[10,20,30,40,50,60,70,80,90,100]] | plot<handle, [320,240], scatter<[0:1:, ::],[1:1:, ::], {r=5,c=blue}>> | drawall<handle, [350,290], [ line{x=0,fx=160,y=0,fy=120,c=green}, circle{x=160,y=120,r=30,c=white,b=1}, text{x=150,y=120,t='Hallo Chart!',s=16,c=red} ]> )) | write<C14>
+```
+
+## More to come
+
+- Charting API
+- Function call API (cli use) against incoming data stream
+- More einsum operators
+- Advanced data types (Video, Images, Audio, Text, Custom types ..etc)
+- OCR support
+- Logic

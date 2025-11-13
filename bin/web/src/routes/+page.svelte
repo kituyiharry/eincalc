@@ -533,23 +533,33 @@
 
   /** @param {ClipboardEvent} e */
   function handlePaste(e) {
-    // Stop data actually being pasted into div
-    e.stopPropagation();
-    e.preventDefault();
-    const data = e.clipboardData?.getData('Text');
-    if (selectedCell != null && selectedCell != undefined) {
-        visibleCells.clear();
-        cellData = {};
-        controller.myLib.paste(selectedCell.row, selectedCell.col, data);
-        if (editingCell != null) {
-            onCellVisible(selectedCell.row, selectedCell.col);
-            const key = `${selectedCell.row},${selectedCell.col}`;
-            editValue = cellData[key]
-        }
-        refresh++;
-    } else {
-        console.error("missing paste location!")
-    }
+      // Stop data actually being pasted into div
+      e.stopPropagation();
+      e.preventDefault();
+      const data = e.clipboardData?.getData('Text');
+      if (selectedCell != null && selectedCell != undefined) {
+          visibleCells.clear();
+          cellData = {};
+          if(data?.startsWith('=')) {
+            // executed code and write it back into this cell
+            const cellStart = `${getColumnLabel(selectedCell.col)}${selectedCell.row+1}`;
+            let code = `(${data.substring(1)}) | write<${cellStart}>`;
+            controller.myLib.executecode(code);
+            funcText = `=${code}`;
+            cellData = {};
+            visibleCells.clear();
+          } else {
+              controller.myLib.paste(selectedCell.row, selectedCell.col, data);
+              if (editingCell != null) {
+                  onCellVisible(selectedCell.row, selectedCell.col);
+                  const key = `${selectedCell.row},${selectedCell.col}`;
+                  editValue = cellData[key]
+              }
+          } 
+          refresh++;
+      } else {
+          console.error("missing paste location!")
+      }
   }
 
   function handleDoubleClick(e) {
@@ -582,6 +592,7 @@
         const cellStart = `${getColumnLabel(editingCell.col)}${editingCell.row+1}`;
         let code = `(${editOut.substring(1)}) | write<${cellStart}>`;
         controller.myLib.executecode(code);
+        funcText = `=${code}`;
         cellData = {};
         visibleCells.clear();
       } else {
