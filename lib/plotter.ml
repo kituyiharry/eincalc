@@ -58,7 +58,7 @@ let make_plot_x_label vw vh xlabel =
     } 
 ;;
 
-let make_plot_y_label vw vh ylabel = 
+let make_plot_y_label _vw vh ylabel = 
     Text { 
         x=8.;y=(float_of_int (vh/2));
         color="black";size=12;text=ylabel
@@ -99,7 +99,7 @@ let make_countdown_seq start =
     ) start
 ;;
 
-let grid_hor_lines height num pfloat tx_mn tx_mx = 
+let grid_hor_lines height num _pfloat tx_mn tx_mx = 
     let numf = float_of_int num in
     let span = ((float_of_int height) /. (numf)) in 
     make_countdown_seq (numf) 
@@ -114,7 +114,7 @@ let grid_hor_lines height num pfloat tx_mn tx_mx =
     |> List.of_seq
 ;;
 
-let grid_hor_text height num pfloat tx_mn tx_mx invscaler translate = 
+let grid_hor_text height num _pfloat tx_mn _tx_mx invscaler translate = 
     let numf = float_of_int num in
     let span = ((float_of_int height) /. numf) in 
     make_countdown_seq numf
@@ -132,7 +132,7 @@ let grid_hor_text height num pfloat tx_mn tx_mx invscaler translate =
     |> List.of_seq
 ;;
 
-let grid_vert_lines width num pfloat ty_mn ty_mx = 
+let grid_vert_lines width num _pfloat ty_mn ty_mx = 
     let numf = float_of_int num in
     let span = ((float_of_int width) /. (numf)) in 
     make_countdown_seq (numf) 
@@ -148,7 +148,7 @@ let grid_vert_lines width num pfloat ty_mn ty_mx =
 ;;
 
 
-let grid_vert_text width num pfloat ty_mn ty_mx invscaler = 
+let grid_vert_text width num _pfloat ty_mn _ty_mx invscaler = 
     let numf = float_of_int num in
     let span = ((float_of_int width) /. (numf)) in 
     make_countdown_seq (numf) 

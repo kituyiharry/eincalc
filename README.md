@@ -65,6 +65,12 @@ To use the frontend
 dune build --profile release && cd ./bin/web && bun i && bun dev
 ```
 
+To use in Utop (isolate Jsoo code in /bin/web)
+
+```bash
+dune build utop
+```
+
 ### Formulae
 
 ##### Tutorial 

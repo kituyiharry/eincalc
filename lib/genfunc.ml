@@ -268,7 +268,7 @@ let draw_shape_valid handle elmnts map =
 let plot_shape_valid plt shp = 
     let shp = (match shp with | [] -> [1] | o -> o) in
     match plt with 
-    | (Scatter { slices; props; _ }) -> 
+    | (Scatter { slices; _ }) -> 
         (match slices with 
             | xslice :: yslice :: _ ->  
                 let* xshp = shapeslice [] xslice shp in

@@ -439,7 +439,7 @@ let offset indx i dims direc =
 (* TODO: decrease dual for this *)
 
 (* increase but within bounds in selections *)
-let incrbyselection len indx dims selec cntarr = 
+let incrbyselection len indx _dims selec cntarr = 
     let brk = ref false in
     for i = (len - 1) downto 0 do
         let (start, maxcnt, step) = selec.(i) in 
