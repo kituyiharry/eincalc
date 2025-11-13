@@ -76,7 +76,7 @@ dune build utop
 ##### Tutorial 
 
 These functions can be executed in the repl or the formula input of the web
-version. Only number and text values can be written into the cell
+version. 
 
 
 > You can use these functions in any cell or in the formulae
