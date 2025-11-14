@@ -27,3 +27,9 @@
   (modules test_eincalc_ndarray)
   (libraries eincalc ounit2)
 )
+
+(test
+  (name test_eincalc_ndview)
+  (modules test_eincalc_ndview)
+  (libraries eincalc ounit2)
+)

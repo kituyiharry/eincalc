@@ -74,7 +74,7 @@ let add_plot_cb controller cb =
 let create_default_controller label cb logger  = 
     new_sheet ({ 
         count= 0 ; sheets=GridTable.create 16; 
-        active=""; plotcb=cb; onlog=logger 
+        active=label; plotcb=cb; onlog=logger 
     }) label
 ;;
 

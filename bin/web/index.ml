@@ -46,6 +46,9 @@ let _ =
                 Con.console##error msg;
         )
     ) in 
+
+    (* FIXME: active sheet should be a bit more explicit in calls as its possible to
+       overwrite it silently *) 
     let sheet = Eincalc.Ndcontroller.create_default_controller default plotcb logger in
 
     (* NB: method names cant have underscores!! *)
