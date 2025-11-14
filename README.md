@@ -9,7 +9,8 @@ the grid for easier management. At the moment it supports.
 - [x] Calculations
     - [x] Arithmetic operations
     - [x] Einsum evaluation
-- [x] Formulaes
+- [ ] Formulaes
+    - [ ] 🚧 Formulae documentation
     - [x] Rescaling 
         - [x] MinMax
         - [x] Zscore
