@@ -16,6 +16,7 @@
   let editor
   let plotArea 
   let canvas
+  let modal
 
   /** 
    * @type {{id: number, msg: string, level: string}[]}
@@ -30,6 +31,9 @@
             notifications.splice(notifications.findIndex(({ id }) => id == obj.id), 1)
         }, 3000)
     });
+    if (modal) {
+        modal?.showModal();
+    }
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
@@ -996,15 +1000,15 @@
                 <li class="">
                     <button class="text-md is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Homepage">
                         <i class="fa fa-th  text-gray-300" aria-hidden="true"></i>
-                        <span class="is-drawer-close:hidden">Help</span>
+                        <span class="is-drawer-close:hidden">...</span>
                     </button>
                 </li>
 
                 <!-- list item -->
                 <li >
-                    <button class="text-md is-drawer-close:tooltip
-                        is-drawer-close:tooltip-right" data-tip="Help">
-                        <i class="fa fa-question-circle text-gray-300" aria-hidden="true"></i>
+                    <button onclick={() => modal?.showModal()} for="help_modal" class="text-md is-drawer-close:tooltip is-drawer-close:tooltip-right" 
+                        data-tip="Help">
+                        <i class="fa fa-question-circle" aria-hidden="true"></i>
                         <span class="is-drawer-close:hidden">Help</span>
                     </button>
                 </li>
@@ -1226,6 +1230,52 @@
             </ul>
         </div>
     </div>
+
+
+    <!-- Put this part before </body> tag -->
+    <input type="checkbox" id="help_modal" />
+    <dialog bind:this={modal} class="modal">
+      <div class="modal-box">
+        <h3 class="text-lg font-bold">Hello!<i class="fa fa-magic px-1"></i></h3>
+        <article class="py-4">
+
+        <p>
+        Eincalc is spreadsheet engine modeled around tensor operations targeting
+        the web. This product is still in Alpha so expect some bugs. Saving is
+        not supported at the moment!
+        </p>
+
+        <br />
+        <p>
+            Try it out - copy this into any cell and press enter 
+            <br /> 
+            <kbd>=([1,2,3,4,5,6,7,8,9]*2) | reshape&lt[3,3]&gt</kbd>
+            <br /> 
+        </p>
+        <br />
+
+        
+        <br />
+        <a target="_blank" class="text-blue-700" 
+            href="https://github.com/kituyiharry/eincalc?tab=readme-ov-file#formulae">
+            Some example functions | expressions to start experimenting
+        </a>
+
+        <br />
+
+        <p> Quick Tip: Cell ranges are separated by <kbd>..</kbd> and not
+            a column for you excel or sheets users </p>
+
+        More to come!
+        <form method="dialog">
+            <button onclick={() => modal.close()} class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+        </form>
+        </article>
+
+      </div>
+      <label class="modal-backdrop" for="help_modal">Close</label>
+    </dialog>
+
 </div>
 
 

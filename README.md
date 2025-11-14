@@ -2,9 +2,11 @@
 
 ![Screenshot](eincalc.png "screenshot")
 
-Eincalc is spreadsheet engine modeled around basic tensor operations targeting
-mainly the web. Unlike most spreadsheet engines the formulae are separated from 
-the grid for easier management. At the moment it supports. 
+Eincalc is spreadsheet engine modeled around tensor operations targeting the web. 
+Unlike most spreadsheet engines the formulae are separated from 
+the grid for easier management.
+
+## Features
 
 - [x] Calculations
     - [x] Arithmetic operations
@@ -31,6 +33,7 @@ the grid for easier management. At the moment it supports.
     - [x] Diagonal matrices
     - [x] Ones, Zeros, Fill or Alternating values
 - [ ] 🚧 Serialization 
+- [ ] 🚧 Audit trails 
 - [ ] 🚧 Cell Reactivity
 - [ ] 🚧 Custom data types
     - [x] Float values | arrays
@@ -45,9 +48,6 @@ the grid for easier management. At the moment it supports.
 - [ ] 🚧  OCR and gen-AI ??
 
 ### Building the project
-
-The main project is in Ocaml which can be interfaced via a repl on the command
-line and a web interface.
 
 #### Requirements
 
@@ -88,9 +88,8 @@ version.
 > features will be added in the future.  
 
 
-> When using in a cell, you MUST start the cell with an `=`  sign otherwise it
-> is interpreted directly as either text or number
-
+> When adding executable code in a cell, you MUST start the cell with an `=` sign 
+> otherwise it is interpreted directly as either text or number
 
 You can use generators to initialize cells with data too. Here are a few.
 
@@ -157,7 +156,7 @@ for this effect)
 You can use einsum to transpose a matrix, multiply all elements by 3 and write it to the grid 
 
 ```
- = ((ij -> ji, [[[1,2,3]],[[4,5,6]]]) | write<B6>
+=((ij -> ji, [[[1,2,3]],[[4,5,6]]]) | write<B6>
 ```
 
 > PS: You cannot evaluate expressions within an einsum expression at the moment
@@ -165,7 +164,7 @@ You can use einsum to transpose a matrix, multiply all elements by 3 and write i
 Generate random matrices  and multiply them using einsum then write them back
 
 ```
- =(ij, jk -> ik, @rand<100,[6,6]>, @rand<100,[6,6]>) | write<A1>
+=(ij, jk -> ik, @rand<100,[6,6]>, @rand<100,[6,6]>) | write<A1>
 ```
 
 Same as above but with z-score normalization. The masks can be used within
@@ -181,9 +180,8 @@ Same as above but we slice the lower right half.
 =(ij, jk -> ik, @rand<100,[6,6]> | zscore, @rand<100,[6,6]> | zscore) | slice<[3::, 3::]> | write<A1>
 ```
 
-
-
 Plotting and Drawing some values (Still needs a lot of work)
+
 ```
 =(([[1,2,3,4,5,6,7,8,9,10],[10,20,30,40,50,60,70,80,90,100]] | plot<handle, [320,240], scatter<[0:1:, ::],[1:1:, ::], {r=5,c=blue}>> | drawall<handle, [350,290], [ line{x=0,fx=160,y=0,fy=120,c=green}, circle{x=160,y=120,r=30,c=white,b=1}, text{x=150,y=120,t='Hallo Chart!',s=16,c=red} ]> )) | write<C14>
 ```

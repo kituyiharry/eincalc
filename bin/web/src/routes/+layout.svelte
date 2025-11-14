@@ -73,6 +73,7 @@
                     </div>
                 </div>
             </header>
+
             <!-- Page content here -->
             {@render children?.()}
         </div>
