@@ -290,6 +290,9 @@ let iterndarray f nda =
     iternd [] f nda
 ;;
 
+(* TODO: use Array2 for large matrices in the future instead of genarray for
+   possible automations *)
+
 let ndarray_of_dimshape shp =  
     match shp with 
     | [||] -> 
@@ -351,10 +354,17 @@ let ndarray_of_dim shp =
         let _sdat = Vector.make [|hd|] 0. in
         (SNdim (_scal, _sdat))
     | hd :: hd1 :: [] -> 
-        let _scal = (module Matrix: NDarray with type t = float matrix) in 
-        let (module Matrix) = _scal in
-        let _sdat = Matrix.make [|hd;hd1|] 0. in
-        (SNdim (_scal, _sdat))
+        (if hd > 300 || hd1 > 300 then 
+            let _scal = (module MulDim: NDarray with type t = bigfloatarray) in 
+            let (module MulDim) = _scal in
+            let _sdat = MulDim.make [|hd;hd1|] 0. in
+            (SNdim (_scal, _sdat))
+        else
+            let _scal = (module Matrix: NDarray with type t = float matrix) in 
+            let (module Matrix) = _scal in
+            let _sdat = Matrix.make [|hd;hd1|] 0. in
+            (SNdim (_scal, _sdat))
+        )
     | hd :: hd1 :: hd2 :: [] -> 
         let _scal = (module BatchMatrix: NDarray with type t = batches) in 
         let (module BatchMatrix) = _scal in
