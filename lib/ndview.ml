@@ -117,10 +117,11 @@ module MakeSliceView(N: NDarray) = struct
     ;;
 
     let to_seq { basedata;sliceval; shape;_ } = 
+        (* TODO: move to main struct to avoid reinit on multiple calls *)
         let dmaindim = N.shape basedata in
         let dlen     = Array.length dmaindim in
         let dmainidx = Array.make dlen 0 in
-        let max      = Array.fold_left (fun x a -> x * a) 1 shape in
+        let max      = Array.fold_left ((Int.mul)) 1 shape in
         let cntarr   = Array.make (Array.length sliceval) 1 in
         let _ =  
             (* set the start offset for each dimension *)

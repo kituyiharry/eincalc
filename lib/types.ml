@@ -309,10 +309,17 @@ let ndarray_of_dimshape shp =
         let _sdat = Vector.make shp 0. in
         (SNdim (_scal, _sdat))
     | [|_hd;_hd1;|] -> 
-        let _scal = (module Matrix: NDarray with type t = float matrix) in 
-        let (module Matrix) = _scal in
-        let _sdat = Matrix.make shp 0. in
-        (SNdim (_scal, _sdat))
+        (if _hd > 300 || _hd1 > 300 then 
+            let _scal = (module MulDim: NDarray with type t = bigfloatarray) in 
+            let (module MulDim) = _scal in
+            let _sdat = MulDim.make shp 0. in
+            (SNdim (_scal, _sdat))
+        else
+            let _scal = (module Matrix: NDarray with type t = float matrix) in 
+            let (module Matrix) = _scal in
+            let _sdat = Matrix.make shp 0. in
+            (SNdim (_scal, _sdat))
+        )
     | [|_hd;_hd1;_hd2|] -> 
         let _scal = (module BatchMatrix: NDarray with type t = batches) in 
         let (module BatchMatrix) = _scal in

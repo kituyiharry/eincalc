@@ -94,6 +94,7 @@ let as_slice (type adata) mask curshp curdim
 =
     (match shape_of_mask mask curshp with 
         | Ok sliceshp -> 
+            (* TODO: move to slice views for efficiency *)
             (match ndarray_of_dim sliceshp with 
                 | SNdim ((module M'), data') -> 
                     let slarr = slicetoarr curdim sl in 
