@@ -314,21 +314,44 @@
     // height:  `${CELL_HEIGHT}px`,
     border:  '2px solid #1976d2',
     padding: '4px',
-    fontSize: `${defaultStyle.fontSize - 2} px`,
+    fontSize: `${defaultStyle.fontSize} px`,
     fontFamily: 'sans-serif',
     outline: 'none',
     zIndex: '10'
   } : { display: 'none' });
 
-  function getColumnLabel(col) {
-    let label = [];
-    let num   = col;
-    while (num >= 0) {
-      label.push(String.fromCharCode(65 + (num % 26)));
-      num = Math.floor(num / 26) - 1;
-    }
-    return label.join('');
+  // odometer style AA,BA,CA...
+  // function getColumnLabel(col) {
+  //   let label = [];
+  //   let num   = col;
+  //   while (num >= 0) {
+  //     label.push(String.fromCharCode(65 + (num % 26)));
+  //     num = Math.floor(num / 26) - 1;
+  //   }
+  //   return label.join('');
+  // }
+
+  function getColumnLabel(colNum) {
+     /**
+     * Convert column number to Excel column label.
+     * Input: column number (0-indexed, where 1=A, 26=Z, 27=AA, etc.)
+     * Returns: column label string (e.g., 'A', 'Z', 'AA', 'WC')
+     */
+      let label = "";
+      colNum += 1;
+
+      while (colNum > 0) {
+          // Adjust for 1-indexed (Excel columns start at 1, not 0)
+          colNum -= 1;
+          // Get the remainder (0-25) and convert to letter (A-Z)
+          label = String.fromCharCode(colNum % 26 + 65) + label;
+          // Move to next position
+          colNum = Math.floor(colNum / 26);
+      }
+
+      return label;
   }
+
 
   function erase(rowstart, colstart, rowend, colend) { 
     controller.myLib.griderase(rowstart, colstart, rowend, colend)
@@ -1251,6 +1274,10 @@
             <br /> 
             <kbd>=([1,2,3,4,5,6,7,8,9]*2) | reshape&lt[3,3]&gt</kbd>
             <br /> 
+            or Multiply 2 matrices 
+            <br />
+            <kbd>=(ij,jk->ik, @rand&lt100,[100,100]&gt, @rand&lt100,[100,100]&gt)</kbd>
+            <br />
         </p>
         <br />
 

@@ -190,6 +190,7 @@ let scatter (type data) (ctx: scatterctx) (module SliceView: NDView with type t 
     let yinverse = inverse_transform_scaler _y_mn _y_mx (0.) (float_of_int (ctx.plot.ybound)) in
 
     let transformy yv = hfloat -. (pfloat +. yv) in
+    (* reverse transform y values to distances on the canvas *)
     let reversetry yv = (yv -. hfloat) +. pfloat in
 
     let _vals   = (Seq.zip _xseq _yseq) |> Seq.map (fun (x,y) -> 
