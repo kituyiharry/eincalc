@@ -367,6 +367,22 @@ let rec range_to_ndarray _grid n shp =
         let adds = key_of_ref cells in
         let adde = key_of_ref celle in
         fetch_grid (Ndcontroller.fetch_active_grid _grid).grid adds adde (Fun.const 0.)
+    | Parser.Span (cells, shape) -> 
+        let adds = key_of_ref cells in
+        (match shape with 
+        | [] ->
+            fetch_grid (Ndcontroller.fetch_active_grid _grid).grid adds adds (Fun.const 0.)
+        | row :: [] -> 
+            let row' = (Int.max 0 row-1) in
+            fetch_grid (Ndcontroller.fetch_active_grid _grid).grid adds ((fst adds + row'), snd adds) (Fun.const 0.)
+        | row :: col :: [] -> 
+            let row' = (Int.max 0 row-1) in
+            let col' = (Int.max 0 col-1) in
+            fetch_grid (Ndcontroller.fetch_active_grid _grid).grid adds ((fst adds + row'), (snd adds + col')) (Fun.const 0.)
+        | _ -> 
+            let _ = _grid.onlog  ("Unsupported shape span", Error) in 
+            failwith "Unsupported shape span!"
+        )
     | Parser.Scalar cell -> 
         let addr = key_of_ref cell in
         fetch_grid (Ndcontroller.fetch_active_grid _grid).grid addr addr (Fun.const 0.)

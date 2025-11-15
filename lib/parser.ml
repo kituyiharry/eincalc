@@ -156,7 +156,8 @@ and 'a ndarray =
 and  crange  = 
     (* TODO: Support single range with a size e.g. @D2..[3,3] - how would
        multidimensional work in this ?? *)
-    | Range    of cell * cell    (* spreadsheet cell *)
+    | Range    of cell * cell     (* spreadsheet cells *)
+    | Span     of cell * int list (* spreadsheet cell and a shape *)
     | Scalar   of cell
     | NdArray  of float ndarray
     | Relative of motion * crange(* Relative cell - Up ^, Down _, Left <, Right, > *)
@@ -477,32 +478,6 @@ let parse_static_array state =
             ) 
         | _ -> Error "Unexpected close - need static array"
     in (collect state [])
-;;
-
-let parse_param_data _start next = 
-    (if check TRange (fst next) then (
-        let next' = advance next in 
-        match (fst next').curr with 
-        | Some { tokn; _ } ->  
-            (match tokn with
-                | TAlphaNum _end ->  
-                    (>>==) (as_cell _start) (fun scell -> 
-                        (>>==) (as_cell _end) (fun ecell -> 
-                            Ok (advance next', Range (scell, ecell))
-                        )
-                    )
-                | _ -> 
-                    Error "Expected range end"
-            )
-        | _            -> 
-            Error "Unclosed range"
-    ) else (
-            (* no range token  - maybe single cell*)
-            (>>==) (as_cell _start) (fun y -> 
-                Ok (next,  Scalar y)
-            )
-        )
-    )
 ;;
 
 let compass tokn motn = 
@@ -880,6 +855,39 @@ let parse_extract_shape state =
         )
     | _ -> 
         (Error "expected number in extraction")
+;;
+
+let parse_param_data _start next = 
+    (if check TRange (fst next) then (
+        let next' = advance next in 
+        match current next' with 
+        | Some { tokn; _ } ->  
+            (match tokn with
+                | TAlphaNum _end ->  
+                    (>>==) (as_cell _start) (fun scell -> 
+                        (>>==) (as_cell _end) (fun ecell -> 
+                            Ok (advance next', Range (scell, ecell))
+                        )
+                    )
+                | TLeftBracket -> 
+                    (>>==) (enclosed TLeftBracket TRightBracket (parse_extract_shape_override) next') 
+                        (fun (final, shp) -> 
+                            (>>==) (as_cell _start) (fun scell -> 
+                                Ok (final, Span (scell, shp))
+                            )
+                        )
+                | _ -> 
+                    Error "Expected range end"
+            )
+        | _            -> 
+            Error "Unclosed range"
+    ) else (
+            (* no range token  - maybe single cell*)
+            (>>==) (as_cell _start) (fun y -> 
+                Ok (next,  Scalar y)
+            )
+        )
+    )
 ;;
 
 let parse_ones_reference state = 

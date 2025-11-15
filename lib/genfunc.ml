@@ -450,6 +450,11 @@ let rec calcshape c =
         | (0, 0)   -> Ok [ ] 
         | (0, c)   -> Ok [ c + 1 ] 
         | (r, c)   -> Ok [ r + 1; c + 1 ]) 
+    | Span (_cell, shp) ->
+        if List.length shp > 2 then 
+            Error "Only up to 2 dimensional structures are supported in spans"
+        else
+            Ok shp
     | Scalar _cell ->
         Ok []
     | NdArray n ->
