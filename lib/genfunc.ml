@@ -402,10 +402,6 @@ let shape_of_mask m map =
                     )
                 | None -> Error "missing axis dimension in input (data could be lower dimension than expected!)!"
             ) 
-        (*| Determ -> *)
-            (*[]*)
-        (*| Cumulative -> *)
-            (*map*)
     in findshape m map 0
 ;;
 

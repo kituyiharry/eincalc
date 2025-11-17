@@ -280,7 +280,7 @@
    * @property {number} col
    * */
 
-  /** @type {EditingCell} */
+  /** @type {null|EditingCell} */
   let editingCell = $state(null);
 
   let editValue = $state('');
@@ -436,6 +436,8 @@
 
       const cell = getCellFromPosition(x, y);
       if (cell) {
+          const style = getCellStyle(cell.row, cell.col);
+          styleBuffer = { ...style };
           selectedCell = cell;
           selectionStart = cell;
           selectionEnd = cell;
@@ -510,7 +512,7 @@
                       } else {
                           for(j = colend; j <= colstart; j++) {
                               const key = `${i},${j}`;
-                              delete cellData[`${i},${j}`];
+                              delete cellData[key];
                               // visibleCells.delete(key);
                           }
                       }
@@ -558,12 +560,11 @@
   //     counter++;
   // }
 
-  /** @param {ClipboardEvent} e */
   function handlePaste(e) {
       // Stop data actually being pasted into div
       e.stopPropagation();
       e.preventDefault();
-      const data = e.clipboardData?.getData('Text');
+      const data = `${editValue}${e.clipboardData?.getData('Text')}`;
       if (selectedCell != null && selectedCell != undefined) {
           visibleCells.clear();
           cellData = {};
@@ -573,6 +574,7 @@
             let code = `(${data.substring(1)}) | write<${cellStart}>`;
             controller.myLib.executecode(code);
             funcText = `=${code}`;
+            editValue = funcText;
             cellData = {};
             visibleCells.clear();
           } else {
@@ -617,7 +619,7 @@
       if (editOut.startsWith('=')) {
         // executed code and write it back into this cell
         const cellStart = `${getColumnLabel(editingCell.col)}${editingCell.row+1}`;
-        let code = `(${editOut.substring(1)}) | write<${cellStart}>`;
+        let code = `(${editOut.substring(1).trim()}) | write<${cellStart}>`;
         controller.myLib.executecode(code);
         funcText = `=${code}`;
         cellData = {};
@@ -679,7 +681,7 @@
 
         <div class='h-[90%] w-[100vw]'>
 
-            <div class="mt-24 ml-12 toast toast-start toast-top">
+            <div class="mb-24 ml-12 toast toast-end toast-bottom">
                 {#each notifications as n (n.id) }
                     <div class={`alert ${n.level == "error" ? "alert-error" : "alert-info"}`}>
                         <div class="flex flex-row w-64 justify-between"> 
@@ -1270,28 +1272,31 @@
 
         <br />
         <p>
-            Try it out - copy this into any cell and press enter 
+            Try it out - copy this into any cell 
+
+
             <br /> 
             <kbd>=([1,2,3,4,5,6,7,8,9]*2) | reshape&lt[3,3]&gt</kbd>
             <br /> 
-            or Multiply 2 matrices 
+            or Multiply 2 random valued matrices and square the values (bounds
+            of 1 and -1 respectively)
+
             <br />
-            <kbd>=(ij,jk->ik, @rand&lt100,[100,100]&gt, @rand&lt100,[100,100]&gt)</kbd>
+            <br />
+            <kbd>=(ij,jk->ik, @rand&lt1,[100,100]&gt, @rand&lt-1,[100,100]&gt) | pow&lt2&gt </kbd>
             <br />
         </p>
         <br />
-
         
-        <br />
         <a target="_blank" class="text-blue-700" 
             href="https://github.com/kituyiharry/eincalc?tab=readme-ov-file#formulae">
-            Some example functions | expressions to start experimenting
+            more example functions | expressions to start experimenting
         </a>
 
-        <br />
-
-        <p> Quick Tip: Cell ranges are separated by <kbd>..</kbd> and not
-            a column for you excel or sheets users </p>
+        <p> <strong>Quick Tip</strong>: Cell ranges are separated by <kbd>..</kbd> and not
+            a column for you excel or sheets users. So <em>A1:B2</em> becomes 
+            <em>@A1..B2</em> and <em>=A1+A2</em> becomes <em>=@A1 + @A2</em>
+        </p>
 
         More to come!
         <form method="dialog">

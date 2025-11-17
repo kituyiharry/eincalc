@@ -19,6 +19,7 @@
  *)
 open Ndmodel;;
 
+(* TODO: make Hashtbls randomized to prevent ddos attacks on web *)
 module GridTable = Hashtbl.Make (String);;
 
 type gridmodel = {
@@ -98,8 +99,6 @@ let erase_grid controller row rowend col colend =
 ;;
 
 let paste_values controller label separator (_row, _col) data = 
-    let _ = Format.printf "pasting values to %d,%d !\n" _row _col in
-
     let buffer = Buffer.create 16 in
 
     (*  aarrrgh!!! *)
@@ -130,6 +129,7 @@ let paste_values controller label separator (_row, _col) data =
                     else if String.starts_with ~prefix:"$" word then 
                         String.sub word 1 (String.length word - 1)
                     else 
+                        (* for numbers with a comma in them  e.g 1,000 *)
                         remove_char ',' word
                 ) in
                 let _ = ( 

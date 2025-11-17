@@ -7,6 +7,7 @@
  *   department may entail severe civil or criminal penalties.
  *
  *)
+(* TODO: Replace Format.sprintf|printf calls for smaller bundle size! *)
 open Tokens;;
 open Lexer;;
 
@@ -212,49 +213,6 @@ let prattempty = {
 
 type parseres = (program, string) result
 type parsefn  = (prattstate -> parseres)
-
-type prattrule = {
-        prefix: parsefn option
-    ;   infix:  parsefn option
-    ;   prec:   precedence
-};;
-
-let rules = [|
-        (* TNumeral of int    *)
-        { prefix=None; infix=None; prec=PrecNone }
-        (* TAlphaNum of string *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TArrow              *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TRange              *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TComma              *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TQuote              *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TLeftParen          *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TRightParen         *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TLeftBracket         *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TRightBracket        *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TLeftAngle         *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TRightAngle        *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TUnderscore        *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TCaret        *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TUnderscore        *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TAt        *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-        (* TFloat        *)
-    ;   { prefix=None; infix=None; prec=PrecNone }
-|];;
 
 (*
  *let getrule tok = 
@@ -863,12 +821,14 @@ let parse_param_data _start next =
         match current next' with 
         | Some { tokn; _ } ->  
             (match tokn with
+                (* A1..B2 *)
                 | TAlphaNum _end ->  
                     (>>==) (as_cell _start) (fun scell -> 
                         (>>==) (as_cell _end) (fun ecell -> 
                             Ok (advance next', Range (scell, ecell))
                         )
                     )
+                (* A1..[100,200,...] row, column *)
                 | TLeftBracket -> 
                     (>>==) (enclosed TLeftBracket TRightBracket (parse_extract_shape_override) next') 
                         (fun (final, shp) -> 
@@ -876,6 +836,13 @@ let parse_param_data _start next =
                                 Ok (final, Span (scell, shp))
                             )
                         )
+                (* A1..100 along a row *) 
+                | TNumeral row -> 
+                    if row < 0 then Error "Must be positive sized number in range"
+                    else
+                    (>>==) (as_cell _start) (fun scell -> 
+                        Ok ((advance next'), Span (scell, [1; row]))
+                    )
                 | _ -> 
                     Error "Expected range end"
             )
@@ -1655,6 +1622,22 @@ let parse_ein_mask state =
                         Ok (advance state, Map(Float.exp))
                     | TAlphaNum "log" ->
                         Ok (advance state, Map(Float.log))
+                    | TAlphaNum "sqrt" ->
+                        Ok (advance state, Map(Float.sqrt))
+                    | TAlphaNum "pow" ->
+                        (>>==) (enclosed TLeftAngle TRightAngle (fun s -> 
+                            (match current s with 
+                            | Some { tokn=(TNumeral p); _ } ->
+                                Ok (advance s, float_of_int p)
+                            | Some { tokn=(TFloat p); _ } ->
+                                Ok (advance s, p)
+                            | _ -> 
+                                Error "power expects number"
+                            )
+                        ) (advance state))
+                        (fun (state', num) -> 
+                            Ok (state', Map (fun v -> Float.pow v num))
+                        )
                     | TAlphaNum "inv" ->
                         Ok (advance state, Map((/.) 1.))
                     | TAlphaNum "ceil" ->
@@ -1802,7 +1785,10 @@ let parse_expression state =
                             let lexpr' = (Binary (l_expr, (Term Sub), (Grouping r_expr))) in
                             check  lexpr' _ts'
                         | (Literal l, Binary (l', (Term _t), r')) ->   
-                            let lexpr' = (Binary ((Grouping (Binary (Literal l, (Term Sub), l'))), (Term Sub), r')) in
+                            let lexpr' = (Binary ((Grouping (Binary (Literal l, (Term Sub), l'))), (Term _t), r')) in
+                            check  lexpr' _ts'
+                        | (Literal l, Reduce (l', r')) ->   
+                            let lexpr' = (Reduce ((Binary (l_expr, (Term Sub), l')), r')) in
                             check  lexpr' _ts'
                         | _ -> 
                             let lexpr' = (Binary (l_expr, (Term Sub), r_expr)) in
@@ -1810,8 +1796,16 @@ let parse_expression state =
                     )
                 | Some ({ tokn=KPlus; _ }) ->
                     let* r_expr, _ts' = _term (advance ts) in
-                    let lexpr' = (Binary (l_expr, (Term Add), r_expr)) in
-                    check  lexpr' _ts'
+                    (*let lexpr' = (Binary (l_expr, (Term Add), r_expr)) in*)
+                    (match (l_expr, r_expr) with 
+                        | (Literal l, Reduce (l', r')) ->   
+                            let lexpr' = (Reduce ((Binary (l_expr, (Term Add), l')), r')) in
+                            check  lexpr' _ts'
+                        | _ -> 
+                            let lexpr' = (Binary (l_expr, (Term Add), r_expr)) in
+                            check  lexpr' _ts'
+                    )
+                    (*check  lexpr' _ts'*)
                 | _ -> 
                     Ok (l_expr, ts)
             )
@@ -1825,11 +1819,20 @@ let parse_expression state =
             | Some ({ tokn=(KDiv); _ }) ->
                 let* r_expr, _ts' = _term  (advance ts) in
                 (match (l_expr, r_expr) with
-                    | (Literal _l, Binary (l', (Factor op'), r')) -> 
-                        let lexpr' = (Binary ((Grouping (Binary (l_expr, (Factor Div), l'))), (Factor op'), r')) in
+                    | (Literal _l, Binary (l', (Factor Mul), r')) -> 
+                        let lexpr' = (Binary ((Grouping (Binary (l_expr, (Factor Div), l'))), (Factor Mul), r')) in
                         check  lexpr' _ts'
                     | (Literal _l, Binary (l', (Term op'), r')) -> 
                         let lexpr' = (Binary ((Grouping (Binary (l_expr, (Factor Div), l'))), (Term op'), r')) in
+                        check  lexpr' _ts'
+                    | (Literal _l, Reduce (Binary (l', (Factor Mul), r'), m)) -> 
+                        let lexpr' = (Reduce ((Binary ((Grouping (Binary (l_expr, (Factor Div), l'))), (Factor Mul), r')), m)) in 
+                        check  lexpr' _ts'
+                    | (Literal _l, Reduce (Binary (l', (Term op'), r'), m)) -> 
+                        let lexpr' = (Reduce ((Binary ((Grouping (Binary (l_expr, (Factor Div), l'))), (Term op'), r')), m)) in 
+                        check  lexpr' _ts'
+                    | (Literal _l, Reduce (l', r')) -> 
+                        let lexpr' = (Reduce ((Binary (l_expr, (Factor Div), l')), r')) in 
                         check  lexpr' _ts'
                     | _ -> 
                         let lexpr' = (Binary (l_expr, (Factor Div), r_expr)) in
@@ -1840,6 +1843,12 @@ let parse_expression state =
                 (match (l_expr, r_expr) with
                     | (Literal _l, Binary (l', (Term op'), r')) -> 
                         let lexpr' = (Binary (Grouping (Binary (l_expr, (Factor Mul), l')), (Term op'), r')) in 
+                        check  lexpr' _ts'
+                    | (Literal _l, Reduce (Binary (l', (Term op'), r'), m)) -> 
+                        let lexpr' = (Reduce ((Binary (Grouping (Binary (l_expr, (Factor Mul), l')), (Term op'), r')), m)) in 
+                        check  lexpr' _ts'
+                    | (Literal _l, Reduce (l', r')) -> 
+                        let lexpr' = (Reduce ((Binary (l_expr, (Factor Mul), l')), r')) in 
                         check  lexpr' _ts'
                     | _ ->   
                         let lexpr' = (Binary (l_expr, (Factor Mul), r_expr)) in 

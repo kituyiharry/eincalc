@@ -1,5 +1,18 @@
 (rule
- (mode promote)
- (targets eincalc.js)
- (deps ../../index.bc.js)
- (action (copy ../../index.bc.js eincalc.js)))
+  (mode promote)
+  (targets eincalc.js)
+  (deps ../../index.bc.js)
+  (action (copy ../../index.bc.js eincalc.js)))
+
+;(rule
+  ;(mode promote)
+  ;(targets eincalcwasm.js)
+  ;(deps ../../index.bc.wasm.js)
+  ;(action 
+    ;(progn 
+      ;(copy ../../index.bc.wasm.js eincalcwasm.js)
+      ;(bash "pwd && cp ../../index.bc.wasm.assets/*.wasm ../../../../../../bin/web/src/lib/index.bc.wasm.assets")
+    ;)
+  ;))
+
+

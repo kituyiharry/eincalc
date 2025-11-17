@@ -287,7 +287,7 @@ let timeonly f =
 let eval (pr: vm) = 
     (*let _ = pprint_instr pr.source.oprtns in*)
     let tval = timeonly (fun _ -> consume pr.source (handle_op pr))
-    in let _ = debug_stack pr
+    (*in let _ = debug_stack pr*)
     in 
     (*let _ =*)
         (*for i = Array.length pr.source.kernels downto 1 do *)
