@@ -301,8 +301,10 @@ let tosource (controller) (vw: program) =
     (>>==) (Genfunc.transform vw) (prepare_expression (presempty "") controller)
 ;;
 
+let stck = Array.make _stack_size SNil;;
+
 let mkvm controller src = {
-        spine    = Array.make _stack_size SNil
+        spine    = stck
     ;   stkidx   = 0
     ;   frmptr   = 0 
     ;   oldframe = []

@@ -11,7 +11,7 @@
 (* TODO: unit and property test these functions *)
 
 (* make a new array with zscore values *)
-let sum (type data) (module M: Ndarray.NDarray with type t = data) (d: data) =
+let sum (type data) (module M: Ndarray.Viewable with type t = data) (d: data) =
     let sum = ref 0. in
     let _ = M.iteri (fun _dim v -> 
         sum := !sum +. v
@@ -38,7 +38,7 @@ let sumaxis (type data newdata) axis (module Mnew: Ndarray.NDarray with type t =
         ) d 
 ;;
 
-let mean (type data) (module M: Ndarray.NDarray with type t = data) (d: data) = 
+let mean (type data) (module M: Ndarray.Viewable with type t = data) (d: data) = 
     let sum, count = ref 0., ref 0 in
     let _ = M.iteri (fun _dim v -> 
         let _ = sum := !sum +. v in 
@@ -70,7 +70,7 @@ let meanaxis (type data newdata) axis (module Mnew: Ndarray.NDarray with type t 
 ;;
 
 (* population standard deviation *)
-let stddev (type data) (module M: Ndarray.NDarray with type t = data) (d: data) = 
+let stddev (type data) (module M: Ndarray.Viewable with type t = data) (d: data) = 
     let mval = mean (module M) d in
     let sum, count = ref 0., ref 0 in
     let _ = M.iteri (fun _dim v -> 
@@ -194,7 +194,7 @@ let mode tbl =
 ;;
 
 (* measures of central tendencies *)
-let tendencies (type data) (module M: Ndarray.NDarray with type t = data) (d: data) = 
+let tendencies (type data) (module M: Ndarray.Viewable with type t = data) (d: data) = 
     let mval = mean (module M) d in
     let sum, count = ref 0., ref 0 in
     let tbl = ModeTable.create (Types.cardinal_of_dim (M.shape d))  in
@@ -211,7 +211,7 @@ let tendencies (type data) (module M: Ndarray.NDarray with type t = data) (d: da
 ;;
 
 (* make a new array with zscore values *)
-let cumsum (type data) (module M: Ndarray.NDarray with type t = data) (d: data) =
+let cumsum (type data) (module M: Ndarray.Viewable with type t = data) (d: data) =
     let sum = ref 0. in
     M.iteri (fun dim v -> 
         sum := !sum +. v;
@@ -231,7 +231,7 @@ let cumsumaxis (type data) axis (module M: Ndarray.NDarray with type t = data) (
 ;;
 
 (* make a new array with zscore values *)
-let apply (type data) (module M: Ndarray.NDarray with type t = data) (f: float -> float) (d: data) =
+let apply (type data) (module M: Ndarray.Viewable with type t = data) (f: float -> float) (d: data) =
     M.iteri (fun dim v -> 
         M.set d dim (f v)
     ) d
@@ -342,7 +342,7 @@ let minmaxscaleaxis (type data newdata) axis
 ;;
 
 (* TODO: reshape of Genarray and Bigarray structures can be more efficient *)
-let reshape (type adata bdata) (module S1: Ndarray.NDarray with type t = adata) (module S2: Ndarray.NDarray with type t = bdata) (a: adata) (b: bdata) = 
+let reshape (type adata bdata) (module S1: Ndarray.Viewable with type t = adata) (module S2: Ndarray.Viewable with type t = bdata) (a: adata) (b: bdata) = 
     let (ashape, bshape) = (S1.shape a, S2.shape b) in 
     Seq.zip (Types.indexsequence ashape) (Types.indexsequence bshape)
     |> Seq.iter (fun (aidx, bidx) -> S2.set b bidx (S1.get a aidx))

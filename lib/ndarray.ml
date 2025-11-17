@@ -166,7 +166,7 @@ module Matrix: NDarray with type t = float array array wrap = struct
     ;;
 
     let iteri (apply: int array -> float -> unit) _cont =
-        Array.iteri (fun  i a -> Array.iteri (fun j v -> apply [|i;j|] v) a) _cont.cont
+        Array.iteri (fun i a -> Array.iteri (fun j v -> apply [|i;j|] v) a) _cont.cont
     ;;
 
     let iteris (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
