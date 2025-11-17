@@ -2,7 +2,7 @@
 	import '../app.css';
     // NB: had to change the URL option in the css file!
     import '$lib/assets/font-awesome.css';
-	import favicon from '$lib/assets/favicon.svg';
+	import favicon from '$lib/assets/favicon.ico';
     import kookaburra from '$lib/assets/Kookaboora.jpeg'
     import github from '$lib/assets/github-mark.svg'
 	

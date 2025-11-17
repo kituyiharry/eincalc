@@ -1787,7 +1787,7 @@ let parse_expression state =
                         | (Literal l, Binary (l', (Term _t), r')) ->   
                             let lexpr' = (Binary ((Grouping (Binary (Literal l, (Term Sub), l'))), (Term _t), r')) in
                             check  lexpr' _ts'
-                        | (Literal l, Reduce (l', r')) ->   
+                        | (Literal _l, Reduce (l', r')) ->   
                             let lexpr' = (Reduce ((Binary (l_expr, (Term Sub), l')), r')) in
                             check  lexpr' _ts'
                         | _ -> 
@@ -1798,7 +1798,7 @@ let parse_expression state =
                     let* r_expr, _ts' = _term (advance ts) in
                     (*let lexpr' = (Binary (l_expr, (Term Add), r_expr)) in*)
                     (match (l_expr, r_expr) with 
-                        | (Literal l, Reduce (l', r')) ->   
+                        | (Literal _l, Reduce (l', r')) ->   
                             let lexpr' = (Reduce ((Binary (l_expr, (Term Add), l')), r')) in
                             check  lexpr' _ts'
                         | _ -> 

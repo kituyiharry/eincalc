@@ -741,8 +741,11 @@
                 bind:this={canvas}
                 ondblclick ={handleDoubleClick} 
                 onmousedown={handleMouseDown} 
-                onmouseup  ={handleMouseUp}
+                ontouchstart={handleMouseDown} 
+                onmouseup={handleMouseUp}
+                ontouchend={handleMouseUp}
                 onmousemove={handleMouseMove}
+                ontouchmove={handleMouseMove}
                 onwheel={handleWheel} 
                 style={`display: block; cursor: ${cursorStyle}; font-family: Outfit`}>
                 {#key refresh}
