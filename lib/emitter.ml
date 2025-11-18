@@ -307,6 +307,17 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                     | _ -> 
                         failwith "minmax axis collapse failure"
                 )
+            | Parser.Softmax beta -> 
+                let ns = Array.make (len - 1) 0 in
+                (match collapse curdim ns len with 
+                    | SNdim ((module M'), _data') -> 
+                        let _ = Masks.softmaxaxis axis beta 
+                            (module M') (_data') 
+                            (module M)  (data)
+                        in acc
+                    | _ -> 
+                        failwith "minmax axis collapse failure"
+                )
             | Parser.Write _cell -> 
                 let start = key_of_ref _cell in
                 let _ = Masks.writeaxis axis (module M) start data (Ndcontroller.fetch_active_grid _grid).grid in
@@ -453,6 +464,9 @@ and masked_to_ndarray _grid _masks range =
                     | Parser.ZScore ->
                         let data' = Masks.zscore (module M) data in
                         SNdim ((module M), data')
+                    | Parser.Softmax beta ->
+                        let _ = Masks.softmax beta (module M) data in 
+                        acc
                     | Parser.Sum ->
                         let mnval = Masks.sum (module M) data in 
                         let acc' = Ndarray.Scalar.make [||] mnval in
@@ -525,6 +539,9 @@ and transform_mask _grid ndarr masks =
                         let mnval = Masks.sum (module M) data in 
                         let acc' = Ndarray.Scalar.make [||] mnval in
                         SNdim ((module Ndarray.Scalar), acc')
+                    | Parser.Softmax beta ->
+                        let _ = Masks.softmax beta (module M) data in 
+                        acc
                     | Parser.Mean ->
                         let mnval = Masks.mean (module M) data in 
                         let acc' = Ndarray.Scalar.make [||] mnval in

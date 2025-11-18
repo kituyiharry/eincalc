@@ -113,6 +113,8 @@ and mask =
     | Sum
     (* cumulative sum *)
     | Cumsum
+    (* softmax with beta *)
+    | Softmax of float
     (* apply a function *)
     | Map of (float -> float)
     (* stddev *)
@@ -1624,6 +1626,20 @@ let parse_ein_mask state =
                         Ok (advance state, Map(Float.log))
                     | TAlphaNum "sqrt" ->
                         Ok (advance state, Map(Float.sqrt))
+                    | TAlphaNum "softmax" ->
+                        (>>==) (enclosed TLeftAngle TRightAngle (fun s -> 
+                            (match current s with 
+                            | Some { tokn=(TNumeral p); _ } ->
+                                Ok (advance s, float_of_int p)
+                            | Some { tokn=(TFloat p); _ } ->
+                                Ok (advance s, p)
+                            | _ -> 
+                                Error "power expects number"
+                            )
+                        ) (advance state))
+                        (fun (state', beta) -> 
+                            Ok (state', Softmax beta)
+                        )
                     | TAlphaNum "pow" ->
                         (>>==) (enclosed TLeftAngle TRightAngle (fun s -> 
                             (match current s with 

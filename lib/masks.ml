@@ -38,6 +38,54 @@ let sumaxis (type data newdata) axis (module Mnew: Ndarray.NDarray with type t =
         ) d 
 ;;
 
+(* softmax ?? *)
+let softmax (type data) beta (module M: Ndarray.Viewable with type t = data) (d: data) =
+    let exsum = ref 0. in
+    let _ = M.iteri (fun _dim v -> 
+        exsum := !exsum +. (Float.exp (beta *. v))
+    ) d in 
+    let _ = M.iteri (fun _dim v -> 
+        M.set d _dim ((Float.exp (beta *. v)) /. !exsum)
+    ) d in
+    ()
+;;
+
+
+let softmaxaxis (type data newdata) axis beta (module SoftAxisBuf: Ndarray.NDarray with type t = newdata) (dnew: newdata) (module M: Ndarray.NDarray with type t = data) (d: data) = 
+
+    let exsum = ref 0. in
+    let shp   = SoftAxisBuf.shape dnew in
+    let len   = Array.length shp in
+    let iseq  = Array.make len 0 in
+
+    let _ = M.iteriaxis axis
+        (fun _ -> 
+            exsum   := 0.; 
+        )
+        (fun _dim v -> 
+            (*exsum := !exsum +. v *)
+            exsum := !exsum +. (Float.exp (beta *. v))
+        ) 
+        (fun _ -> 
+            SoftAxisBuf.set dnew iseq !exsum;
+            Types.incrindex len iseq shp;
+        ) d  
+    in 
+
+    let den = ref 0. in
+
+    M.iteriaxis axis 
+    (fun _ -> 
+        den := SoftAxisBuf.get dnew iseq;
+    )
+    (fun _dim v -> 
+        M.set d _dim ((Float.exp (beta *. v)) /. !den)
+    ) 
+    (fun _ ->
+        Types.incrindex len iseq shp
+    ) d 
+;;
+
 let mean (type data) (module M: Ndarray.Viewable with type t = data) (d: data) = 
     let sum, count = ref 0., ref 0 in
     let _ = M.iteri (fun _dim v -> 
