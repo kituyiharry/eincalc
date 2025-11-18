@@ -323,6 +323,10 @@ let shape_of_mask m map =
             Ok map
         | ZScore -> 
             Ok map
+        | Min ->
+            Ok []
+        | Max ->
+            Ok []
         | Mean ->
             Ok []
         | Sum ->

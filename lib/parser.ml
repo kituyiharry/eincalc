@@ -111,6 +111,10 @@ and mask =
     | Mode
     (* Sum *)
     | Sum
+    (* Min value *)
+    | Min
+    (* Max value *)
+    | Max
     (* cumulative sum *)
     | Cumsum
     (* softmax with beta *)
@@ -1607,6 +1611,10 @@ let parse_ein_mask state =
                     (* reductions to Scalar *)
                     | TAlphaNum "mean" ->
                         Ok (advance state, Mean)
+                    | TAlphaNum "min" ->
+                        Ok (advance state, Min)
+                    | TAlphaNum "max" ->
+                        Ok (advance state, Max)
                     | TAlphaNum "sum" ->
                         Ok (advance state, Sum)
                     | TAlphaNum "cumsum" ->

@@ -152,7 +152,7 @@ let stddevaxis (type data newdata) axis (module Mnew: Ndarray.NDarray with type 
         ) d 
 ;;
 
-(* smallest value *)
+(* smallest or largest value *)
 let minmaxvalue (type data) (module M: Ndarray.Viewable with type t = data) (d: data) = 
     let mnmx = ref None in
     let _ = M.iteri (fun _dim v -> 
@@ -162,6 +162,43 @@ let minmaxvalue (type data) (module M: Ndarray.Viewable with type t = data) (d: 
         | None -> mnmx := Some (v, v)
     ) d in 
     Option.get !mnmx
+;;
+
+(* smallest value *)
+let appliedvalue (type data) apply (module M: Ndarray.Viewable with type t = data) (d: data) = 
+    let mnmx = ref None in
+    let _ = M.iteri (fun _dim v -> 
+        (* TODO: maybe we don't need to set it on every call ? *)
+        match !mnmx with 
+        | Some mn -> mnmx := Some (apply v mn)
+        | None -> mnmx := Some v
+    ) d in 
+    Option.get !mnmx
+;;
+
+(* apply and accumulate a value along the axes *)
+let applyaccumvalueaxis (type data newdata) axis apply
+        (module Mbuf: Ndarray.NDarray with type t = newdata) (dmin: newdata) 
+        (module M: Ndarray.NDarray with type t = data) (d: data) = 
+    let mnmx = ref None in
+    let shp        = Mbuf.shape dmin in
+    let len        = Array.length shp in
+    let iseq       = Array.make len 0 in
+    M.iteriaxis axis 
+        (fun _ -> 
+            mnmx := None;
+        )
+        (fun _dim v -> 
+            (* TODO: maybe we don't need to set it on every call ? *)
+            match !mnmx with 
+            | Some (mn) -> mnmx := (Some (apply v mn))
+            | None -> mnmx := Some (v)
+        ) 
+        (fun _ -> 
+            let (mn) = Option.get !mnmx in
+            Mbuf.set dmin iseq mn;
+            Types.incrindex len iseq shp;
+        ) d 
 ;;
 
 (* smallest value and largest value along the axes *)

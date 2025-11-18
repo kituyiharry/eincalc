@@ -262,6 +262,28 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                     | _ -> 
                         failwith "axis collapse failure"
                 )
+            | Parser.Min -> 
+                let ns = Array.make (len - 1) 0 in
+                (match collapse curdim ns len with 
+                    | SNdim ((module M'), _mindata) -> 
+                        let _mnmx = Masks.applyaccumvalueaxis axis (Float.min) 
+                            (module M') (_mindata) 
+                            (module M)  (data)
+                        in SNdim((module M'), _mindata)
+                    | _ -> 
+                        failwith "minmax axis collapse failure"
+                )
+            | Parser.Max -> 
+                let ns = Array.make (len - 1) 0 in
+                (match collapse curdim ns len with 
+                    | SNdim ((module M'), _data') -> 
+                        let _mnmx = Masks.applyaccumvalueaxis axis (Float.max) 
+                            (module M') (_data') 
+                            (module M)  (data)
+                        in SNdim((module M'), _data')
+                    | _ -> 
+                        failwith "minmax axis collapse failure"
+                )
             | Parser.Mode -> 
                 let ns = Array.make (len - 1) 0 in
                 (match collapse curdim ns len with 
@@ -467,6 +489,14 @@ and masked_to_ndarray _grid _masks range =
                     | Parser.Softmax beta ->
                         let _ = Masks.softmax beta (module M) data in 
                         acc
+                    | Parser.Min ->
+                        let mnval = Masks.appliedvalue (Float.min) (module M) data in 
+                        let acc' = Ndarray.Scalar.make [||] mnval in
+                        SNdim ((module Ndarray.Scalar), acc')
+                    | Parser.Max ->
+                        let mnval = Masks.appliedvalue (Float.max) (module M) data in 
+                        let acc' = Ndarray.Scalar.make [||] mnval in
+                        SNdim ((module Ndarray.Scalar), acc')
                     | Parser.Sum ->
                         let mnval = Masks.sum (module M) data in 
                         let acc' = Ndarray.Scalar.make [||] mnval in
@@ -542,6 +572,14 @@ and transform_mask _grid ndarr masks =
                     | Parser.Softmax beta ->
                         let _ = Masks.softmax beta (module M) data in 
                         acc
+                    | Parser.Min ->
+                        let mnval = Masks.appliedvalue (Float.min) (module M) data in 
+                        let acc' = Ndarray.Scalar.make [||] mnval in
+                        SNdim ((module Ndarray.Scalar), acc')
+                    | Parser.Max ->
+                        let mnval = Masks.appliedvalue (Float.max) (module M) data in 
+                        let acc' = Ndarray.Scalar.make [||] mnval in
+                        SNdim ((module Ndarray.Scalar), acc')
                     | Parser.Mean ->
                         let mnval = Masks.mean (module M) data in 
                         let acc' = Ndarray.Scalar.make [||] mnval in
