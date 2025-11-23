@@ -284,6 +284,17 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                     | _ -> 
                         failwith "minmax axis collapse failure"
                 )
+            | Parser.LogSumExp beta -> 
+                let ns = Array.make (len - 1) 0 in
+                (match collapse curdim ns len with 
+                    | SNdim ((module M'), _data') -> 
+                        let _mnmx = Masks.logsumexpaxis axis beta
+                            (module M') (_data') 
+                            (module M)  (data)
+                        in SNdim((module M'), _data')
+                    | _ -> 
+                        failwith "minmax axis collapse failure"
+                )
             | Parser.Mode -> 
                 let ns = Array.make (len - 1) 0 in
                 (match collapse curdim ns len with 
@@ -501,6 +512,10 @@ and masked_to_ndarray _grid _masks range =
                         let mnval = Masks.sum (module M) data in 
                         let acc' = Ndarray.Scalar.make [||] mnval in
                         SNdim ((module Ndarray.Scalar), acc')
+                    | Parser.LogSumExp beta ->
+                        let lgsmexp = Masks.logsumexp beta (module M) data in 
+                        let acc' = Ndarray.Scalar.make [||] lgsmexp in
+                        SNdim ((module Ndarray.Scalar), acc')
                     | Parser.Mean ->
                         let mnval = Masks.mean (module M) data in 
                         let acc' = Ndarray.Scalar.make [||] mnval in
@@ -579,6 +594,10 @@ and transform_mask _grid ndarr masks =
                     | Parser.Max ->
                         let mnval = Masks.appliedvalue (Float.max) (module M) data in 
                         let acc' = Ndarray.Scalar.make [||] mnval in
+                        SNdim ((module Ndarray.Scalar), acc')
+                    | Parser.LogSumExp beta ->
+                        let lgsmexp = Masks.logsumexp beta (module M) data in 
+                        let acc' = Ndarray.Scalar.make [||] lgsmexp in
                         SNdim ((module Ndarray.Scalar), acc')
                     | Parser.Mean ->
                         let mnval = Masks.mean (module M) data in 

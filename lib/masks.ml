@@ -39,6 +39,39 @@ let sumaxis (type data newdata) axis (module Mnew: Ndarray.NDarray with type t =
 ;;
 
 (* softmax ?? *)
+let logsumexp (type data) beta (module M: Ndarray.Viewable with type t = data) (d: data) =
+    let exsum = ref 0. in
+    let _ = M.iteri (fun _dim v -> 
+        exsum := !exsum +. (Float.exp (beta *. v))
+    ) d in 
+    (Float.log !exsum)
+;;
+
+
+let logsumexpaxis (type data newdata) axis beta (module SoftAxisBuf: Ndarray.NDarray with type t = newdata) (dnew: newdata) (module M: Ndarray.NDarray with type t = data) (d: data) = 
+
+    let exsum = ref 0. in
+    let shp   = SoftAxisBuf.shape dnew in
+    let len   = Array.length shp in
+    let iseq  = Array.make len 0 in
+
+    let _ = M.iteriaxis axis
+        (fun _ -> 
+            exsum   := 0.; 
+        )
+        (fun _dim v -> 
+            exsum := !exsum +. (Float.exp (beta *. v))
+        ) 
+        (fun _ -> 
+            SoftAxisBuf.set dnew iseq (Float.log !exsum);
+            Types.incrindex len iseq shp;
+        ) d  
+    in ()
+;;
+
+
+
+(* softmax ?? *)
 let softmax (type data) beta (module M: Ndarray.Viewable with type t = data) (d: data) =
     let exsum = ref 0. in
     let _ = M.iteri (fun _dim v -> 

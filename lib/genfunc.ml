@@ -337,6 +337,8 @@ let shape_of_mask m map =
             Ok []
         | Cumsum ->
             Ok map
+        | LogSumExp _ ->
+            Ok []
         | Softmax _ ->
             Ok map
         | Map _ ->
