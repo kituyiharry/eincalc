@@ -21,6 +21,8 @@ the grid for easier management.
         - [x] Stddev
         - [x] Sum
         - [x] Cumulative Summing
+        - [x] Trig (cos, sin, tan, tanh)
+        - [x] Log, Pow, Logsumexp, Softmax
     - [x] Reshaping
     - [x] Slicing
     - [x] Axis based operations (e.g Mean along an axis)
