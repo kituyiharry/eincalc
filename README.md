@@ -142,17 +142,18 @@ check whether the operations can be broadcasted together
  =([ 1,2,3 ] * [ 4, 5, 6 ]) | write<B2>
 ```
 
-Add 5 to each element fetched from the grid and write back to the grid
+Add 5 to each element fetched from the grid and write back to the grid. Add some
+data B2..D2 and run this
 
 ```
- =((@B2..D2) + 5)
+ =((@B2..D2) + 5) | write<B2>
 ```
 
 Or write it back in reverse (the start and end cells in the range are swapped
 for this effect) 
 
 ```
- =((@D2..B2) + 5)
+ =((@D2..B2) + 5) | write<B2>
 ```
 
 You can use einsum to transpose a matrix, multiply all elements by 3 and write it to the grid 

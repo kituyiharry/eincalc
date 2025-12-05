@@ -163,16 +163,14 @@ and 'a ndarray =
     | Itemize of 'a list          (* The columns *)
     | Collect of 'a ndarray list  (* The rows    *)
 and  crange  = 
-    (* TODO: Support single range with a size e.g. @D2..[3,3] - how would
-       multidimensional work in this ?? *)
     | Range    of cell * cell     (* spreadsheet cells *)
-    | Span     of cell * int list (* spreadsheet cell and a shape *)
+    | Span     of cell * int list (* spreadsheet cell and a shape or length *)
     | Scalar   of cell
     | NdArray  of float ndarray
-    | Relative of motion * crange(* Relative cell - Up ^, Down _, Left <, Right, > *)
-    | Refer    of referral       (* a way to refer to the current cell *) 
+    | Relative of motion * crange (* Relative cell - Up ^, Down _, Left <, Right, > *)
+    | Refer    of referral        (* a way to refer to the current cell *) 
     | Create   of call 
-    (* Support masks that DONT copy over data *)
+    (* Support masks that DONT copy over data  *)
     | Mask     of crange * mask list (* functional masks - copy over data *)
     | Void
 and  params  = crange list       (* function parameters *)
@@ -191,9 +189,21 @@ and expr     =
 
 (* TODO: Blocks can only have 1 inner expression and then enclose other blocks or expressions 
    We want to discourage long blocks. *)
+and state = 
+    {
+            prog: expr
+        ;   inputs: crange list 
+        ;   writes: mask list
+    }
 and  formula = 
-    | Block of (expr * formula)
-    | Stmt  of expr
+    (* 
+       the program, 
+       input dependencies (only Ranges and Spans from the grid)
+       and 
+       output dependencies (only Writes for now) from the grid 
+    *)
+    (*expr * crange list * mask list*)
+    | Stmt of state
 and  program = formula
 [@@deriving show];;
 
@@ -214,9 +224,11 @@ let einempty = {
     ;
 };;
 
-
 let prattempty = {
-    curr = None; prev = None; prog = Stmt (Literal (EinSpec (einempty, [], None)))
+    curr = None; prev = None; prog = Stmt { 
+        prog=(Literal (EinSpec (einempty, [], None)))
+        ; inputs=[]; writes=[] 
+    }
 };;
 
 type parseres = (program, string) result
@@ -265,7 +277,7 @@ let consume state tt  =
     )
 ;;
 
-
+(* parse within an enclosed block like brackets, curly braces .... *)
 let enclosed opentok closetok apply state = 
     (if check opentok (fst state) then 
         let nxt' = advance state in
@@ -636,7 +648,6 @@ let parse_extract_slice_indices state =
         )
     in collect_rem state [ ]
 ;;
-
 
 let parse_extract_range state = 
     let* (num, after) = takenum state in
@@ -1624,18 +1635,69 @@ let parse_ein_mask state =
                     (* will be in radians *)
                     | TAlphaNum "sin" ->
                         Ok (advance state, Map(Float.sin))
+                    | TAlphaNum "sinh" ->
+                        Ok (advance state, Map(Float.sinh))
                     | TAlphaNum "cos" ->
                         Ok (advance state, Map(Float.cos))
+                    | TAlphaNum "cosh" ->
+                        Ok (advance state, Map(Float.cosh))
                     | TAlphaNum "tan" ->
                         Ok (advance state, Map(Float.tan))
                     | TAlphaNum "tanh" ->
                         Ok (advance state, Map(Float.tanh))
+                    | TAlphaNum "asin" ->
+                        Ok (advance state, Map(Float.asin))
+                    | TAlphaNum "asinh" ->
+                        Ok (advance state, Map(Float.asinh))
+                    | TAlphaNum "atan" ->
+                        Ok (advance state, Map(Float.atan))
+                    | TAlphaNum "atanh" ->
+                        Ok (advance state, Map(Float.atanh))
                     | TAlphaNum "exp" ->
                         Ok (advance state, Map(Float.exp))
                     | TAlphaNum "log" ->
                         Ok (advance state, Map(Float.log))
                     | TAlphaNum "sqrt" ->
                         Ok (advance state, Map(Float.sqrt))
+                    | TAlphaNum "clip" | TAlphaNum "clamp" ->
+                        (>>==) (enclosed TLeftAngle TRightAngle (fun s -> 
+                            (match current s with 
+                            | Some { tokn=(TNumeral p); _ } ->
+                                    (>>==) (consume (advance s) TComma) (fun s' -> 
+                                        (match current s' with 
+                                            | Some { tokn=(TNumeral p'); _ } ->
+                                                Ok (advance s', (float_of_int p, float_of_int p'))
+                                            | Some { tokn=(TFloat p'); _ } ->
+                                                Ok (advance s', (float_of_int p, p'))
+                                            | _ -> 
+                                                Error "min and max number"
+                                        )
+                                    )
+                            | Some { tokn=(TFloat p); _ } ->
+                                    (>>==) (consume (advance s) TComma) (fun s' -> 
+                                        (match current s' with 
+                                            | Some { tokn=(TNumeral p'); _ } ->
+                                                Ok (advance s', (p, float_of_int p'))
+                                            | Some { tokn=(TFloat p'); _ } ->
+                                                Ok (advance s', (p, p'))
+                                            | _ -> 
+                                                Error "min and max number"
+                                        )
+                                    )
+                            | _ -> 
+                                Error "clamp | clip expects min and max number"
+                            )
+                        ) (advance state))
+                        (fun (state', (clampmin, clampmax)) -> 
+                            Ok (state', Map (fun v -> 
+                                if v < (clampmin) then  
+                                    clampmin
+                                else if v > (clampmax) then 
+                                    clampmax 
+                                else
+                                    v
+                            ))
+                        )
                     | TAlphaNum "logsumexp" ->
                         (>>==) (enclosed TLeftAngle TRightAngle (fun s -> 
                             (match current s with 
@@ -1776,7 +1838,10 @@ let parse_einsum_expr pratt =
     (>>==) (parse_einsum pratt) (fun (state, ein) -> 
         let p = fst state in 
         let t = snd state in 
-        Ok ({ p with prog=(Stmt (Literal (EinSpec (fst ein, snd ein, None)))) }, t)
+        Ok ({ p with prog=(Stmt { 
+                prog=Literal (EinSpec (fst ein, snd ein, None)) 
+            ;   inputs=[]; writes=[]
+        }) }, t)
     )
 ;;
 
@@ -1809,7 +1874,10 @@ let parse_formulae state =
     (>>==) (parse_einsum_formulae state) (fun (x, y) -> 
         let p = fst x in 
         let t = snd x in
-        Ok ({ p with prog=(Stmt (Literal (EinSpec (fst y, snd y, None)))) }, t)
+        Ok ({ p with prog=(Stmt {
+            prog=(Literal (EinSpec (fst y, snd y, None))) 
+            ;   inputs=[]; writes=[];
+        }) }, t)
     )
 ;;
 
@@ -1943,7 +2011,7 @@ let parse_expression state =
         _term state'
     in 
     let* (form, (rem, left)) =  _extract_group state in 
-    Ok ({ rem with prog=(Stmt form) }, left)
+    Ok ({ rem with prog=(Stmt { prog=(form); inputs=[]; writes=[] }) }, left)
 ;;
 
 (* TODO: make errors some easily parseable and serializable type showing expected and current states *)

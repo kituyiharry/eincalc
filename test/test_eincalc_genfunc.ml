@@ -3,9 +3,9 @@ open Eincalc;;
 
 let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
     match (fst @@ Result.get_ok res).prog with 
-    | Parser.Stmt (Literal (EinSpec (_, e, _))) -> 
+    | Parser.Stmt { prog=(Literal (EinSpec (_, e, _)));  _ } -> 
             List.hd @@ e 
-    | Parser.Stmt (Grouping(Literal (EinSpec (_, e, _)))) -> 
+    | Parser.Stmt { prog=(Grouping(Literal (EinSpec (_, e, _)))); _ } -> 
             List.hd @@ e 
     | _ -> 
             failwith "Unhandled fetch"
@@ -13,9 +13,9 @@ let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) =
 
 let fetch_form (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
   match (fst @@ Result.get_ok res).prog with 
-    | Parser.Stmt (Literal (EinSpec (f, e, _))) -> 
+    | Parser.Stmt { prog=(Literal (EinSpec (f, e, _))); _ } -> 
         (f, e) 
-    | Parser.Stmt (Grouping (Literal (EinSpec (f, e, _)))) -> 
+    | Parser.Stmt { prog=(Grouping (Literal (EinSpec (f, e, _)))); _ } -> 
         (f, e) 
     | s -> 
         failwith (Format.sprintf "Unhandled form: %s" (Parser.show_formula s))

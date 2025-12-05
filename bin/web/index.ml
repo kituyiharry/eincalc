@@ -5,8 +5,8 @@
 module Js   = Js_of_ocaml.Js
 module Con  = Js_of_ocaml.Console
 
-let js_str  = Js.string
-let js_num  = Js.number_of_float
+(*let js_str  = Js.string*)
+(*(*let js_num  = Js.number_of_float*)*)
 open Draw
 
 let _ =

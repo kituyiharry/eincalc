@@ -693,57 +693,75 @@ let rec shape_of_expr stm =
     )
 ;;
 
-let transform (e: formula)  = 
-
-    let rec walkformulae stm = 
+let transform (Stmt ({ prog=stm; _}): formula)  = 
+    (* collect functions that read from the grid so we can compute overlaps *)
+    let collectdeps pars = 
+        List.fold_left (fun acc -> function
+            | Range (_, _) as v  -> v :: acc
+            | Span  (_, _) as v  -> v :: acc
+            | _ -> acc
+        ) [] pars
+        [@@inline always]
+    in
+    (* collect functions that write back to the grid so we can notify *)
+    let collectwrts pars = 
+        List.fold_left (fun acc -> function
+            | Write (_) as v  -> v :: acc
+            | _ -> acc
+        ) [] pars
+        [@@inline always]
+    in
+    let rec walkformulae stm depstate writes = 
         (match stm with 
             |  Literal (EinSpec (_ein, _par, _tree)) ->  
                 (match _tree with 
-                | Some _x -> Ok stm
+                (* means this section has been visited before so we don't need a new correspondence *)
+                | Some _x -> (Ok (stm, depstate, writes))
                 | None -> 
                     let* (lin, lout) = (correspondence (_ein, _par)) in 
                     (match lout with 
                         | Some (vout, maskl) -> 
                             let upd = List.map (fun (x) -> 
-                                    { x with dimen = (find_dimen x.label lin) }
-                                ) vout 
+                                { x with dimen = (find_dimen x.label lin) }
+                            ) vout 
                             in
                             let eq = List.map (fun x -> x.dimen) upd in
                             let newtree = ({ inps=lin; outs=(Some upd, eq, maskl); }) in 
                             let (_, _shp, _ ) = newtree.outs in 
-                            Ok (Literal (EinSpec (_ein, _par, Some newtree)))
+                            Ok (Literal (EinSpec (_ein, _par, Some newtree)),
+                                    (collectdeps _par) @ depstate, writes)
                         | None -> 
                             let newtree = { inps=lin; outs=(None, [], []); } in
-                            Ok (Literal (EinSpec (_ein, _par, Some newtree)))
+                            Ok (Literal (EinSpec (_ein, _par, Some newtree)),
+                                    (collectdeps _par) @ depstate, writes)
                     )
                 )
-
+            | Literal (Tensor (Range (_start, _end) as rng)) ->
+                Ok (stm, rng :: depstate, writes)
+            | Literal (Tensor (Span (_start, _size) as sp)) ->
+                Ok (stm, sp :: depstate, writes)
             | Literal _ | Factor _ | Term _ ->
-                Ok stm
+                Ok (stm, depstate, writes)
             | Unary  (u,e) -> 
-                let* e'  = walkformulae e in 
-                Ok (Unary (u, e'))
+                let* (e', dep', wrt')  = walkformulae e depstate writes in 
+                Ok (Unary (u, e'), dep', wrt')
             | Binary (l, op, r) -> 
                 (* TODO: check whether left and right maps agree *)
-                let* l'  = walkformulae l  in 
-                let* op' = walkformulae op in 
-                let* r'  = walkformulae r  in 
-                Ok (Binary (l', op', r'))
+                let* l',  dep', wrt' = walkformulae l  depstate writes  in 
+                let* op', dep', wrt' = walkformulae op dep' wrt' in 
+                let* r',  dep', wrt' = walkformulae r  dep' wrt' in 
+                Ok (Binary (l', op', r'), dep', wrt')
             | Reduce (ex, ml) -> 
-                let* ex' = walkformulae ex in 
-                Ok (Reduce (ex', ml))
+                let* ex', dep', wrt' = walkformulae ex depstate writes in 
+                Ok (Reduce (ex', ml), dep', (collectwrts ml) @ wrt')
             | Grouping grp      -> 
-                let* grp' = walkformulae grp in
-                Ok (Grouping grp')
+                let* grp', dep', wrt' = walkformulae grp depstate writes in
+                Ok (Grouping grp', dep', wrt')
         )
     in
-    match e with 
-    | Stmt stm -> 
-        let* stm' = (walkformulae stm) in 
-        let* shp  = (shape_of_expr stm') in
-        let  _    = Format.printf "final shape: %s\n" (Types.string_of_shape shp) in
-        Ok (Stmt stm')
-    | _ -> 
-        failwith "Unimplemented formula transform"
+    let* (s,_d,_w) = (walkformulae stm [] []) in 
+    let* _shp  = (shape_of_expr s) in
+    (*let  _    = Format.printf "final shape: %s\n" (Types.string_of_shape shp) in*)
+    Ok ((Stmt { prog=s; inputs=_d; writes=_w; }))
 ;;
 

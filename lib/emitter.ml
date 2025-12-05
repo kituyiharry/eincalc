@@ -29,6 +29,7 @@ type presource = {
     ;   kernels: spinval list  (* a global area for array parameters *)
     ;   kcount: int
     ;   cnsidx: int
+    ;   ast   : program
     ;   nmdvar: (char, int) Hashtbl.t  [@opaque]
     ;   varcnt: int
     ;   name:   string
@@ -40,6 +41,7 @@ let presempty name = {
         consts=[] 
     ;   kernels=[]
     ;   kcount=0
+    ;   ast=(Parser.Stmt { prog=(Literal (Number 0.)); inputs=[]; writes=[]; }) (* we havent formed the program yet *)
     ;   oprtns=[]
     ;   cnsidx=0
     ;   nmdvar=(Hashtbl.create 8) 

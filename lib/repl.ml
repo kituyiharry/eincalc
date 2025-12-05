@@ -8,16 +8,17 @@
  *
  *)
 let handle_transform_formulae grid form = 
-    let fs = Parser.show_program form in
     (match Eval.tosource grid form with 
     | Ok    t -> 
+        let fs = Parser.show_program t.ast in
+        let _ = Ndcontroller.add_program grid t.ast in
         let _ = Format.printf "\n%s\n" (fs) in
         let _ = 
             Emitter.convert t
             |> Eval.mkvm grid 
             |> Eval.eval
         in ()
-    | Error e -> grid.onlog (Format.sprintf "Error: %s\n Ast: %s" e fs, Ndcontroller.Error)
+    | Error e -> grid.onlog (Format.sprintf "Error: %s\n" e, Ndcontroller.Error)
     )
 ;;
 

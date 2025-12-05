@@ -36,7 +36,7 @@ let key_of_ref ((col, row): gridref) =
 type gridptr = (gridref * gridref)
 
 (* final row and column ids in that order for a cell *)
-type gridkey = (int * int) [@@deriving eq, show];;
+type gridkey = (int * int) [@@deriving eq, ord, show];;
 
 (* 
    TODO:
@@ -149,9 +149,11 @@ let genrange start fin =
 (* fetch from 2d grid with a sparse function if it is not available  - the
    second pairs are like displacements from the first. Since its only a 2 by 2
    grid currently shapes can only be upto a matrix! *)
-(* TODO: make grid multidimensional such that it can support say [3x3x3 dim] -
+(* TODO: maybe make grid multidimensional such that it can support say [3x3x3 dim] -
    figure out a way to visualize this ?? *)
-(* TODO: assert r < r' and c < c' ?? or leave commutative and reverse if neg ?? *)
+(* TODO: in some cases when we are executing a simple mask, we may not need to
+   form a new array but sort of optimize by running the mask function directly
+   on the grid! *)
 let fetch_grid g (r, c) (r', c') sparse = 
     (* 24,5  3,5 *)
     (*let _ = Format.printf "fetch from  %d,%d len %d,%d" r c r' c' in*)

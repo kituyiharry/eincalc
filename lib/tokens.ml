@@ -27,6 +27,7 @@ type ttype =
     | TAt                 (* @ *)
     | TPipe               (* | *)
     | TColon              (* : *)
+    | TSemiColon          (* ; *)
     | TOpenCurly          (* { *)
     | TCloseCurly         (* } *)
     | TEq                 (* = *)

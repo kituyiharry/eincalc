@@ -128,7 +128,7 @@ let prepare_eintree sidx ps controller x =
             )
     ) in 
     (* print out the kernel at the end of execution *)
-    (*let echokerns = List.map (Funcs.print_kern) (_kidxs) |> List.concat in*)
+    (* let echokerns = List.map (Funcs.print_kern) (_kidxs) |> List.concat in*)
     (* place the output kernel on top of the stack after we finish executing *)
     Ok { 
         vl with oprtns=vl.oprtns @ [ Types.IApplyMasks ] 
@@ -194,10 +194,8 @@ let prepare_expression ps controller ex =
         )
     in
     match ex with 
-    | Stmt stm -> 
-        _prepare 0 ps controller stm
-    | _ -> 
-        Error "unhandled expression block"
+    | Stmt {prog=stm; _} -> 
+        _prepare 0 { ps with ast=ex; } controller stm
 ;;
 
 

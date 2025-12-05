@@ -8,7 +8,8 @@
     ; todo: maybe disable errors and exception. add effects to support TCO ?
     ;(flags :standard --opt 3 --source-map --disable staticeval --disable share --target-env browser --enable=with-js-error --enable=excwrap)
     (flags :standard --target-env=browser)
-    (build_runtime_flags (:standard -noassert --target-env=browser)))
+    (build_runtime_flags (:standard --target-env=browser))
+  )
   (wasm_of_ocaml 
     (flags :standard)
     (build_runtime_flags (:standard -noassert --target-env=browser))))

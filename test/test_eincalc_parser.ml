@@ -3,15 +3,15 @@ open Eincalc;;
 
 let fetch_program (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
    match (fst @@ Result.get_ok res).prog with 
-    | Parser.Stmt (Literal (EinSpec (e, _, _))) -> e 
-    | Parser.Stmt (Grouping(Literal (EinSpec (e,_,_)))) -> e
+    | Parser.Stmt { prog=(Literal (EinSpec (e, _, _))); _} -> e 
+    | Parser.Stmt { prog=(Grouping(Literal (EinSpec (e,_,_)))); _} -> e
     | _ -> failwith "Invalid program"
 ;;
 
 let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
     match (fst @@ Result.get_ok res).prog with 
-    | Parser.Stmt (Literal (EinSpec (e,f,_))) -> (e, f)
-    | Parser.Stmt (Grouping(Literal (EinSpec (e,f,_)))) -> (e, f)
+    | Parser.Stmt { prog=(Literal (EinSpec (e,f,_))); _ } -> (e, f)
+    | Parser.Stmt { prog=(Grouping(Literal (EinSpec (e,f,_)))); _ } -> (e, f)
     | _ -> failwith "Invalid program"
 ;;
 

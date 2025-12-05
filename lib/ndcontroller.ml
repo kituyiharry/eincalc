@@ -18,9 +18,16 @@
  * - handle serialization or materialization in the future
  *)
 open Ndmodel;;
+open Parser;;
+open Fungi;;
 
 (* TODO: make Hashtbls randomized to prevent ddos attacks on web *)
 module GridTable = Hashtbl.Make (String);;
+module FormGraph = Graph.MakeGraph (struct 
+    type edge   = unit
+    type t      = Ndmodel.gridkey
+    let compare = Ndmodel.compare_gridkey
+end);;
 
 type gridmodel = {
         index: int              (* creation number for this grid *)
@@ -35,12 +42,17 @@ type loglevel =
     | Error 
 ;;
 
+type fgraph =  FormGraph.adj FormGraph.NodeMap.t
+;;
+
 type gridcontroller = { 
-        count: int                    (* count with new additional sheets *)
-    ;   sheets: gridmodel GridTable.t (* Grids and their order and labels *)
-    ;   active: string
-    ;   plotcb: ((string * int list * Plotter.shape list) -> unit) 
-    ;   onlog:  ((string * loglevel) -> unit)
+        count:   int                   (* count with new additional sheets *)
+    ;   sheets:  gridmodel GridTable.t (* Grids and their order and labels *)
+    ;   active:  string
+    ;   plotcb:  ((string * int list * Plotter.shape list) -> unit) 
+    ;   onlog:   ((string * loglevel) -> unit)
+    ;   frmlst:  (program list) ref 
+    ;   frmgrph: fgraph ref 
 };;
 
 let create_controller () = 
@@ -50,6 +62,8 @@ let create_controller () =
     ;   active = ""
     ;   plotcb = ignore
     ;   onlog  = (fun (b, _) -> Format.printf " %s\n" b)
+    ;   frmlst = ref []
+    ;   frmgrph= ref FormGraph.empty
     }
 ;;
 
@@ -74,9 +88,75 @@ let add_plot_cb controller cb =
 
 let create_default_controller label cb logger  = 
     new_sheet ({ 
-        count= 0 ; sheets=GridTable.create 16; 
-        active=label; plotcb=cb; onlog=logger 
+            count= 0; sheets=GridTable.create 16
+        ;   active=label; plotcb=cb; onlog=logger 
+        ;   frmlst = ref []
+        ;   frmgrph= ref FormGraph.empty
     }) label
+;;
+
+let span_of_shape shp =
+    let len = List.length shp in 
+    let rec calc ln =
+        function 
+        | [] -> 
+            (0, 0)
+        | col :: [] -> 
+            (0, col)
+        | row :: col :: [] ->  
+            (row, col)
+        | batch :: row :: col :: [] -> 
+            (* project extra dimensions along the row and account for gaps from
+               slice iteration 
+               ln - 2 gives the number of gaps between slices on a row *)
+            (batch * row + ((batch) - (ln - 2)), col)
+        | mult :: rem -> 
+            let (row, col) = calc (ln - 1) rem in 
+            (* restore the extra gap from the previous frame *)
+            ((mult * row) + ((mult - 1) * (ln - 2)), col)
+    in calc len shp
+;;
+
+(* check if a write writes into a given region *)
+(* WARN: for now we only consider 2d shapes for writes but have generalized over
+   multiple dimensions by projecting along the row. see span_of_shape to figure
+   out how this would work *)
+let overlaps wrt shp reg = match (wrt, reg)  with  
+    |  Write w, Parser.Range (startc, endc) ->
+        let (rsp,   csp) = span_of_shape shp in
+        (* write top and bottom rows and columns *)
+
+        let (wsr,   wsc) = key_of_ref w in 
+        let (wer,   wec) = (wsr + rsp, wsc + csp) in 
+
+        (* read top row and column - check if this section has been modified *)
+        let (rsr,   rsc) = key_of_ref startc in
+        let (rer, rendc) = key_of_ref endc in
+
+        (* /rectangle-intersection/ *)
+        ((wsc <= rendc) && (wec >= rsc) && wsr <= rer && wer >= rsr)
+
+    |  Write w, Parser.Span (startc, shc) ->
+        let (rsp,   csp) = span_of_shape shp in
+        let (rs',   cs') = span_of_shape shc in
+
+        let (wsr,   wsc) = key_of_ref w in (* top left *)
+        let (wer,   wec) = (wsr + rsp, wsc + csp) in 
+
+        let (rsr,   rsc) = key_of_ref startc in
+        let (rer, rendc) = (rsr + rs', rsc + cs') in (* bottom right *)
+
+        ((wsc <= rendc) && (wec >= rsc) && wsr <= rer && wer >= rsr)
+    | _ -> 
+        false
+;;
+
+let add_link controller fromnode tonode = 
+    controller.frmgrph := FormGraph.ensureof fromnode tonode !(controller.frmgrph)
+;;
+
+let add_program controller prog = 
+    controller.frmlst := (prog :: !(controller.frmlst))
 ;;
 
 let fetch_grid_label controller label = 
@@ -98,22 +178,20 @@ let erase_grid controller row rowend col colend =
     )
 ;;
 
+let remove_char buffer char_to_remove original_string =
+    let len = String.length original_string in
+    for i = 0 to len - 1 do
+        let current_char = String.get original_string i in
+        if current_char <> char_to_remove then
+            Buffer.add_char buffer current_char
+    done;
+    let word =  Buffer.contents buffer in 
+    let _ = Buffer.clear buffer in
+    word
+;;
+
 let paste_values controller label separator (_row, _col) data = 
     let buffer = Buffer.create 16 in
-
-    (*  aarrrgh!!! *)
-    let remove_char char_to_remove original_string =
-        let len = String.length original_string in
-        for i = 0 to len - 1 do
-            let current_char = String.get original_string i in
-            if current_char <> char_to_remove then
-                Buffer.add_char buffer current_char
-        done;
-        let word =  Buffer.contents buffer in 
-        let _ = Buffer.clear buffer in
-        word
-    in
-
     match fetch_grid_label controller label with 
     | Some { grid; _ } -> 
         data 
@@ -130,7 +208,7 @@ let paste_values controller label separator (_row, _col) data =
                         String.sub word 1 (String.length word - 1)
                     else 
                         (* for numbers with a comma in them  e.g 1,000 *)
-                        remove_char ',' word
+                        remove_char buffer ',' word
                 ) in
                 let _ = ( 
                     (match int_of_string_opt word' with 
@@ -141,7 +219,8 @@ let paste_values controller label separator (_row, _col) data =
                         | Some v -> 
                             Grid.add grid (offset, acc) (TNumber v)
                         | None ->
-                            Grid.add grid (offset, acc) (TValue word))
+                            Grid.add grid (offset, acc) (TValue word)
+                        )
                     )
                 ) in
                 acc + 1
