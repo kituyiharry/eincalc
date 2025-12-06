@@ -191,9 +191,10 @@ and expr     =
    We want to discourage long blocks. *)
 and state = 
     {
-            prog: expr
-        ;   inputs: crange list 
-        ;   writes: mask list
+        prog:   expr
+    ;   inputs: crange list 
+    ;   writes: (mask * int list) list (* mask and shape list, only Write<..> masks should be here *)
+    ;   token : int    (* updated once the ast is transformed in genfunc *)
     }
 and  formula = 
     (* 
@@ -227,7 +228,7 @@ let einempty = {
 let prattempty = {
     curr = None; prev = None; prog = Stmt { 
         prog=(Literal (EinSpec (einempty, [], None)))
-        ; inputs=[]; writes=[] 
+        ; inputs=[]; writes=[]; token=0
     }
 };;
 
@@ -1840,7 +1841,7 @@ let parse_einsum_expr pratt =
         let t = snd state in 
         Ok ({ p with prog=(Stmt { 
                 prog=Literal (EinSpec (fst ein, snd ein, None)) 
-            ;   inputs=[]; writes=[]
+            ;   inputs=[]; writes=[]; token=0
         }) }, t)
     )
 ;;
@@ -1876,7 +1877,7 @@ let parse_formulae state =
         let t = snd x in
         Ok ({ p with prog=(Stmt {
             prog=(Literal (EinSpec (fst y, snd y, None))) 
-            ;   inputs=[]; writes=[];
+            ;   inputs=[]; writes=[]; token=0;
         }) }, t)
     )
 ;;
@@ -2011,7 +2012,7 @@ let parse_expression state =
         _term state'
     in 
     let* (form, (rem, left)) =  _extract_group state in 
-    Ok ({ rem with prog=(Stmt { prog=(form); inputs=[]; writes=[] }) }, left)
+    Ok ({ rem with prog=(Stmt { prog=(form); inputs=[]; writes=[]; token=0 }) }, left)
 ;;
 
 (* TODO: make errors some easily parseable and serializable type showing expected and current states *)

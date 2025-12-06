@@ -19,6 +19,8 @@ open Ndmodel;;
  *
  *)
 
+let entropy = ref 0;
+
 type ndshape = 
     | Col of int 
     | Row of int * ndshape list
@@ -694,21 +696,44 @@ let rec shape_of_expr stm =
 ;;
 
 let transform (Stmt ({ prog=stm; _}): formula)  = 
-    (* collect functions that read from the grid so we can compute overlaps *)
-    let collectdeps pars = 
-        List.fold_left (fun acc -> function
-            | Range (_, _) as v  -> v :: acc
-            | Span  (_, _) as v  -> v :: acc
-            | _ -> acc
-        ) [] pars
+    (* collect functions that write back to the grid so we can notify *)
+    let collectwrts pars shp = 
+        fst @@ List.fold_left (fun (acc, shp) -> function
+            | Write (_) as v  -> ((v, shp) :: acc, shp)
+            | m -> 
+                match shape_of_mask m shp with 
+                | Ok shp' -> 
+                    (acc, shp')
+                | Error _ ->
+                    (* we just ignore for now! it will be announced later on
+                       when shape_of_expr is called on the whole thing. *)
+                    (* TODO: error handling here should be more 'visible' since
+                       we are counting on an error like this to be reported
+                       elsewhere! *)
+                    (acc, shp)
+        ) ([], shp) pars
         [@@inline always]
     in
-    (* collect functions that write back to the grid so we can notify *)
-    let collectwrts pars = 
-        List.fold_left (fun acc -> function
-            | Write (_) as v  -> v :: acc
-            | _ -> acc
-        ) [] pars
+    (* collect functions that read from the grid so we can compute overlaps *)
+    let rec collectdeps pars = 
+        List.fold_left (fun (acc, wrts) -> function
+            | Range (_, _) as v  -> (v :: acc, wrts)
+            | Span  (_, _) as v  -> (v :: acc, wrts)
+            (* look for embedded writes *)
+            | Mask  (r, ml) -> 
+                (* TODO: error handling here should be more 'visible' since
+                   we are counting on an error like this to be reported
+                   elsewhere! *)
+                (match calcshape r with 
+                | Ok shp ->
+                    let d', w' = collectdeps [ r ] in
+                   (d' @ acc, (collectwrts ml shp) @ w' @ wrts)
+                | Error _ -> 
+                    (* we just ignore for now, error should be reported later on  *)
+                   (acc, wrts)
+                )
+            | _ -> (acc, wrts)
+        ) ([], []) pars
         [@@inline always]
     in
     let rec walkformulae stm depstate writes = 
@@ -728,12 +753,12 @@ let transform (Stmt ({ prog=stm; _}): formula)  =
                             let eq = List.map (fun x -> x.dimen) upd in
                             let newtree = ({ inps=lin; outs=(Some upd, eq, maskl); }) in 
                             let (_, _shp, _ ) = newtree.outs in 
-                            Ok (Literal (EinSpec (_ein, _par, Some newtree)),
-                                    (collectdeps _par) @ depstate, writes)
+                            let (dep', wrt)   = collectdeps _par in
+                            Ok (Literal (EinSpec (_ein, _par, Some newtree)), (dep') @ depstate, wrt @ writes)
                         | None -> 
                             let newtree = { inps=lin; outs=(None, [], []); } in
-                            Ok (Literal (EinSpec (_ein, _par, Some newtree)),
-                                    (collectdeps _par) @ depstate, writes)
+                            let (dep', wrt)   = collectdeps _par in
+                            Ok (Literal (EinSpec (_ein, _par, Some newtree)), (dep') @ depstate, wrt @ writes)
                     )
                 )
             | Literal (Tensor (Range (_start, _end) as rng)) ->
@@ -753,7 +778,8 @@ let transform (Stmt ({ prog=stm; _}): formula)  =
                 Ok (Binary (l', op', r'), dep', wrt')
             | Reduce (ex, ml) -> 
                 let* ex', dep', wrt' = walkformulae ex depstate writes in 
-                Ok (Reduce (ex', ml), dep', (collectwrts ml) @ wrt')
+                let* shp' = shape_of_expr ex in
+                Ok (Reduce (ex', ml), dep', (collectwrts ml shp') @ wrt')
             | Grouping grp      -> 
                 let* grp', dep', wrt' = walkformulae grp depstate writes in
                 Ok (Grouping grp', dep', wrt')
@@ -762,6 +788,7 @@ let transform (Stmt ({ prog=stm; _}): formula)  =
     let* (s,_d,_w) = (walkformulae stm [] []) in 
     let* _shp  = (shape_of_expr s) in
     (*let  _    = Format.printf "final shape: %s\n" (Types.string_of_shape shp) in*)
-    Ok ((Stmt { prog=s; inputs=_d; writes=_w; }))
+    let _ = incr entropy in
+    Ok ((Stmt { prog=s; inputs=_d; writes=_w; token=(!entropy) }))
 ;;
 

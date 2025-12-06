@@ -95,6 +95,8 @@ let create_default_controller label cb logger  =
     }) label
 ;;
 
+(* calculate projected size of any shape on a 2d grid. e.g [2,2] = 2 rows and 2
+   columns, [1,2,3] = 2 rows and 3 columns, ....*)
 let span_of_shape shp =
     let len = List.length shp in 
     let rec calc ln =
@@ -146,6 +148,7 @@ let overlaps wrt shp reg = match (wrt, reg)  with
         let (rsr,   rsc) = key_of_ref startc in
         let (rer, rendc) = (rsr + rs', rsc + cs') in (* bottom right *)
 
+        (* /rectangle-intersection/ *)
         ((wsc <= rendc) && (wec >= rsc) && wsr <= rer && wer >= rsr)
     | _ -> 
         false
@@ -157,6 +160,18 @@ let add_link controller fromnode tonode =
 
 let add_program controller prog = 
     controller.frmlst := (prog :: !(controller.frmlst))
+;;
+
+(* build graph on addition of a new function line ast *)
+let dependants controller ast tokens = 
+    List.fold_left (fun acc (msk, shp) -> 
+        List.fold_left (fun acc' (Parser.Stmt v') -> 
+            if List.exists (overlaps msk shp) v'.inputs then 
+                v' :: acc
+            else
+                acc
+        ) acc !(controller.frmlst)
+    ) [] ast.writes
 ;;
 
 let fetch_grid_label controller label = 

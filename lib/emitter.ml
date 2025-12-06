@@ -41,7 +41,7 @@ let presempty name = {
         consts=[] 
     ;   kernels=[]
     ;   kcount=0
-    ;   ast=(Parser.Stmt { prog=(Literal (Number 0.)); inputs=[]; writes=[]; }) (* we havent formed the program yet *)
+    ;   ast=(Parser.Stmt { prog=(Literal (Number 0.)); inputs=[]; writes=[]; token=0; }) (* we havent formed the program yet *)
     ;   oprtns=[]
     ;   cnsidx=0
     ;   nmdvar=(Hashtbl.create 8) 
