@@ -24,9 +24,9 @@ open Fungi;;
 (* TODO: make Hashtbls randomized to prevent ddos attacks on web *)
 module GridTable = Hashtbl.Make (String);;
 module FormGraph = Graph.MakeGraph (struct 
-    type edge   = unit
-    type t      = Ndmodel.gridkey
-    let compare = Ndmodel.compare_gridkey
+    type edge   = float           (* the stamp from the program *)
+    type t      = Parser.program  (* the program *)
+    let compare (Parser.Stmt ast1) (Parser.Stmt ast2) = (Float.compare ast1.stamp ast2.stamp)
 end);;
 
 type gridmodel = {
@@ -119,6 +119,24 @@ let span_of_shape shp =
     in calc len shp
 ;;
 
+let get_column_label col_num =
+    let label  = Buffer.create 3 in
+    let colnum = ref (col_num + 1) in
+    let _ = while !(colnum) > 0 do
+        colnum := !colnum - 1;
+        Buffer.add_char label (Char.chr ((!colnum mod 26) + 65));
+        (* TODO: investigate for possible bugs!! *)
+        (*colnum := int_of_float (Float.floor (float_of_int (!colnum) /. 26.));*)
+        colnum := !colnum / 26;
+    done in
+    Buffer.contents label
+;;
+
+(* convert a pair like ("DD", 100) -> to referencable 0 indexed cell (100, ) *)
+let ref_of_key (row, col) = 
+    (get_column_label col, (row + 1))
+;;
+
 (* check if a write writes into a given region *)
 (* WARN: for now we only consider 2d shapes for writes but have generalized over
    multiple dimensions by projecting along the row. see span_of_shape to figure
@@ -150,6 +168,19 @@ let overlaps wrt shp reg = match (wrt, reg)  with
 
         (* /rectangle-intersection/ *)
         ((wsc <= rendc) && (wec >= rsc) && wsr <= rer && wer >= rsr)
+
+    |  Write w, Parser.Scalar (startc) ->
+        let (rsp,   csp) = span_of_shape shp in
+
+        let (wsr,   wsc) = key_of_ref w in (* top left *)
+        let (wer,   wec) = (wsr + rsp, wsc + csp) in 
+
+        let (rsr,   rsc) = key_of_ref startc in
+        let (rer, rendc) = (rsr, rsc) in (* bottom right *)
+
+        (* /rectangle-intersection/ *)
+        ((wsc <= rendc) && (wec >= rsc) && wsr <= rer && wer >= rsr)
+
     | _ -> 
         false
 ;;
@@ -158,20 +189,54 @@ let add_link controller fromnode tonode =
     controller.frmgrph := FormGraph.ensureof fromnode tonode !(controller.frmgrph)
 ;;
 
-let add_program controller prog = 
-    controller.frmlst := (prog :: !(controller.frmlst))
+(* build graph on addition of a new function line ast *)
+(* WARN: we take care to avoid cycles by making new programs only be referenced
+   by existing program. This should ideally make the graph acyclic *)
+let dependants controller (Parser.Stmt ast as prog) = 
+    match ast.inputs with 
+    | [] -> 
+        controller.onlog ("No inputs", Warn)
+    | _ ->
+        controller.onlog ("Some inputs", Warn);
+        let _ = controller.frmgrph := (FormGraph.add prog !(controller.frmgrph)) in
+        let _ = List.iter (fun (rnge: crange) -> 
+            match rnge with
+            | Range _ | Span  _ as s -> 
+                List.iter (fun (Parser.Stmt v' as prog') -> 
+                    (* check if it writes over our input region *)
+                    if List.exists (fun (msk, shp) -> overlaps msk shp s) v'.writes then 
+                        (* we call this when our input region has been affected *)
+                        controller.frmgrph := FormGraph.add_weight (v'.stamp) prog' prog !(controller.frmgrph)
+                    else ()
+                ) !(controller.frmlst)
+            | _ -> ()
+        ) ast.inputs in
+        controller.onlog ("Updating with new formular", Warn);
+        controller.frmlst := (prog :: !(controller.frmlst))
 ;;
 
-(* build graph on addition of a new function line ast *)
-let dependants controller ast tokens = 
-    List.fold_left (fun acc (msk, shp) -> 
-        List.fold_left (fun acc' (Parser.Stmt v') -> 
-            if List.exists (overlaps msk shp) v'.inputs then 
-                v' :: acc
-            else
-                acc
-        ) acc !(controller.frmlst)
-    ) [] ast.writes
+let affected controller start = 
+    FormGraph.bfs 
+        (fun _stck ctx -> { ctx  with acc=(ctx.elt :: ctx.acc) }) 
+        (fun _stck' ctx' -> ctx') !(controller.frmgrph) 
+    start []
+;;
+
+(* notify when a region is accessed. we just changed a functions input so we
+   check whos input has changed and notify it *)
+let notify controller (region: mask) (shp: int list) = 
+    match region with
+    | Write c ->
+        List.fold_left (fun acc' (Parser.Stmt v' as prog') -> 
+            (*(* check if it writes over our input region *)*)
+            (*let _ = controller.onlog (Format.sprintf "Looking for overlap on %s: %d!" (Parser.show_cell c) (List.length v'.inputs), Warn) in*)
+            if List.exists (overlaps region shp) v'.inputs then 
+                (*let _ = controller.onlog ("Found overlap with fx!", Info) in*)
+                (*(* we call this when our input region has been affected *)*)
+                prog' :: acc'
+            else acc'
+        ) [] (List.rev !(controller.frmlst))
+    | _ -> []
 ;;
 
 let fetch_grid_label controller label = 

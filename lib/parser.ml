@@ -194,7 +194,7 @@ and state =
         prog:   expr
     ;   inputs: crange list 
     ;   writes: (mask * int list) list (* mask and shape list, only Write<..> masks should be here *)
-    ;   token : int    (* updated once the ast is transformed in genfunc *)
+    ;   stamp:  float                  (* stamp *)
     }
 and  formula = 
     (* 
@@ -228,7 +228,7 @@ let einempty = {
 let prattempty = {
     curr = None; prev = None; prog = Stmt { 
         prog=(Literal (EinSpec (einempty, [], None)))
-        ; inputs=[]; writes=[]; token=0
+        ; inputs=[]; writes=[]; stamp=(Unix.gettimeofday ())
     }
 };;
 
@@ -848,12 +848,18 @@ let parse_param_data _start next =
                             Ok (advance next', Range (scell, ecell))
                         )
                     )
-                (* A1..[100,200,...] row, column *)
+                (* A1..[100,200,...] [row, column] *)
                 | TLeftBracket -> 
                     (>>==) (enclosed TLeftBracket TRightBracket (parse_extract_shape_override) next') 
                         (fun (final, shp) -> 
                             (>>==) (as_cell _start) (fun scell -> 
-                                Ok (final, Span (scell, shp))
+                                match shp with 
+                                | [] -> 
+                                    Ok (final, Span (scell, shp))
+                                | x :: [] -> 
+                                    Ok (final, Span (scell, [x;1]))
+                                | _ -> 
+                                    Ok (final, Span (scell, shp))
                             )
                         )
                 (* A1..100 along a row *) 
@@ -1841,7 +1847,7 @@ let parse_einsum_expr pratt =
         let t = snd state in 
         Ok ({ p with prog=(Stmt { 
                 prog=Literal (EinSpec (fst ein, snd ein, None)) 
-            ;   inputs=[]; writes=[]; token=0
+            ;   inputs=[]; writes=[]; stamp=(Unix.gettimeofday ())
         }) }, t)
     )
 ;;
@@ -1877,7 +1883,7 @@ let parse_formulae state =
         let t = snd x in
         Ok ({ p with prog=(Stmt {
             prog=(Literal (EinSpec (fst y, snd y, None))) 
-            ;   inputs=[]; writes=[]; token=0;
+            ;   inputs=[]; writes=[]; stamp=(Unix.gettimeofday ())
         }) }, t)
     )
 ;;
@@ -2012,7 +2018,7 @@ let parse_expression state =
         _term state'
     in 
     let* (form, (rem, left)) =  _extract_group state in 
-    Ok ({ rem with prog=(Stmt { prog=(form); inputs=[]; writes=[]; token=0 }) }, left)
+    Ok ({ rem with prog=(Stmt { prog=(form); inputs=[]; writes=[]; stamp=(Unix.gettimeofday ()) }) }, left)
 ;;
 
 (* TODO: make errors some easily parseable and serializable type showing expected and current states *)

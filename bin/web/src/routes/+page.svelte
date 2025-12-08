@@ -616,9 +616,9 @@
     if (editingCell) {
       const cellKey = `${editingCell.row},${editingCell.col}`;
       const editOut = editValue.trim();
+      const cellStart = `${getColumnLabel(editingCell.col)}${editingCell.row+1}`;
       if (editOut.startsWith('=')) {
         // executed code and write it back into this cell
-        const cellStart = `${getColumnLabel(editingCell.col)}${editingCell.row+1}`;
         let code = `(${editOut.substring(1).trim()}) | write<${cellStart}>`;
         controller.myLib.executecode(code);
         funcText = `=${code}`;
@@ -626,12 +626,15 @@
         visibleCells.clear();
       } else {
         const num = parseFloat(editOut);  
+        cellData[cellKey] = editOut;
         if (isNaN(num)) {
             controller.myLib.gridaddstring(editingCell.row, editingCell.col, editOut);
         } else {
+            console.log("add num");
             controller.myLib.gridaddnumber(editingCell.row, editingCell.col, num);
+            cellData = {};
+            visibleCells.clear();
         }
-        cellData[cellKey] = editOut;
       }
       editingCell = null;
       refresh++;

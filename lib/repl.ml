@@ -7,17 +7,21 @@
  *   department may entail severe civil or criminal penalties.
  *
  *)
+
+let handle_eval grid (t) = 
+   let fs = Parser.show_program t.Emitter.ast in
+   (* build an execution graph *)
+   let _ = Format.printf "\n%s\n" (fs) in
+   let _ = 
+       Emitter.convert t
+       |> Eval.mkvm grid 
+       |> Eval.eval
+   in ()
+;;
+
 let handle_transform_formulae grid form = 
     (match Eval.tosource grid form with 
-    | Ok    t -> 
-        let fs = Parser.show_program t.ast in
-        let _ = Ndcontroller.add_program grid t.ast in
-        let _ = Format.printf "\n%s\n" (fs) in
-        let _ = 
-            Emitter.convert t
-            |> Eval.mkvm grid 
-            |> Eval.eval
-        in ()
+    | Ok    t -> handle_eval grid t
     | Error e -> grid.onlog (Format.sprintf "Error: %s\n" e, Ndcontroller.Error)
     )
 ;;
@@ -27,16 +31,37 @@ let handle_parse_exp grid (lex: Lexer.lexeme list) =
         Parser.parse lex 
         |> (function 
             | Ok ({ Parser.prog; _ }, _lefttoks) -> (
-                let lem = List.length _lefttoks in
-                if lem > 0 then
-                    (*let _ = Format.printf "Tree: %s with rem %d\n" (Parser.show_program prog) lem in *)
-                    handle_transform_formulae grid prog
-                else
-                    (*let _ = Format.printf "Tree: %s\n" (Parser.show_program prog) in *)
-                    handle_transform_formulae grid prog
+                handle_transform_formulae grid prog
             )
             | Error s   -> 
                 grid.onlog ((Format.sprintf "Parse Error: %s\n" s, Ndcontroller.Error))
+        )
+    )
+;;
+
+
+let simple_parse_exp _grid (lex: Lexer.lexeme list) = 
+    (
+        Parser.parse lex 
+        |> (function 
+            | Ok ({ Parser.prog; _ }, _lefttoks) -> (
+                Ok prog
+            )
+            | Error s   -> 
+                Error s
+        )
+    )
+;;
+
+
+let simple_scan_exp grid (_exp: string) = 
+    (
+        Lexer.runall _exp
+        |> (function 
+            | Ok _res ->        
+                simple_parse_exp grid _res
+            | Error (l,c,s) ->  
+                Error (Format.sprintf "%d %d: %s" l c s)
         )
     )
 ;;

@@ -87,7 +87,17 @@ let _ =
                     (*%d\n" vstr row col) in*)
             (match Eincalc.Ndcontroller.fetch_grid_label sheet default with
                 | Some { grid=_g; _ } -> 
-                    Eincalc.Ndmodel.Grid.add _g (row, col) (TNumber vstr)
+                    let cell = (Eincalc.Parser.Write (Eincalc.Ndcontroller.ref_of_key (row, col))) in 
+                    sheet.onlog (Format.sprintf "Search affected formulae! %d" (List.length !(sheet.frmlst)), Eincalc.Ndcontroller.Warn);
+                    Eincalc.Ndmodel.Grid.add _g (row, col) (TNumber vstr); 
+                    Eincalc.Ndcontroller.notify sheet cell []
+                    |> List.map (Eincalc.Ndcontroller.affected sheet)
+                    |> List.iter (
+                        List.iter (fun fml -> 
+                            sheet.onlog ("Found affected formulae!", Eincalc.Ndcontroller.Warn);
+                            Eincalc.Repl.handle_transform_formulae sheet fml
+                        ) 
+                    )
                 | None ->
                     Con.console##error "cant add number - Missing grid!!!"
             )
@@ -114,8 +124,22 @@ let _ =
         method executecode (value: Js.js_string Js.t) = (
             (* TODO: if it starts with `=` we evaluate it *)
             let vstr = Js.to_string value in
-            let _    = Eincalc.Repl.handle_scan_exp { sheet with active=default; } vstr
-            in Js._true
+            match Eincalc.Repl.simple_scan_exp { sheet with active=default; } vstr with  
+            | Ok cell ->
+                (* transform the ast to capture any reads and writes so we can
+                   form dependencies *)
+                (match Eincalc.Eval.tosource sheet cell with
+                | Ok cell ->
+                    let _ = Eincalc.Ndcontroller.dependants sheet cell.ast in
+                    let _ = Eincalc.Repl.handle_eval sheet cell in
+                    Js._true
+                | Error s -> 
+                    sheet.onlog (s, Eincalc.Ndcontroller.Error);
+                    Js._false
+                )
+            | Error s -> 
+                sheet.onlog (s, Eincalc.Ndcontroller.Error);
+                Js._false
         )
 
         (* TODO: use OptDef or Opt for null checks *)

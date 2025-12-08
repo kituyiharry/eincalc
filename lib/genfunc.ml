@@ -695,7 +695,7 @@ let rec shape_of_expr stm =
     )
 ;;
 
-let transform (Stmt ({ prog=stm; _}): formula)  = 
+let transform (Stmt ({ prog=stm; stamp; _}): formula)  = 
     (* collect functions that write back to the grid so we can notify *)
     let collectwrts pars shp = 
         fst @@ List.fold_left (fun (acc, shp) -> function
@@ -726,8 +726,9 @@ let transform (Stmt ({ prog=stm; _}): formula)  =
                    elsewhere! *)
                 (match calcshape r with 
                 | Ok shp ->
-                    let d', w' = collectdeps [ r ] in
-                   (d' @ acc, (collectwrts ml shp) @ w' @ wrts)
+                    (* find reads and writes *)
+                    let r', w' = collectdeps [ r ] in
+                    (r' @ acc,  (collectwrts ml shp) @ w' @ wrts)
                 | Error _ -> 
                     (* we just ignore for now, error should be reported later on  *)
                    (acc, wrts)
@@ -765,6 +766,8 @@ let transform (Stmt ({ prog=stm; _}): formula)  =
                 Ok (stm, rng :: depstate, writes)
             | Literal (Tensor (Span (_start, _size) as sp)) ->
                 Ok (stm, sp :: depstate, writes)
+            | Literal (Tensor (Scalar (_start) as sp)) ->
+                Ok (stm, sp :: depstate, writes)
             | Literal _ | Factor _ | Term _ ->
                 Ok (stm, depstate, writes)
             | Unary  (u,e) -> 
@@ -777,8 +780,10 @@ let transform (Stmt ({ prog=stm; _}): formula)  =
                 let* r',  dep', wrt' = walkformulae r  dep' wrt' in 
                 Ok (Binary (l', op', r'), dep', wrt')
             | Reduce (ex, ml) -> 
+                (* NOTE: we need to ensure all einspecs has their param shapes
+                   calculated *)
                 let* ex', dep', wrt' = walkformulae ex depstate writes in 
-                let* shp' = shape_of_expr ex in
+                let* shp' = shape_of_expr ex' in
                 Ok (Reduce (ex', ml), dep', (collectwrts ml shp') @ wrt')
             | Grouping grp      -> 
                 let* grp', dep', wrt' = walkformulae grp depstate writes in
@@ -786,9 +791,10 @@ let transform (Stmt ({ prog=stm; _}): formula)  =
         )
     in
     let* (s,_d,_w) = (walkformulae stm [] []) in 
+    (* NOTE: this will catch the errors we ignored earlier in collectdeps and collectwrts - maybe we should just bail out earlier ?? *)
     let* _shp  = (shape_of_expr s) in
     (*let  _    = Format.printf "final shape: %s\n" (Types.string_of_shape shp) in*)
     let _ = incr entropy in
-    Ok ((Stmt { prog=s; inputs=_d; writes=_w; token=(!entropy) }))
+    Ok ((Stmt { prog=s; inputs=_d; writes=_w; stamp }))
 ;;
 
