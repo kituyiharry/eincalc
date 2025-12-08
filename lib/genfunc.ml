@@ -695,7 +695,7 @@ let rec shape_of_expr stm =
     )
 ;;
 
-let transform (Stmt ({ prog=stm; stamp; _}): formula)  = 
+let transform (Stmt ({ prog=stm; stamp; source; _}): formula)  = 
     (* collect functions that write back to the grid so we can notify *)
     let collectwrts pars shp = 
         fst @@ List.fold_left (fun (acc, shp) -> function
@@ -795,6 +795,6 @@ let transform (Stmt ({ prog=stm; stamp; _}): formula)  =
     let* _shp  = (shape_of_expr s) in
     (*let  _    = Format.printf "final shape: %s\n" (Types.string_of_shape shp) in*)
     let _ = incr entropy in
-    Ok ((Stmt { prog=s; inputs=_d; writes=_w; stamp }))
+    Ok ((Stmt { prog=s; source; inputs=_d; writes=_w; stamp }))
 ;;
 

@@ -27,6 +27,7 @@ the grid for easier management.
     - [x] Slicing
     - [x] Axis based operations (e.g Mean along an axis)
     - [x] Reading and Writing values to cells
+- [X] 🚧 Cell Reactivity (Formulaes recalculate on edit)
 - [ ] 🚧 Draw and Plotting
 - [ ] 🚧 Javascript and OCaml API 
 - [ ] 🚧 Headless support (with Canvas or Svg)
@@ -36,7 +37,6 @@ the grid for easier management.
     - [x] Ones, Zeros, Fill or Alternating values
 - [ ] 🚧 Serialization 
 - [ ] 🚧 Audit trails 
-- [ ] 🚧 Cell Reactivity
 - [ ] 🚧 Custom data types
     - [x] Float values | arrays
     - [ ] Complex numbers 

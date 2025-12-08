@@ -193,6 +193,7 @@ and state =
     {
         prog:   expr
     ;   inputs: crange list 
+    ;   source: string
     ;   writes: (mask * int list) list (* mask and shape list, only Write<..> masks should be here *)
     ;   stamp:  float                  (* stamp *)
     }
@@ -227,6 +228,7 @@ let einempty = {
 
 let prattempty = {
     curr = None; prev = None; prog = Stmt { 
+        source="";
         prog=(Literal (EinSpec (einempty, [], None)))
         ; inputs=[]; writes=[]; stamp=(Unix.gettimeofday ())
     }
@@ -1611,6 +1613,24 @@ let parse_ein_mask state =
                             (match (fst nxt').curr with
                                 | Some { tokn; _ } -> 
                                     (match tokn with
+                                        | TAlphaNum "row" -> 
+                                            (>>==) (consume (advance nxt') TComma) (fun nxt'' -> 
+                                                (>>==) (masklist nxt'' []) 
+                                                    (fun (after, masks) ->
+                                                        (>>==) (consume after TRightAngle) (fun after' ->
+                                                            Ok (after', Axis (0, masks))
+                                                        )
+                                                    )
+                                            )
+                                        | TAlphaNum "column" | TAlphaNum "col" -> 
+                                            (>>==) (consume (advance nxt') TComma) (fun nxt'' -> 
+                                                (>>==) (masklist nxt'' []) 
+                                                    (fun (after, masks) ->
+                                                        (>>==) (consume after TRightAngle) (fun after' ->
+                                                            Ok (after', Axis (1, masks))
+                                                        )
+                                                    )
+                                            )
                                         | TNumeral axischar -> 
                                             (>>==) (consume (advance nxt') TComma) (fun nxt'' -> 
                                                 (>>==) (masklist nxt'' []) 
@@ -1846,6 +1866,7 @@ let parse_einsum_expr pratt =
         let p = fst state in 
         let t = snd state in 
         Ok ({ p with prog=(Stmt { 
+            source="";
                 prog=Literal (EinSpec (fst ein, snd ein, None)) 
             ;   inputs=[]; writes=[]; stamp=(Unix.gettimeofday ())
         }) }, t)
@@ -1882,6 +1903,7 @@ let parse_formulae state =
         let p = fst x in 
         let t = snd x in
         Ok ({ p with prog=(Stmt {
+            source="";
             prog=(Literal (EinSpec (fst y, snd y, None))) 
             ;   inputs=[]; writes=[]; stamp=(Unix.gettimeofday ())
         }) }, t)
@@ -2018,13 +2040,15 @@ let parse_expression state =
         _term state'
     in 
     let* (form, (rem, left)) =  _extract_group state in 
-    Ok ({ rem with prog=(Stmt { prog=(form); inputs=[]; writes=[]; stamp=(Unix.gettimeofday ()) }) }, left)
+    Ok ({ rem with prog=(Stmt { source=""; prog=(form); inputs=[]; writes=[]; stamp=(Unix.gettimeofday ()) }) }, left)
 ;;
 
 (* TODO: make errors some easily parseable and serializable type showing expected and current states *)
-let parse lstream = 
+let parse lstream src = 
     let _parse_lxms current = 
         parse_expression current
     in
-    _parse_lxms @@ advance (prattempty, lstream)
+    (>>==) (_parse_lxms @@ advance (prattempty, lstream)) (fun ({ prog=(Stmt s);_ } as  p, l) -> 
+        Ok ({ p  with prog=(Stmt { s with source=src; }) }, l)
+    )
 ;;

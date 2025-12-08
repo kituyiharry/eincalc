@@ -22,7 +22,7 @@ let fetch_form (res: (Parser.prattstate * Lexer.lexeme list, string) result) =
 ;; 
 
 let lexparse x = 
-    Parser.parse @@ Result.get_ok @@ Lexer.runall x 
+    (Fun.flip Parser.parse x) @@ Result.get_ok @@ Lexer.runall x 
 ;;
 
 let as_shape x = 

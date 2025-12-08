@@ -6,7 +6,7 @@ open Eincalc.Types;;
 let execute grid src = 
     match (Lexer.runall src) with
     |  Ok tokens -> 
-        (>>==) (Parser.parse tokens) (fun tree -> 
+        (>>==) (Parser.parse tokens "") (fun tree -> 
             (>>==) (Eval.tosource grid (fst tree).prog) (fun comp -> 
                 let vm = Eval.mkvm grid (Emitter.convert comp) in 
                 let () = Eval.eval vm in

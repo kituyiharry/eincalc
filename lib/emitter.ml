@@ -44,7 +44,7 @@ let presempty name = {
     ;   ast=(
             Parser.Stmt { 
                 prog=(Literal (Number 0.))
-            ;   inputs=[]; writes=[]
+            ;   inputs=[]; writes=[]; source=""
             ;   stamp=(Unix.gettimeofday ())
             }
         ) (* we havent formed the program yet *)

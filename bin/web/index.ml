@@ -50,6 +50,7 @@ let _ =
     (* FIXME: active sheet should be a bit more explicit in calls as its possible to
        overwrite it silently *) 
     let sheet = Eincalc.Ndcontroller.create_default_controller default plotcb logger in
+    let buf = Buffer.create 2048 in
 
     (* NB: method names cant have underscores!! *)
     (* TODO: use a view interface to manage this object and the controller *)
@@ -88,16 +89,29 @@ let _ =
             (match Eincalc.Ndcontroller.fetch_grid_label sheet default with
                 | Some { grid=_g; _ } -> 
                     let cell = (Eincalc.Parser.Write (Eincalc.Ndcontroller.ref_of_key (row, col))) in 
-                    sheet.onlog (Format.sprintf "Search affected formulae! %d" (List.length !(sheet.frmlst)), Eincalc.Ndcontroller.Warn);
-                    Eincalc.Ndmodel.Grid.add _g (row, col) (TNumber vstr); 
-                    Eincalc.Ndcontroller.notify sheet cell []
-                    |> List.map (Eincalc.Ndcontroller.affected sheet)
-                    |> List.iter (
-                        List.iter (fun fml -> 
-                            sheet.onlog ("Found affected formulae!", Eincalc.Ndcontroller.Warn);
-                            Eincalc.Repl.handle_transform_formulae sheet fml
-                        ) 
-                    )
+                    let dotc = Eincalc.Ndcontroller.plaindctx () in 
+                    let _ = sheet.onlog (Format.sprintf "Search affected formulae! %d" (List.length !(sheet.frmlst)), Eincalc.Ndcontroller.Warn) in
+                    let _ = Eincalc.Ndmodel.Grid.add _g (row, col) (TNumber vstr) in 
+                    let _ = (
+                        Eincalc.Ndcontroller.notify sheet cell []
+                        |> List.map (Eincalc.Ndcontroller.affected sheet dotc)
+                        |> List.concat
+                        |> List.sort_uniq (fun (Eincalc.Parser.Stmt x) (Eincalc.Parser.Stmt y) ->
+                            Float.compare x.stamp y.stamp
+                        )
+                        |> List.iter (fun fml -> 
+                                sheet.onlog ("Found affected formulae!", Eincalc.Ndcontroller.Warn);
+                                Eincalc.Repl.handle_transform_formulae sheet fml
+                           ) 
+                    ) in
+                    let _ = Buffer.clear buf in
+                    let _ = Eincalc.Ndcontroller.FormGraphSerializer.to_dot ~dir:true "Affected" dotc.global dotc.prnode dotc.predge 
+                        !(sheet.frmgrph) |> Seq.concat |> Seq.iter (fun s -> 
+                            Buffer.add_string buf (s ())
+                        ) in 
+                    let s = Buffer.contents buf in
+                    let _ = sheet.onlog (Format.sprintf "%s" s, Eincalc.Ndcontroller.Warn) in
+                    ()
                 | None ->
                     Con.console##error "cant add number - Missing grid!!!"
             )
@@ -124,18 +138,42 @@ let _ =
         method executecode (value: Js.js_string Js.t) = (
             (* TODO: if it starts with `=` we evaluate it *)
             let vstr = Js.to_string value in
+
             match Eincalc.Repl.simple_scan_exp { sheet with active=default; } vstr with  
             | Ok cell ->
                 (* transform the ast to capture any reads and writes so we can
                    form dependencies *)
                 (match Eincalc.Eval.tosource sheet cell with
-                | Ok cell ->
-                    let _ = Eincalc.Ndcontroller.dependants sheet cell.ast in
-                    let _ = Eincalc.Repl.handle_eval sheet cell in
-                    Js._true
-                | Error s -> 
-                    sheet.onlog (s, Eincalc.Ndcontroller.Error);
-                    Js._false
+                    | Ok ({ ast=(Eincalc.Parser.Stmt s); _ } as cell) ->
+                        let _ = Eincalc.Ndcontroller.dependants sheet cell.ast in
+                        let _ = Eincalc.Repl.handle_eval sheet cell in
+                        let dotc = Eincalc.Ndcontroller.plaindctx () in 
+                        (* see if we wrote over other formulaes *)
+                        let _ = (
+                            List.iter (fun (msk, shp) ->
+                                Eincalc.Ndcontroller.notify sheet msk shp
+                                |> List.map (Eincalc.Ndcontroller.affected sheet dotc)
+                                |> List.concat
+                                |> List.sort_uniq (fun (Eincalc.Parser.Stmt x) (Eincalc.Parser.Stmt y) ->
+                                    Float.compare x.stamp y.stamp
+                                )
+                                |> List.iter (fun fml -> 
+                                    let _ = Eincalc.Repl.handle_transform_formulae sheet fml in
+                                    sheet.onlog ("Found affected formulae!", Eincalc.Ndcontroller.Warn);
+                                )
+                            ) s.writes
+                        ) in
+                        let _ = Buffer.clear buf in
+                        let _ = Eincalc.Ndcontroller.FormGraphSerializer.to_dot ~dir:true "Affected" dotc.global dotc.prnode dotc.predge 
+                            !(sheet.frmgrph) |> Seq.concat |> Seq.iter (fun s -> 
+                                Buffer.add_string buf (s ())
+                            ) in 
+                        let s = Buffer.contents buf in
+                        let _ = sheet.onlog (Format.sprintf "%s" s, Eincalc.Ndcontroller.Warn) in
+                        Js._true
+                    | Error s -> 
+                        sheet.onlog (s, Eincalc.Ndcontroller.Error);
+                        Js._false
                 )
             | Error s -> 
                 sheet.onlog (s, Eincalc.Ndcontroller.Error);
@@ -148,7 +186,26 @@ let _ =
             let vstr = Js.to_string value in
             let sep = if String.contains vstr '\t' then '\t' else if (not @@ String.contains vstr ',') then ' ' else ',' in
             (match Eincalc.Ndcontroller.paste_values sheet default sep (row, col) vstr with 
-                | Ok    _v -> 
+                | Ok    (r,c) -> 
+                    let cell = (Eincalc.Parser.Write (Eincalc.Ndcontroller.ref_of_key (row, col))) in 
+                    let dotc = Eincalc.Ndcontroller.plaindctx () in 
+                    Eincalc.Ndcontroller.notify sheet cell [r;c]
+                    |> List.map (Eincalc.Ndcontroller.affected sheet dotc)
+                    |> List.concat
+                    |> List.sort_uniq (fun (Eincalc.Parser.Stmt x) (Eincalc.Parser.Stmt y) ->
+                        Float.compare x.stamp y.stamp
+                    )
+                    |> List.iter (fun fml -> 
+                        let _ = Eincalc.Repl.handle_transform_formulae sheet fml in
+                        sheet.onlog ("Found affected formulae!", Eincalc.Ndcontroller.Warn);
+                    );
+                    let _ = Buffer.clear buf in
+                    let _ = Eincalc.Ndcontroller.FormGraphSerializer.to_dot ~dir:true "Affected" dotc.global dotc.prnode dotc.predge 
+                        !(sheet.frmgrph) |> Seq.concat |> Seq.iter (fun s -> 
+                            Buffer.add_string buf (s ())
+                        ) in 
+                    let s = Buffer.contents buf in
+                    let _ = sheet.onlog (Format.sprintf "%s" s, Eincalc.Ndcontroller.Warn) in
                     Con.console##info "Pasted values!";
                     Js._true
                 | Error e ->
@@ -178,7 +235,7 @@ let _ =
                  *)
 
         end) 
-  in ()
-  (*Format.printf "Hello console from ocaml!";*)
-  (*Html.window##.onload := Html.handler onload*)
+    in ()
+(*Format.printf "Hello console from ocaml!";*)
+(*Html.window##.onload := Html.handler onload*)
 

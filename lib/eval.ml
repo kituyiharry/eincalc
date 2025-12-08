@@ -36,15 +36,15 @@ let debug_stack { spine; stkidx; source; sheet; _ } =
                 let s = (show_spinval y) in 
                 let k = (show_kernel y) in 
                 let _ = Format.printf "%s\n" k in 
-                sheet.onlog ((Format.sprintf "%s \n" s), Ndcontroller.Info)
+                sheet.onlog ((Format.sprintf "%s \n" s), Ndcontroller.Debug)
             | SKern ix ->  
                 let k = (show_kernel source.kernels.(ix)) in
                 let _ = Format.printf "%s\n" k in 
                 let s = (show_spinval source.kernels.(ix)) in 
-                sheet.onlog ((Format.sprintf "%s \n" s), Ndcontroller.Info)
+                sheet.onlog ((Format.sprintf "%s \n" s), Ndcontroller.Debug)
             | _ ->
                 let s = Format.sprintf "%s\n" (Types.show_spinval y) in
-                (sheet.onlog (s, Ndcontroller.Info))
+                (sheet.onlog (s, Ndcontroller.Debug))
                 (*Format.print_flush ()*)
         )
     done
@@ -286,7 +286,8 @@ let timeonly f =
 (* access grid via controller *)
 let eval (pr: vm) = 
     (*let _ = pprint_instr pr.source.oprtns in*)
-    let tval = timeonly (fun _ -> consume pr.source (handle_op pr))
+    let tval = timeonly (fun _ -> consume pr.source (handle_op pr)
+    )
     in let _ = debug_stack pr
     in 
     (*let _ =*)
@@ -294,7 +295,7 @@ let eval (pr: vm) =
             (*(*Format.print_string ((show_kernel) pr.source.kernels.(i - 1));*)*)
         (*(*done;*)*)
     (*in*)
-    pr.sheet.onlog ((Format.sprintf "\nexec %f secs\n" tval), Ndcontroller.Info)
+    pr.sheet.onlog ((Format.sprintf "\nexec %f secs\n" tval), Ndcontroller.Debug)
 ;;
 
 let tosource (controller) (vw: program) = 

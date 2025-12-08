@@ -28,6 +28,29 @@ module FormGraph = Graph.MakeGraph (struct
     type t      = Parser.program  (* the program *)
     let compare (Parser.Stmt ast1) (Parser.Stmt ast2) = (Float.compare ast1.stamp ast2.stamp)
 end);;
+module FormSer = struct 
+    let string_of_elt = fun (Stmt p) -> Format.sprintf "\"%s\"" (String.escaped @@ p.source);;
+    let string_of_wgt = Float.to_string;;
+    let wgt_of_string = Float.of_string;;
+    let elt_of_string = fun _ -> prattempty.prog
+end
+module FormGraphSerializer = FormGraph.Serialize (FormSer);;
+
+(* global attributes *)
+let gt   = FormGraphSerializer.StyleTbl.create 1;;
+(* per edge style attributes *)
+let et   = FormGraphSerializer.AttrbTbl.create 1;;
+(* per node style attributes *)
+let nt   = FormGraphSerializer.AttrbTbl.create 1;;
+(* add some attributes *)
+FormGraphSerializer.StyleTbl.add gt "rankdir" "TB";;
+FormGraphSerializer.StyleTbl.add gt "color" "green";;
+
+type dotctx = { 
+        global: string FormGraphSerializer.StyleTbl.t
+    ;   prnode: (string FormGraphSerializer.StyleTbl.t) FormGraphSerializer.AttrbTbl.t
+    ;   predge: (string FormGraphSerializer.StyleTbl.t) FormGraphSerializer.AttrbTbl.t
+}
 
 type gridmodel = {
         index: int              (* creation number for this grid *)
@@ -193,33 +216,95 @@ let add_link controller fromnode tonode =
 (* WARN: we take care to avoid cycles by making new programs only be referenced
    by existing program. This should ideally make the graph acyclic *)
 let dependants controller (Parser.Stmt ast as prog) = 
-    match ast.inputs with 
-    | [] -> 
-        controller.onlog ("No inputs", Warn)
-    | _ ->
-        controller.onlog ("Some inputs", Warn);
-        let _ = controller.frmgrph := (FormGraph.add prog !(controller.frmgrph)) in
-        let _ = List.iter (fun (rnge: crange) -> 
-            match rnge with
-            | Range _ | Span  _ as s -> 
-                List.iter (fun (Parser.Stmt v' as prog') -> 
-                    (* check if it writes over our input region *)
-                    if List.exists (fun (msk, shp) -> overlaps msk shp s) v'.writes then 
-                        (* we call this when our input region has been affected *)
-                        controller.frmgrph := FormGraph.add_weight (v'.stamp) prog' prog !(controller.frmgrph)
-                    else ()
-                ) !(controller.frmlst)
-            | _ -> ()
-        ) ast.inputs in
-        controller.onlog ("Updating with new formular", Warn);
-        controller.frmlst := (prog :: !(controller.frmlst))
+    (* check for similar source *)
+    if List.exists (fun (Parser.Stmt x) -> String.equal x.source ast.source) !(controller.frmlst) then 
+        controller.onlog ("Already exists", Warn)
+    else
+        (match ast.inputs with 
+            | [] -> 
+                controller.onlog ("No inputs", Warn);
+                (match ast.writes  with
+                    | [] -> 
+                        controller.onlog ("No writes as well - ignoring", Warn);
+                    | _ -> 
+                        controller.onlog ("Some writes adding to graph", Warn);
+                        controller.frmgrph := (FormGraph.add prog !(controller.frmgrph));
+                        controller.frmlst := (prog :: !(controller.frmlst))
+                )
+            | _ ->
+                controller.onlog ("Some inputs", Warn);
+                let _ = controller.frmgrph := (FormGraph.add prog !(controller.frmgrph)) in
+                let _ = List.iter (fun (rnge: crange) -> 
+                    match rnge with
+                    | Range _ | Span  _ | Scalar _ as s -> 
+                        List.iter (fun (Parser.Stmt v' as prog') -> 
+                            (* check if it writes over our input region *)
+                            if 
+                            List.exists (fun (msk, shp) -> overlaps msk shp s) v'.writes 
+                            then 
+                                let _ = controller.onlog ("connected", Warn) in
+                                (* we call this when our input region has been affected *)
+                                controller.frmgrph := FormGraph.add_weight (v'.stamp) prog' prog !(controller.frmgrph)
+                            else ()
+                        ) !(controller.frmlst)
+                    | _ -> ()
+                ) ast.inputs in
+                controller.onlog ("Updating with new formulae", Warn);
+                controller.frmlst := (prog :: !(controller.frmlst))
+        )
 ;;
 
-let affected controller start = 
-    FormGraph.bfs 
-        (fun _stck ctx -> { ctx  with acc=(ctx.elt :: ctx.acc) }) 
+
+let plaindctx () = 
+    let _ = FormGraphSerializer.AttrbTbl.clear nt in
+    let _ = FormGraphSerializer.AttrbTbl.clear et in
+    {
+        global = gt; prnode = nt; predge = et
+    }
+;;
+
+let affected controller dctx start = 
+
+    (*let _ = FormGraphSerializer.AttrbTbl.clear nt in*)
+    (*let _ = FormGraphSerializer.AttrbTbl.clear et in*)
+
+    (* make start node blue *)
+
+    let aff = FormGraph.dfs 
+        (fun _stck ctx   -> 
+            (* some local attributes for the digraph rendering for debugging *)
+            let _ = 
+                (match ctx.prev with 
+                | Some (prevprog, _prevadj) -> 
+
+                    (* make node green *)
+                    let lt = FormGraphSerializer.StyleTbl.create 1 in
+                    let _ = FormGraphSerializer.StyleTbl.add lt "color" "green" in
+                    let ckey  = (FormSer.string_of_elt ctx.elt) in
+                    let _ = FormGraphSerializer.AttrbTbl.add dctx.prnode ckey lt in
+
+                    let le = FormGraphSerializer.StyleTbl.create 1 in
+                    let _ = FormGraphSerializer.StyleTbl.add le "color" "green" in
+                    let pstr = FormSer.string_of_elt prevprog in
+                    (* in fungi graph - this represents an edge with attributes *)
+                    let ekey = pstr ^ "-" ^ ckey in 
+                    FormGraphSerializer.AttrbTbl.add dctx.predge ekey le
+                | _ -> 
+                    (* make start node blue and rect *)
+                    let st = FormGraphSerializer.StyleTbl.create 1 in
+                    let _  = FormGraphSerializer.StyleTbl.add st "color" "blue" in
+                    let _  = FormGraphSerializer.StyleTbl.add st "shape" "rect" in
+
+                    let _  = FormGraphSerializer.AttrbTbl.add dctx.prnode (FormSer.string_of_elt start) st in
+                    ()
+                )
+            in 
+            { ctx  with acc=(ctx.elt :: ctx.acc) }
+        ) 
         (fun _stck' ctx' -> ctx') !(controller.frmgrph) 
-    start []
+    start [] in 
+
+    List.rev aff
 ;;
 
 (* notify when a region is accessed. we just changed a functions input so we
@@ -234,7 +319,8 @@ let notify controller (region: mask) (shp: int list) =
                 (*let _ = controller.onlog ("Found overlap with fx!", Info) in*)
                 (*(* we call this when our input region has been affected *)*)
                 prog' :: acc'
-            else acc'
+            else 
+                acc'
         ) [] (List.rev !(controller.frmlst))
     | _ -> []
 ;;
@@ -272,12 +358,14 @@ let remove_char buffer char_to_remove original_string =
 
 let paste_values controller label separator (_row, _col) data = 
     let buffer = Buffer.create 16 in
+    let rc, cc = (ref (-1), ref (-1)) in
     match fetch_grid_label controller label with 
     | Some { grid; _ } -> 
         data 
         |> String.split_on_char ('\n')
         |> List.map (String.split_on_char (separator))
         |> List.fold_left (fun offset line -> 
+            let _ = incr rc in
             let _ = List.fold_left (fun acc word -> 
                 let word' = (
                     if String.ends_with ~suffix:"%" word then 
@@ -291,6 +379,7 @@ let paste_values controller label separator (_row, _col) data =
                         remove_char buffer ',' word
                 ) in
                 let _ = ( 
+                    let _ = incr cc in
                     (match int_of_string_opt word' with 
                     | Some v -> 
                         Grid.add grid (offset, acc) (TNat v)
@@ -307,7 +396,12 @@ let paste_values controller label separator (_row, _col) data =
             ) _col line in 
             offset + 1
         ) _row
-        |> Result.ok
+        |> (function _n -> 
+            (* NOTE: may be funky..needs testing *)
+            if !rc > 0 then
+                Ok (!rc, !cc / !rc)
+            else
+                Ok (!rc, 0))
     | None -> 
         Error ""
 ;;
