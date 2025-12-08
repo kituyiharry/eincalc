@@ -1,4 +1,5 @@
 (executable
  (public_name eincalc)
+ (preprocess (pps ppx_deriving.show))
  (name main)
  (libraries eincalc))

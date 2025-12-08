@@ -280,6 +280,13 @@ let consume state tt  =
     )
 ;;
 
+(* consume if it exists *)
+let consume_optional tt state = 
+    match (consume state tt) with 
+    | Ok s -> Ok s
+    | Error _ -> Ok state
+;;
+
 (* parse within an enclosed block like brackets, curly braces .... *)
 let enclosed opentok closetok apply state = 
     (if check opentok (fst state) then 
@@ -2039,7 +2046,12 @@ let parse_expression state =
     and _extract_group state' = 
         _term state'
     in 
-    let* (form, (rem, left)) =  _extract_group state in 
+    let* (form, (rem, left)) =  (>>==) (_extract_group state) (fun (x, y) ->
+        (>>==) (consume_optional TSemiColon y) (fun y -> 
+            Ok (x, y)
+        )
+    )
+    in 
     Ok ({ rem with prog=(Stmt { source=""; prog=(form); inputs=[]; writes=[]; stamp=(Unix.gettimeofday ()) }) }, left)
 ;;
 

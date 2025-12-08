@@ -84,10 +84,10 @@ let handle_input grid (data: Buffer.t) =
     let l = Buffer.length data in
     (if l > 0 then
         let o = Buffer.to_bytes data |> Bytes.trim |> Bytes.to_string in
-        (match String.get o 0 with 
+        (match String.unsafe_get o 0 with 
             | '!' -> (
                 (match String.get o 1 with 
-                    | 'q' ->  let _ = Format.printf "Goodbye :-)\n" in false
+                    | 'q' | 'Q' ->  let _ = Format.printf "Goodbye :-)\n" in false
                     | _   ->  true
                 )
             )
