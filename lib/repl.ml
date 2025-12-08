@@ -79,6 +79,48 @@ let handle_scan_exp grid (_exp: string) =
 
 let mkbuf s = (let b = Buffer.create 64 in let _ = Buffer.add_string b s in b) ;;
 
+let scan_and_notify sheet vstr = 
+   (*let _ = Format.printf "scan_and_not: %s\n" vstr in*)
+   (*let buf = Buffer.create 256 in*)
+   match simple_scan_exp sheet vstr with  
+   | Ok cell ->
+       (* transform the ast to capture any reads and writes so we can
+          form dependencies *)
+       (match Eval.tosource sheet cell with
+           | Ok ({ ast=(Parser.Stmt s); _ } as cell) ->
+               let _ = Ndcontroller.dependants sheet cell.ast in
+               let _ = handle_eval sheet cell in
+               let dotc = Ndcontroller.plaindctx () in 
+               (* see if we wrote over other formulaes *)
+               let _ = (
+                   List.iter (fun (msk, shp) ->
+                       Ndcontroller.notify sheet msk shp
+                       |> List.map (Ndcontroller.affected sheet dotc)
+                       |> List.concat
+                       |> List.sort_uniq (fun (Parser.Stmt x) (Parser.Stmt y) ->
+                           Float.compare x.stamp y.stamp
+                       )
+                       |> List.iter (fun fml -> 
+                           handle_transform_formulae sheet fml
+                       )
+                   ) s.writes
+               ) in
+               (*let _ = Buffer.clear buf in*)
+               (*let _ = Ndcontroller.FormGraphSerializer.to_dot ~dir:true "Affected" dotc.global dotc.prnode dotc.predge *)
+                   (*!(sheet.frmgrph) |> Seq.concat |> Seq.iter (fun s -> *)
+                       (*Buffer.add_string buf (s ())*)
+                   (*) in *)
+               (*let s = Buffer.contents buf in*)
+               (*let _ = sheet.onlog (Format.sprintf "%s" s, Ndcontroller.Warn) in*)
+                ()
+           | Error s -> 
+               sheet.onlog (s, Ndcontroller.Error);
+                ()
+       )
+    | Error e -> 
+        (failwith ("ParseError: %s" ^ e))
+;;
+
 (* handles input -> return bool on whether to continue *)
 let handle_input grid (data: Buffer.t) = 
     let l = Buffer.length data in
@@ -92,7 +134,7 @@ let handle_input grid (data: Buffer.t) =
                 )
             )
             | '=' -> (
-                let _ = handle_scan_exp grid (String.sub o 1 (l-1)) in 
+                let _ = scan_and_notify grid (String.sub o 1 (l-1)) in 
                 let _ = Buffer.clear data in
                 true
             ) 

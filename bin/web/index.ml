@@ -75,6 +75,7 @@ let _ =
                     | Some Eincalc.Ndmodel.TValue  s -> (js_str s)
                     | Some Eincalc.Ndmodel.TNumber f -> (js_str (Format.sprintf "%.2f" f))
                     | Some Eincalc.Ndmodel.TNat f    -> (js_str (string_of_int f))
+                    | Some Eincalc.Ndmodel.TCover (f, s) -> (js_str s)
                     | None   -> js_str "")
             | None -> 
                 let _ = Con.console##error "Missing grid!!!" in

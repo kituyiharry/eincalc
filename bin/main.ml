@@ -5,6 +5,14 @@ type startctx = {
     ;   interactive: bool
 } [@@deriving show];;
 
+let char_seq_of_file ic =
+  Seq.unfold (fun channel ->
+    match In_channel.input_char channel with
+    | Some c -> Some (c, channel)
+    | None -> None
+  ) ic
+;;
+
 let parse_args len = 
     let rec args len idx ctx = 
         if len <= 1 then 
@@ -41,6 +49,42 @@ let parse_args len =
     args len 1 { load=None; run=None; interactive=false;format=None;  }
 ;;
 
+let load_file controller is_csv is_tsv file = 
+    let ic = open_in file in
+    let buf = Seq.of_dispenser (fun () -> In_channel.input_line ic) in
+    let r = ref 0 in
+    let _   = Seq.iter (fun line -> 
+        (match Eincalc.Ndcontroller.paste_values controller "Default" (if is_csv then ','  else '\t') (!r, 0) line 
+            with 
+            | Ok (r', c') -> 
+                incr r; 
+            | Error e -> (
+                Format.printf "Error loading line: %s" e
+            )
+        )
+    ) buf in
+    let _ = close_in ic in
+    Format.printf "Added %d rows\n" !r
+;;
+
+let load_ein_file controller file = 
+    let ic = open_in_bin file in
+    let line = really_input_string ic (Int64.to_int @@ In_channel.length ic) in
+    let s   = String.split_on_char ';' line |> List.map (String.trim) |> List.filter (fun s -> String.length s > 0) in
+    (*let buf = char_seq_of_file ic  in*)
+    (* is_empty doesn't work on ephemeral *)
+    (*let _ = Seq.iter (Format.print_char) buf in*)
+    let rec reduce = function 
+        | [] -> () 
+        | hd :: rest -> 
+            if String.length hd > 0 then
+                let _ = Eincalc.Repl.scan_and_notify controller (hd) in
+                reduce rest
+            else
+                reduce rest
+    in reduce s
+;;
+
 let interp_args controller ctx = 
     let _ = (match ctx.load with
         | Some file -> 
@@ -49,25 +93,17 @@ let interp_args controller ctx =
             if not @@ (is_csv || is_tsv) then 
                 (failwith "only csv and tsv files supported") 
             else
-                let ic = open_in file in
-                let buf = Seq.of_dispenser (fun () -> In_channel.input_line ic) in
-                let r = ref 0 in
-                let _   = Seq.iter (fun line -> 
-                    (match Eincalc.Ndcontroller.paste_values controller "Default" (if is_csv then ','  else '\t') (!r, 0) line 
-                        with 
-                        | Ok (r', c') -> 
-                            incr r; 
-                            (*c := !c + c'*)
-                        | Error e -> (
-                            Format.printf "Error loading line: %s" e
-                        )
-                    )
-                ) buf in
-                let _ = Format.printf "Added %d rows\n" !r in
-                () 
+                load_file controller is_csv is_tsv file
         | _ -> 
             ()
-    ) in ()
+    ) in 
+    let _ = (match ctx.run with 
+        | Some rfile ->  
+            load_ein_file controller rfile
+        | _ -> 
+            ()
+    ) in
+    ()
 ;;
 
 let () = 
@@ -76,7 +112,9 @@ let () =
     let grid = Eincalc.Ndcontroller.new_sheet contr "Default" in
     let _ = Format.printf "%d args\n" ln in
     if ln > 1 then 
-        let _ = interp_args grid (parse_args ln) in
+        let ctx = parse_args ln in
+        let _ = Format.printf "%s\n" (show_startctx ctx) in
+        let _ = interp_args grid ctx in
         Eincalc.Repl.repl grid ()
     else
         Eincalc.Repl.repl grid ()

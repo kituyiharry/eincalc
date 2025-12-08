@@ -222,17 +222,15 @@ let dependants controller (Parser.Stmt ast as prog) =
     else
         (match ast.inputs with 
             | [] -> 
-                controller.onlog ("No inputs", Warn);
                 (match ast.writes  with
                     | [] -> 
-                        controller.onlog ("No writes as well - ignoring", Warn);
+                        ()
                     | _ -> 
                         controller.onlog ("Some writes adding to graph", Warn);
                         controller.frmgrph := (FormGraph.add prog !(controller.frmgrph));
                         controller.frmlst := (prog :: !(controller.frmlst))
                 )
             | _ ->
-                controller.onlog ("Some inputs", Warn);
                 let _ = controller.frmgrph := (FormGraph.add prog !(controller.frmgrph)) in
                 let _ = List.iter (fun (rnge: crange) -> 
                     match rnge with

@@ -13,7 +13,8 @@ open Ndarray;;
 open Types;;
 
 type spinmodel = 
-    | TNumber   of float  (* = followed by number literal *)
+    | TNumber   of float
+    | TCover    of (float * string)  (* a way to keep both a string and numerical value for display purposes  *)
     | TNat      of int
     | TValue    of string (* all other values *)
 [@@deriving show];;
@@ -110,6 +111,8 @@ let collectrow g range r sparse apply =
                         ((r, c''), f)
                     | TNat   f -> 
                         ((r, c''), float_of_int f)
+                    | TCover (f, _) -> 
+                        ((r, c''), f)
                     | TValue    _s -> 
                         ((r, c''), sparse (r, c''))
                 )
