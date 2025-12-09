@@ -1003,10 +1003,20 @@
                         onkeydown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
+                                var breaker = false;
                                 if (funcText.trim().startsWith('=')) {
-                                    controller.myLib.executecode(funcText.trim().substring(1));
+                                    funcText.trim().substring(1).split(';').filter((v) => v.length > 0).forEach((code) => {
+                                        if (!breaker) {
+                                            breaker = !controller.myLib.executecode(code);
+                                        }
+                                    })
                                 } else {
-                                    controller.myLib.executecode(funcText.trim());
+                                    funcText.trim().split(';').filter((v) => v.length > 0).forEach((code) => {
+                                        if (!breaker) {
+                                            console.log('execute1 ', code);
+                                            breaker = !controller.myLib.executecode(code);
+                                        }
+                                    })
                                 }
                                 // NB: this forces a refetch of data from the grid model
                                 visibleCells.clear();

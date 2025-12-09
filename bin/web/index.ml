@@ -73,7 +73,7 @@ let _ =
             | Some { grid=_g; _ } -> 
                 (match Eincalc.Ndmodel.Grid.find_opt _g (row, col) with 
                     | Some Eincalc.Ndmodel.TValue  s -> (js_str s)
-                    | Some Eincalc.Ndmodel.TNumber f -> (js_str (Format.sprintf "%.2f" f))
+                    | Some Eincalc.Ndmodel.TNumber f -> (js_str (Format.sprintf "%.4f" f))
                     | Some Eincalc.Ndmodel.TNat f    -> (js_str (string_of_int f))
                     | Some Eincalc.Ndmodel.TCover (f, s) -> (js_str s)
                     | None   -> js_str "")
@@ -139,7 +139,6 @@ let _ =
         method executecode (value: Js.js_string Js.t) = (
             (* TODO: if it starts with `=` we evaluate it *)
             let vstr = Js.to_string value in
-
             match Eincalc.Repl.simple_scan_exp { sheet with active=default; } vstr with  
             | Ok cell ->
                 (* transform the ast to capture any reads and writes so we can
