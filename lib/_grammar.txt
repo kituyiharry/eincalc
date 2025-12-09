@@ -1,33 +1,15 @@
-(repl? -> ) lexer -> parser -> genfunc -> emitter + masks -> eval + masks
+program     -> formulae
+formulae    -> literal | factor | term | unary | binary | reduce | group
+literal     -> numeric | tensor | einsum
 
-++Phase 1:
-    - Lexer + Parser
-    - Einsum interpreter
-    - Einsum VM
-    - int, float, bool, ndarrays
-    - Bare bones UI
+factor      -> '/' | '*'
+term        -> '-' | '+'
+unary       -> '-' literal
+binary      -> literal (factor | term) literal
+reduce      -> formulae ('|' mask)*
+group       -> '(' formulae ')'
 
-++Phase 2:
-    - External Data
-    - Custom types
-    - LSP + TreeSitter
-    - Version control   ??
-    - Sync engine       ??
-    - Logic prog engine ??
-    - Unification       ??
-    - Type Checker
-
-++Phase 3:
-    - Remote exec       ??
-    - Const prog        ??
-    - Accounts + Data   ??
-
-sample: ("i -> ", @D1..D10) // sums along the axis
-// TODO: needs updating!
-
-program     -> declaration
-declaration -> '(' formulae ')'
-formulae    -> einsum ',' parameters
+tensor      -> '[' (',' tensor | numeric)* ']'
 
 einsum      -> quoted | function
 quoted      -> '"' function '"'
@@ -37,18 +19,65 @@ output      -> dimension
 dimension   -> alpha
 
 parameters  -> range (, range)*
-range       -> param (, mask)*
+range       -> param (,  mask '|' )*
 range       ->
     | '@' function '<' function_params '>'
     | '@' index '..' index
-    | '@' index
-    | '<' (numeric) range
+    | '@' index '..' numeric
+    | '@' index '..' '[' (',' numeric)* ']'
+    | literal
+    | '[' (numeric ',')* ']'
 
 mask        ->
-    | mask_name
-mask_name   ->
-    | norm
-    | reshape
+    | 'zscore'
+    | 'min' 
+    | 'max' 
+    | 'minmax' '<' numeric ',' numeric '>'
+    | 'mean' 
+    | 'log' 
+    | 'sum' 
+    | 'cumsum' 
+    | 'sin' 
+    | 'sinh' 
+    | 'cos' 
+    | 'cosh' 
+    | 'tan' 
+    | 'tanh' 
+    | 'asin' 
+    | 'asinh' 
+    | 'atan' 
+    | 'atanh' 
+    | 'exp' 
+    | 'sqrt'
+    | 'softmax'
+    | 'logsumexp'
+    | 'inv' 
+    | 'ceil'
+    | 'floor'
+    | 'stddev'
+    | 'write' '<' index '>'
+    | 'pow' '<' numeric '>' 
+    | 'clip' '<' numeric ',' numeric '>'
+    | 'reshape' '<' '[' (numeric ',')* ']' '>' 
+    | 'slice' '<' '[' (((numeric)* ':' (numeric)* ':' (numeric)*) ',')* ']' '>'
+    | 'axis'  '<' (numeric | 'row' | 'column') ',' (mask (',' '|' mask)*) '>'
+    | 'draw'  '<' alpha ',' '[' numeric (',' numeric)? ']' ',' shapetype '>'
+    | 'drawall'  '<' alpha ',' '[' numeric (',' numeric)? ']' ',' [ shapetype (',' shapetype)* ] '>'
+    | 'plot' '<' alpha ',' '[' numeric (',' numeric)? ']' ',' plottype '>'
+
+shapetype   ->
+    | 'circle' keyvalue
+    | 'rect'   keyvalue
+    | 'box'    keyvalue
+    | 'line'   keyvalue
+    | 'text'   keyvalue
+    | 'reset'
+
+plottype    -> 
+    | 'scatter' keyvalue
+
+keyvalue    -> 
+    '{' (alpha '=' (alpha | numeric))* '}'
 
 function    ->
     | "fill"
