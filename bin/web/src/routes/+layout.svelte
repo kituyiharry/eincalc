@@ -3,8 +3,32 @@
     // NB: had to change the URL option in the css file!
     import '$lib/assets/font-awesome.css';
 	import favicon from '$lib/assets/favicon.ico';
-    import kookaburra from '$lib/assets/Kookaboora.jpeg'
-    import github from '$lib/assets/github-mark.svg'
+    import kookaburra from '$lib/assets/Kookaboora.jpeg';
+    import github from '$lib/assets/github-mark.svg';
+
+    import { controller } from './store';
+    import { onMount } from 'svelte';
+
+    // @
+    let sheets   = $state([])
+
+    function updateSheets() {
+        // ocaml arrays have a tag 
+        sheets = $controller.myLib.available(false).splice(1);
+    }
+
+    onMount(() => {
+        updateSheets();
+        if (sheets.length < 1) {
+            $controller.myLib.create("default");
+            $controller.myLib.activate(sheets[0]);
+            $controller.active = "default";
+            sheets.push("default");
+        } else {
+            $controller.myLib.activate(sheets[0]);
+            $controller.active = sheets[0];
+        }
+    })
 	
 	let { children } = $props();
 </script>
@@ -63,13 +87,96 @@
                 border-b border-b-black z-auto">
                 <div class="pl-0">
                     <div role="tablist" class="pl-14 tabs "> 
-                        <div role="tab" data-tip="Multiple sheets coming soon" 
-                            class="tooltip tooltip-bottom outline-black tab tab-active px-2 border-x border-x-black">
-                            <span class="badge text-sm badge-neutral badge-outline">
-                                <i class="fa fa-circle text-green-200"> </i>
-                                Default Worksheet
-                            </span>
-                        </div>
+
+                        {#each sheets as sh (sh)}
+                            <div role="tab" 
+                                data-tip="Multiple sheets coming soon" 
+                                class='menu outline-black row-auto space-x-2 tab
+                                tab-active px-2 border-x border-x-black
+                                {$controller.active == sh ? "bg-green-200" : ""}'>
+                                <button aria-label={sh} onclick={() => {
+                                    if($controller.myLib.activate(sh)) {
+                                        controller.update(function(c){
+                                            c.active = sh;
+                                            c.refresh += 1;
+                                            return c
+                                        });
+                                    };
+                                }} class="cursor-pointer badge text-sm
+                                    badge-neutral bg-white badge-outline">
+                                    <i class={$controller.active == sh ? "fa fa-circle text-green-200" : "fa fa-circle text-gray-200"}> </i>
+                                    {sh}
+                                </button>
+
+                                <div class="dropdown dropdown-bottom dropdown-center">
+                                    <button tabindex="0" aria-label="edit"
+                                        class='text-md badge {$controller.active == sh ? "bg-green-200" : ""} hover:bg-gray-200 cursor-pointer'>
+                                        <i class="fa fa-xs fa-ellipsis-v"></i>
+                                    </button>
+                                    <div tabindex="-1" class="dropdown-content menu bg-base-100 shadow-xl transition-shadow duration-150 ">
+                                        <ul class="px-0 gap-1"> 
+                                            <li class="py-1">
+                                                <button 
+                                                    onclick={() => {
+                                                        const newname = prompt(`Rename ${sh}`, "New Sheet");
+                                                        if(newname && $controller.myLib.rename($controller.active, newname)) {
+                                                            controller.update(function(c){
+                                                                updateSheets();
+                                                                c.active = newname;
+                                                                c.refresh += 1;
+                                                                return c
+                                                            });
+                                                        }
+                                                    }}
+                                                    aria-label="edit" class="text-md badge hover:bg-gray-200 cursor-pointer">
+                                                    <i class="fa fa-sm fa-edit"></i>
+                                                    Rename
+                                                </button>
+                                            </li>
+                                            <li class="py-1">
+                                                <button 
+                                                    onclick={() => {
+                                                        const nsh = `New Sheet: ${sheets.length}`;
+                                                        if($controller.myLib.create(nsh)) {
+                                                            controller.update(function(c){
+                                                                updateSheets();
+                                                                c.active = nsh;
+                                                                c.refresh += 1;
+                                                                return c
+                                                            });
+                                                        }
+                                                    }}
+                                                    aria-label="add" class="text-md badge hover:bg-gray-200 cursor-pointer">
+                                                    <i class="fa fa-sm
+                                                        fa-plus text-green-400"></i>
+                                                    Add
+                                                </button>
+                                            </li>
+                                            <li class="py-1">
+                                                <button 
+                                                    disabled={sheets.length == 1}
+                                                    aria-label="close"
+                                                    onclick={() => {
+                                                        if($controller.myLib.delete(sh)) {
+                                                            updateSheets();
+                                                            controller.update(function(c){
+                                                                c.active = sheets[0];
+                                                                c.refresh += 1;
+                                                                return c
+                                                            });
+                                                        }
+                                                    }}
+                                                    class="text-md badge hover:bg-gray-200 cursor-pointer">
+                                                    <i class={sheets.length == 1 ? "fa fa-sm text-gray-200 fa-close" : "fa fa-sm text-red-400 fa-close"}></i>
+                                                    Close
+                                                </button>
+                                            </li>
+                                        </ul> 
+                                    </div>
+                                </div>
+                            </div>
+                        {/each}
+
                     </div>
                 </div>
             </header>

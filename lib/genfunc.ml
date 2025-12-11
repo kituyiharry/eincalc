@@ -548,12 +548,12 @@ let dedup cb l =
 ;;
 
 (* verify stuff about a shape *)
-let verify eino comps = 
+let verify einout comps = 
     (* output shape parameters don't allow for duplicates *)
     (>>==) (dupexist 
         (fun (x,_) (y,_) -> Char.equal x y) 
         (fun (c,_) _ -> (Format.sprintf "Duplicated label %c in output" c)) 
-        eino
+        einout
     )
     (fun x -> 
         (* output elements must be in input *)

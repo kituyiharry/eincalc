@@ -1,16 +1,11 @@
 <script>
   import { default as eincalc } from '$lib/eincalcwrapper';
   import { Canvas, Layer } from 'svelte-canvas';
-  // TODO: standardize controller so that we can type it
+  // TODO: standardize $controller so that we can type it
   import { onMount } from 'svelte';
   import { Tween }   from 'svelte/motion';
 
-  // I actually have to do this - Thanks OCaml ??!!!
-  var controller = { 
-    myLib: eincalc['default']
-  }
-
-  // console.dir([ eincalc, eincalc['default'], controller ]);
+ import { controller } from './store';
 
   // editing support via floating input 
   let editor
@@ -23,18 +18,25 @@
    */
   let notifications = $state([])
 
+  // prevent refetching data by caching values in a set
+  // TODO: move to store
+  let visibleCells = new Set();
+  let cellData = $state({})
+
+
   onMount(() => {
-    controller.myLib.renderarea(plotArea);
-    controller.myLib.notificationcallback(function(obj){
+
+    $controller.myLib.renderarea(plotArea);
+    $controller.myLib.notificationcallback(function(obj){
         notifications.push(obj);
         setTimeout(() => { 
             notifications.splice(notifications.findIndex(({ id }) => id == obj.id), 1)
         }, 3000)
     });
+
     if (modal) {
         modal?.showModal();
     }
-
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     window.addEventListener('mouseup', handleMouseUp);
@@ -60,7 +62,6 @@
   // Scroll and Viewport computation
   let scrollX =  $state(0);
   let scrollY =  $state(0);
-  let cellData = $state({})
   let cellStyles = {}; // Stores style information for each cell
 
   // a place to hold changes
@@ -285,9 +286,6 @@
 
   let editValue = $state('');
 
-  // prevent refetching data by caching values in a set
-  let visibleCells = new Set();
-
   let funcBudgetWidth  = $state(0)
   let funcBlockHeight  = Tween.of(() => 100, { duration: 200 });
 
@@ -354,7 +352,7 @@
 
 
   function erase(rowstart, colstart, rowend, colend) { 
-    controller.myLib.griderase(rowstart, colstart, rowend, colend)
+    $controller.myLib.griderase(rowstart, colstart, rowend, colend)
   }
   
   function handleWheel(e) {
@@ -370,7 +368,7 @@
           //  console.log(`Cell (${row}, ${col}) came into view - fetch data here`);
           //  actual async data fetching
           if (!cellData[key]) {
-              cellData[key] = controller.myLib.get(row, col);
+              cellData[key] = $controller.myLib.get(row, col);
           }
           visibleCells.add(key);
       }
@@ -572,13 +570,13 @@
             // executed code and write it back into this cell
             const cellStart = `${getColumnLabel(selectedCell.col)}${selectedCell.row+1}`;
             let code = `(${data.substring(1)}) | write<${cellStart}>`;
-            controller.myLib.executecode(code);
+            $controller.myLib.executecode(code);
             funcText = `=${code}`;
             editValue = funcText;
             cellData = {};
             visibleCells.clear();
           } else {
-              controller.myLib.paste(selectedCell.row, selectedCell.col, data);
+              $controller.myLib.paste(selectedCell.row, selectedCell.col, data);
               if (editingCell != null) {
                   onCellVisible(selectedCell.row, selectedCell.col);
                   const key = `${selectedCell.row},${selectedCell.col}`;
@@ -620,7 +618,7 @@
       if (editOut.startsWith('=')) {
         // executed code and write it back into this cell
         let code = `(${editOut.substring(1).trim()}) | write<${cellStart}>`;
-        controller.myLib.executecode(code);
+        $controller.myLib.executecode(code);
         funcText = `=${code}`;
         cellData = {};
         visibleCells.clear();
@@ -628,10 +626,10 @@
         const num = parseFloat(editOut);  
         cellData[cellKey] = editOut;
         if (isNaN(num)) {
-            controller.myLib.gridaddstring(editingCell.row, editingCell.col, editOut);
+            $controller.myLib.gridaddstring(editingCell.row, editingCell.col, editOut);
         } else {
             console.log("add num");
-            controller.myLib.gridaddnumber(editingCell.row, editingCell.col, num);
+            $controller.myLib.gridaddnumber(editingCell.row, editingCell.col, num);
             cellData = {};
             visibleCells.clear();
         }
@@ -674,6 +672,19 @@
 
   let selectionLabel = $derived(selectionEnd ? getShapeLabels() : '');
   let selectionSize  = $derived(selectionEnd ? getShape() : '');
+
+  controller.subscribe(
+      (_) => {
+
+          visibleCells.clear();
+          cellData = {};
+          refresh++;
+          console.log(`run subscriber: ${refresh}`);
+      }, 
+      () => {
+            console.log("invalidating");
+      }
+  );
 
 </script>
 
@@ -993,7 +1004,7 @@
                 </div>
                 <div class="flex flex-row bg-transparent h-full"> 
                     <div class="flex bg-black items-center basis-4">
-                        <span class="p-4 text-center text-white">ƒ𝑥</span>
+                        <span class="p-4 text-center text-white">ƒ𝑥: {refresh}</span>
                     </div>
                     <textarea  
                         class="font-light basis-8 px-4 py-2 text-[16px] resize-none min-w-full 
@@ -1007,14 +1018,14 @@
                                 if (funcText.trim().startsWith('=')) {
                                     funcText.trim().substring(1).split(';').filter((v) => v.length > 0).forEach((code) => {
                                         if (!breaker) {
-                                            breaker = !controller.myLib.executecode(code);
+                                            breaker = !$controller.myLib.executecode(code);
                                         }
                                     })
                                 } else {
                                     funcText.trim().split(';').filter((v) => v.length > 0).forEach((code) => {
                                         if (!breaker) {
                                             console.log('execute1 ', code);
-                                            breaker = !controller.myLib.executecode(code);
+                                            breaker = !$controller.myLib.executecode(code);
                                         }
                                     })
                                 }

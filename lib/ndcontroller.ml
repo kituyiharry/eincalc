@@ -46,6 +46,9 @@ let nt   = FormGraphSerializer.AttrbTbl.create 1;;
 FormGraphSerializer.StyleTbl.add gt "rankdir" "TB";;
 FormGraphSerializer.StyleTbl.add gt "color" "green";;
 
+type fgraph =  FormGraph.adj FormGraph.NodeMap.t
+;;
+
 type dotctx = { 
         global: string FormGraphSerializer.StyleTbl.t
     ;   prnode: (string FormGraphSerializer.StyleTbl.t) FormGraphSerializer.AttrbTbl.t
@@ -55,7 +58,9 @@ type dotctx = {
 type gridmodel = {
         index: int              (* creation number for this grid *)
     ;   grid : spinmodel Grid.t (* actual data belonging to this grid *)
-    ;   code : string           (* code for this grid *)
+    ;   display: string
+    ;   frmlst:  (program list) ref 
+    ;   frmgrph: fgraph ref 
 };;
 
 type loglevel = 
@@ -65,28 +70,21 @@ type loglevel =
     | Error 
 ;;
 
-type fgraph =  FormGraph.adj FormGraph.NodeMap.t
-;;
-
 type gridcontroller = { 
         count:   int                   (* count with new additional sheets *)
     ;   sheets:  gridmodel GridTable.t (* Grids and their order and labels *)
-    ;   active:  string
+    ;   active:  string ref
     ;   plotcb:  ((string * int list * Plotter.shape list) -> unit) 
     ;   onlog:   ((string * loglevel) -> unit)
-    ;   frmlst:  (program list) ref 
-    ;   frmgrph: fgraph ref 
 };;
 
 let create_controller () = 
     { 
         count  = 0 
     ;   sheets = GridTable.create 4 
-    ;   active = ""
+    ;   active = ref ""
     ;   plotcb = ignore
     ;   onlog  = (fun (b, _) -> Format.printf " %s\n" b)
-    ;   frmlst = ref []
-    ;   frmgrph= ref FormGraph.empty
     }
 ;;
 
@@ -95,14 +93,42 @@ let new_sheet controller label =
         {
             index = controller.count
         ;   grid  = plain_grid 100
-        ;   code  = ""
+        ;   display = label
+        ;   frmlst = ref []
+        ;   frmgrph= ref FormGraph.empty
         }
     in
     {
         controller with 
             count = controller.count+1
-        ;   active=label
+        ;   active=ref label
     }
+;;
+
+let delete_sheet controller label = 
+    GridTable.remove controller.sheets label 
+;;
+
+let rename controller label newlabel = 
+    match GridTable.find_opt controller.sheets label with
+    | Some grid -> 
+        (match GridTable.find_opt controller.sheets newlabel with 
+        | Some _ ->
+            (Stdlib.Error (newlabel ^ " already exists"))
+        | _ -> 
+            let _ = GridTable.remove controller.sheets label in
+            Ok (GridTable.add controller.sheets newlabel grid)
+        )
+    | None -> 
+        Error ("sheet " ^ label ^ " not found!")
+;;
+
+let available_sheets controller = 
+    GridTable.to_seq controller.sheets 
+    |> Seq.map (fun (k, v) ->  (k, v.index))
+    |> List.of_seq 
+    |> List.sort (fun (_, x) (_, y) -> Int.compare x y)
+    |> List.map (fun (x, _)  -> x)
 ;;
 
 let add_plot_cb controller cb = 
@@ -113,9 +139,7 @@ let create_default_controller label cb logger  =
     new_sheet ({ 
             count= 0; sheets=GridTable.create 16
         ;   active=label; plotcb=cb; onlog=logger 
-        ;   frmlst = ref []
-        ;   frmgrph= ref FormGraph.empty
-    }) label
+    }) !label
 ;;
 
 (* calculate projected size of any shape on a 2d grid. e.g [2,2] = 2 rows and 2
@@ -215,10 +239,11 @@ let add_link controller fromnode tonode =
 (* build graph on addition of a new function line ast *)
 (* WARN: we take care to avoid cycles by making new programs only be referenced
    by existing program. This should ideally make the graph acyclic *)
-let dependants controller (Parser.Stmt ast as prog) = 
+let dependants contr (Parser.Stmt ast as prog) = 
+    let controller = GridTable.find contr.sheets !(contr.active) in
     (* check for similar source *)
     if List.exists (fun (Parser.Stmt x) -> String.equal x.source ast.source) !(controller.frmlst) then 
-        controller.onlog ("Already exists", Warn)
+        contr.onlog ("Already exists", Warn)
     else
         (match ast.inputs with 
             | [] -> 
@@ -226,7 +251,7 @@ let dependants controller (Parser.Stmt ast as prog) =
                     | [] -> 
                         ()
                     | _ -> 
-                        controller.onlog ("Some writes adding to graph", Warn);
+                        contr.onlog ("Some writes adding to graph", Warn);
                         controller.frmgrph := (FormGraph.add prog !(controller.frmgrph));
                         controller.frmlst := (prog :: !(controller.frmlst))
                 )
@@ -240,14 +265,14 @@ let dependants controller (Parser.Stmt ast as prog) =
                             if 
                             List.exists (fun (msk, shp) -> overlaps msk shp s) v'.writes 
                             then 
-                                let _ = controller.onlog ("connected", Warn) in
+                                let _ = contr.onlog ("connected", Warn) in
                                 (* we call this when our input region has been affected *)
                                 controller.frmgrph := FormGraph.add_weight (v'.stamp) prog' prog !(controller.frmgrph)
                             else ()
                         ) !(controller.frmlst)
                     | _ -> ()
                 ) ast.inputs in
-                controller.onlog ("Updating with new formulae", Warn);
+                contr.onlog ("Updating with new formulae", Warn);
                 controller.frmlst := (prog :: !(controller.frmlst))
         )
 ;;
@@ -261,8 +286,9 @@ let plaindctx () =
     }
 ;;
 
-let affected controller dctx start = 
+let affected contr dctx start = 
 
+    let controller = GridTable.find contr.sheets !(contr.active) in
     (*let _ = FormGraphSerializer.AttrbTbl.clear nt in*)
     (*let _ = FormGraphSerializer.AttrbTbl.clear et in*)
 
@@ -307,9 +333,10 @@ let affected controller dctx start =
 
 (* notify when a region is accessed. we just changed a functions input so we
    check whos input has changed and notify it *)
-let notify controller (region: mask) (shp: int list) = 
+let notify contr (region: mask) (shp: int list) = 
+    let controller = GridTable.find contr.sheets !(contr.active) in
     match region with
-    | Write c ->
+    | Write _c ->
         List.fold_left (fun acc' (Parser.Stmt v' as prog') -> 
             (*(* check if it writes over our input region *)*)
             (*let _ = controller.onlog (Format.sprintf "Looking for overlap on %s: %d!" (Parser.show_cell c) (List.length v'.inputs), Warn) in*)
@@ -328,7 +355,7 @@ let fetch_grid_label controller label =
 ;;
 
 let fetch_active_grid controller = 
-    GridTable.find controller.sheets controller.active
+    GridTable.find controller.sheets !(controller.active)
 ;;
 
 let erase_grid controller row rowend col colend = 

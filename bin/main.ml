@@ -5,14 +5,6 @@ type startctx = {
     ;   interactive: bool
 } [@@deriving show];;
 
-let char_seq_of_file ic =
-  Seq.unfold (fun channel ->
-    match In_channel.input_char channel with
-    | Some c -> Some (c, channel)
-    | None -> None
-  ) ic
-;;
-
 let parse_args len = 
     let rec args len idx ctx = 
         if len <= 1 then 
@@ -49,14 +41,14 @@ let parse_args len =
     args len 1 { load=None; run=None; interactive=false;format=None;  }
 ;;
 
-let load_file controller is_csv is_tsv file = 
+let load_file controller is_csv _is_tsv file = 
     let ic = open_in file in
     let buf = Seq.of_dispenser (fun () -> In_channel.input_line ic) in
     let r = ref 0 in
     let _   = Seq.iter (fun line -> 
         (match Eincalc.Ndcontroller.paste_values controller "Default" (if is_csv then ','  else '\t') (!r, 0) line 
             with 
-            | Ok (r', c') -> 
+            | Ok (_r', _c') -> 
                 incr r; 
             | Error e -> (
                 Format.printf "Error loading line: %s" e
