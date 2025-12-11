@@ -120,6 +120,7 @@
                                                         if(newname && $controller.myLib.rename($controller.active, newname)) {
                                                             controller.update(function(c){
                                                                 updateSheets();
+                                                                c.myLib.activate(newname);
                                                                 c.active = newname;
                                                                 c.refresh += 1;
                                                                 return c
