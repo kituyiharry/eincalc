@@ -89,11 +89,7 @@
                     <div role="tablist" class="pl-14 tabs "> 
 
                         {#each sheets as sh (sh)}
-                            <div role="tab" 
-                                data-tip="Multiple sheets coming soon" 
-                                class='menu outline-black row-auto space-x-2 tab
-                                tab-active px-2 border-x border-x-black
-                                {$controller.active == sh ? "bg-green-200" : ""}'>
+                            <div role="tab" data-tip="Multiple sheets coming soon" class='menu outline-black row-auto space-x-2 tab tab-active px-2 border-x border-x-black {$controller.active == sh ? "bg-green-200" : ""}'>
                                 <button aria-label={sh} onclick={() => {
                                     if($controller.myLib.activate(sh)) {
                                         controller.update(function(c){
@@ -176,6 +172,26 @@
                                 </div>
                             </div>
                         {/each}
+
+                        <div role="tab" class="flex flex-col justify-center align-middle tab">
+                            <button
+                                onclick={() => {
+                                    const nsh = `New Sheet: ${sheets.length}`;
+                                    if($controller.myLib.create(nsh)) {
+                                        controller.update(function(c){
+                                            updateSheets();
+                                            c.active = nsh;
+                                            c.refresh += 1;
+                                            return c
+                                        });
+                                    }
+                                }}
+                                aria-label="add" class="text-md badge hover:bg-gray-200 cursor-pointer">
+                                <i class="fa fa-sm
+                                    fa-plus text-green-400"></i>
+                                Add
+                            </button>
+                        </div>
 
                     </div>
                 </div>
