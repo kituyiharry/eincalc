@@ -92,8 +92,9 @@ let _ =
 
         method delete (sheetname: Js.js_string Js.t) = (
             let shstr = Js.to_string sheetname in
-            Eincalc.Ndcontroller.delete_sheet !sheet shstr;
-            Js._true
+            let nsh = Eincalc.Ndcontroller.delete_sheet !sheet shstr in
+            let _ = (!sheet).active := nsh in
+            js_str nsh
         )
 
         method rename (sheetname: Js.js_string Js.t) (newname: Js.js_string Js.t) = (
@@ -109,7 +110,7 @@ let _ =
 
         method available (_)  = (
             Eincalc.Ndcontroller.available_sheets !sheet
-            |> List.map (fun s -> Con.console##info "found!\n";(js_str s))
+            |> List.map (js_str)
             |> Array.of_list
         )
 

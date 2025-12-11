@@ -673,17 +673,15 @@
   let selectionLabel = $derived(selectionEnd ? getShapeLabels() : '');
   let selectionSize  = $derived(selectionEnd ? getShape() : '');
 
+  // listen for changes in global state
   controller.subscribe(
       (_) => {
-
+          // TODO: better handled in store
           visibleCells.clear();
           cellData = {};
           refresh++;
-          console.log(`run subscriber: ${refresh}`);
       }, 
-      () => {
-            console.log("invalidating");
-      }
+      () => { }
   );
 
 </script>

@@ -71,8 +71,7 @@ type loglevel =
 ;;
 
 type gridcontroller = { 
-        count:   int                   (* count with new additional sheets *)
-    ;   sheets:  gridmodel GridTable.t (* Grids and their order and labels *)
+        sheets:  gridmodel GridTable.t (* Grids and their order and labels *)
     ;   active:  string ref
     ;   plotcb:  ((string * int list * Plotter.shape list) -> unit) 
     ;   onlog:   ((string * loglevel) -> unit)
@@ -80,8 +79,7 @@ type gridcontroller = {
 
 let create_controller () = 
     { 
-        count  = 0 
-    ;   sheets = GridTable.create 4 
+        sheets = GridTable.create 4 
     ;   active = ref ""
     ;   plotcb = ignore
     ;   onlog  = (fun (b, _) -> Format.printf " %s\n" b)
@@ -91,7 +89,7 @@ let create_controller () =
 let new_sheet controller label = 
     let _ = GridTable.add controller.sheets label 
         {
-            index = controller.count
+            index = (GridTable.length controller.sheets)
         ;   grid  = plain_grid 100
         ;   display = label
         ;   frmlst = ref []
@@ -99,14 +97,22 @@ let new_sheet controller label =
         }
     in
     {
-        controller with 
-            count = controller.count+1
-        ;   active=ref label
+        controller with active=ref label
     }
 ;;
 
 let delete_sheet controller label = 
-    GridTable.remove controller.sheets label 
+    let _ = GridTable.remove controller.sheets label in 
+    GridTable.to_seq_keys controller.sheets 
+    |> Seq.take 1
+    |> Seq.uncons 
+    |> (function 
+        | Some x -> 
+            fst x
+        | None ->
+            let _ = new_sheet controller "Default" in
+            "Default"
+    )
 ;;
 
 let rename controller label newlabel = 
@@ -137,7 +143,7 @@ let add_plot_cb controller cb =
 
 let create_default_controller label cb logger  = 
     new_sheet ({ 
-            count= 0; sheets=GridTable.create 16
+            sheets=GridTable.create 16
         ;   active=label; plotcb=cb; onlog=logger 
     }) !label
 ;;

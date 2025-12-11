@@ -153,14 +153,13 @@
                                                     disabled={sheets.length == 1}
                                                     aria-label="close"
                                                     onclick={() => {
-                                                        if($controller.myLib.delete(sh)) {
-                                                            updateSheets();
-                                                            controller.update(function(c){
-                                                                c.active = sheets[0];
-                                                                c.refresh += 1;
-                                                                return c
-                                                            });
-                                                        }
+                                                        const nsh = $controller.myLib.delete(sh);
+                                                        updateSheets();
+                                                        controller.update(function(c){
+                                                            c.active = nsh;
+                                                            c.refresh += 1;
+                                                            return c
+                                                        });
                                                     }}
                                                     class="text-md badge hover:bg-gray-200 cursor-pointer">
                                                     <i class={sheets.length == 1 ? "fa fa-sm text-gray-200 fa-close" : "fa fa-sm text-red-400 fa-close"}></i>
