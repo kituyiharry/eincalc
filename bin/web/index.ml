@@ -48,8 +48,7 @@ let _ =
 
     (* FIXME: active sheet should be a bit more explicit in calls as its possible to
        overwrite it silently *) 
-    let default = ref "Default" in
-    let sheet   = ref (Eincalc.Ndcontroller.create_default_controller default plotcb logger) in
+    let sheet   = ref (Eincalc.Ndcontroller.create_default_controller (ref "Default") plotcb logger) in
     let buf     = Buffer.create 2048 in
 
     (* NB: method names cant have underscores!! *)
@@ -75,7 +74,6 @@ let _ =
                 Js._false
             | _    -> 
                 sheet := Eincalc.Ndcontroller.new_sheet !sheet shstr;
-                default := shstr;
                 Js._true
         )
 
@@ -83,7 +81,6 @@ let _ =
             let shstr = Js.to_string sheetname in
             match Eincalc.Ndcontroller.fetch_grid_label !sheet shstr with
             | Some _ -> 
-                default := shstr;
                 (!sheet).active := shstr;
                 Js._true
             | _    -> 
@@ -134,7 +131,7 @@ let _ =
             (*let _ = Con.console##log (Format.sprintf "adding %f to %d*)
                     (*%d\n" vstr row col) in*)
             let act = Eincalc.Ndcontroller.fetch_active_grid !sheet in
-            (match Eincalc.Ndcontroller.fetch_grid_label !sheet !default with
+            (match Eincalc.Ndcontroller.fetch_grid_label !sheet !((!sheet).active) with
                 | Some { grid=_g; _ } -> 
                     let cell = (Eincalc.Parser.Write (Eincalc.Ndcontroller.ref_of_key (row, col))) in 
                     let dotc = Eincalc.Ndcontroller.plaindctx () in 
@@ -169,7 +166,7 @@ let _ =
             let vstr = Js.to_string value in
             (*let _ = Con.console##log (Format.sprintf "adding %s to %d %d*)
                     (*\n" vstr row col)  in*)
-            (match Eincalc.Ndcontroller.fetch_grid_label !sheet !default with
+            (match Eincalc.Ndcontroller.fetch_grid_label !sheet !(!sheet.active) with
                 | Some { grid=_g; _ } -> 
                     Eincalc.Ndmodel.Grid.add _g (row, col) (TValue vstr)
                 | _ -> 
@@ -234,7 +231,7 @@ let _ =
             let vstr = Js.to_string value in
             let act = Eincalc.Ndcontroller.fetch_active_grid !sheet in
             let sep = if String.contains vstr '\t' then '\t' else if (not @@ String.contains vstr ',') then ' ' else ',' in
-            (match Eincalc.Ndcontroller.paste_values !sheet !default sep (row, col) vstr with 
+            (match Eincalc.Ndcontroller.paste_values !sheet !(!sheet.active) sep (row, col) vstr with 
                 | Ok    (r,c) -> 
                     let cell = (Eincalc.Parser.Write (Eincalc.Ndcontroller.ref_of_key (row, col))) in 
                     let dotc = Eincalc.Ndcontroller.plaindctx () in 

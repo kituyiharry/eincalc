@@ -114,7 +114,9 @@
                                             <li class="py-1">
                                                 <button 
                                                     onclick={() => {
-                                                        const newname = prompt(`Rename ${sh}`, "New Sheet");
+                                                        const newname
+                                                        = prompt(`Rename ${sh}`,
+                                                            `New Sheet: ${new Date().toLocaleString()}`);
                                                         if(newname && $controller.myLib.rename($controller.active, newname)) {
                                                             controller.update(function(c){
                                                                 updateSheets();
@@ -132,7 +134,7 @@
                                             <li class="py-1">
                                                 <button 
                                                     onclick={() => {
-                                                        const nsh = `New Sheet: ${sheets.length}`;
+                                                        const nsh = `New Sheet: ${new Date().toLocaleString()}`;
                                                         if($controller.myLib.create(nsh)) {
                                                             controller.update(function(c){
                                                                 updateSheets();
@@ -156,6 +158,7 @@
                                                         const nsh = $controller.myLib.delete(sh);
                                                         updateSheets();
                                                         controller.update(function(c){
+                                                            c.myLib.activate(nsh);
                                                             c.active = nsh;
                                                             c.refresh += 1;
                                                             return c
@@ -175,10 +178,11 @@
                         <div role="tab" class="flex flex-col justify-center align-middle tab">
                             <button
                                 onclick={() => {
-                                    const nsh = `New Sheet: ${sheets.length}`;
+                                    const nsh = `New Sheet: ${new Date().toLocaleString()}`;
                                     if($controller.myLib.create(nsh)) {
                                         controller.update(function(c){
                                             updateSheets();
+                                            c.myLib.activate(nsh);
                                             c.active = nsh;
                                             c.refresh += 1;
                                             return c
