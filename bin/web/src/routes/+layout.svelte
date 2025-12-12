@@ -132,23 +132,41 @@
                                                     Rename
                                                 </button>
                                             </li>
+                                            <!--
+                                               -<li class="py-1">
+                                               -    <button 
+                                               -        onclick={() => {
+                                               -            const nsh = `New Sheet: ${new Date().toLocaleString()}`;
+                                               -            if($controller.myLib.create(nsh)) {
+                                               -                controller.update(function(c){
+                                               -                    updateSheets();
+                                               -                    c.active = nsh;
+                                               -                    c.refresh += 1;
+                                               -                    return c
+                                               -                });
+                                               -            }
+                                               -        }}
+                                               -        aria-label="add" class="text-md badge hover:bg-gray-200 cursor-pointer">
+                                               -        <i class="fa fa-sm
+                                               -            fa-plus text-green-400"></i>
+                                               -        Add
+                                               -    </button>
+                                               -</li>
+                                               -->
                                             <li class="py-1">
                                                 <button 
                                                     onclick={() => {
-                                                        const nsh = `New Sheet: ${new Date().toLocaleString()}`;
-                                                        if($controller.myLib.create(nsh)) {
+                                                        if($controller.myLib.clear($controller.active)) {
                                                             controller.update(function(c){
                                                                 updateSheets();
-                                                                c.active = nsh;
                                                                 c.refresh += 1;
                                                                 return c
                                                             });
                                                         }
                                                     }}
-                                                    aria-label="add" class="text-md badge hover:bg-gray-200 cursor-pointer">
-                                                    <i class="fa fa-sm
-                                                        fa-plus text-green-400"></i>
-                                                    Add
+                                                    aria-label="edit" class="text-md badge hover:bg-gray-200 cursor-pointer">
+                                                    <i class="fa fa-sm fa-eraser"></i>
+                                                    Clear
                                                 </button>
                                             </li>
                                             <li class="py-1">

@@ -964,7 +964,7 @@
                             }
 
                             context.save();
-                            context.setLineDash([5, 5]);
+                            context.setLineDash([5, 8]);
                             // Draw debug border
                             for (const i of writeFormulaeCells) {
                                 const x = getColumnX(i.startcol) - scrollX + ROW_HEADER_WIDTH;
@@ -982,6 +982,7 @@
                                 context.strokeRect(x, y, w, h);
                             }
 
+                            context.setLineDash([5, 7]);
                             // Draw debug border
                             for (const i of readFormulaeCells) {
                                 const x = getColumnX(i.startcol) - scrollX + ROW_HEADER_WIDTH;
@@ -1299,12 +1300,13 @@
                             <div class="divider grow py-0 my-0"></div>
                             <ul class=" list ">
                                 {#each formulaes as frm (frm.indx) }
-                                    <li class="list-row grow justify-between px-0">
+                                    <li class="list-col-wrap grow justify-between px-0">
                                         <div class="flex-8 list-col-grow grow align-text-bottom pt-2">
-                                          <span class="text-sm text-center">
-                                            {frm.text.replaceAll('\n', '')}
+                                          <span class="text-sm whitespace-nowrap">
+                                            {frm.text.trim().replaceAll('\n', '')}
                                          </span>
                                         </div>
+                                        <div class="bg-base-100"> 
                                         <button aria-label="formulae" 
                                             onclick={() => {
                                                 if (debugFormula == frm.text) {
@@ -1317,18 +1319,20 @@
                                                 writeFormulaeCells = frm.wrts;
                                                 debugFormula = frm.text
                                             }}
-                                            class="flex-2 btn btn-circle btn-ghost scale-80">
-                                            <i class='fa fa-md {frm.text === debugFormula ? "fa-eye-slash" : "fa-eye"}'></i>
+                                            class="flex-2 btn btn-circle scale-80">
+                                            <i class='fa fa-md {frm.text ===
+                                                debugFormula ? "text-red-400 fa-eye-slash" : " fa-eye"}'></i>
                                         </button>
                                         <button onclick={() => {
                                             $controller.myLib.executecode(frm.text);
                                             visibleCells.clear();
                                             cellData = {};
-                                            funcText = frm.text;
+                                            funcText = frm.text.trim();
                                         }} aria-label="formular" class="flex-2 btn
-                                            btn-circle btn-ghost scale-80">
+                                            btn-circle scale-80">
                                             <i class="fa fa-md fa-refresh"></i>
                                         </button>
+                                        </div>
                                     </li>
                                 {/each}
                             </ul>

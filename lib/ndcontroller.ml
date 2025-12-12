@@ -109,6 +109,14 @@ let new_sheet controller label =
     }
 ;;
 
+let clear_sheet controller label = 
+    match GridTable.find_opt controller.sheets label with
+    | Some grid -> 
+        Ok (Grid.clear grid.grid)
+    | None -> 
+        Stdlib.Error ("sheet " ^ label ^ " not found!")
+;;
+
 let delete_sheet controller label = 
     let _ = GridTable.remove controller.sheets label in 
     GridTable.to_seq_keys controller.sheets 

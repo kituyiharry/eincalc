@@ -94,6 +94,16 @@ let _ =
             js_str nsh
         )
 
+        method clear (sheetname: Js.js_string Js.t)  = (
+            let shstr = Js.to_string sheetname in
+            match Eincalc.Ndcontroller.clear_sheet !sheet shstr with
+            | Ok _ -> 
+                Js._true
+            | Error e   -> 
+                (!sheet).onlog (e, Eincalc.Ndcontroller.Error);
+                Js._false
+        )
+
         method rename (sheetname: Js.js_string Js.t) (newname: Js.js_string Js.t) = (
             let shstr = Js.to_string sheetname in
             let shnew = Js.to_string newname in
