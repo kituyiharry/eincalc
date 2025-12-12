@@ -111,6 +111,44 @@ let _ =
             |> Array.of_list
         )
 
+        method formulaes (_)  = (
+            match Eincalc.Ndcontroller.formulaes !sheet with
+            | Ok frms -> 
+                frms 
+                |> List.map (fun x -> 
+                    (object%js 
+                        val indx = x.Eincalc.Ndcontroller.indx;
+                        val text = x.Eincalc.Ndcontroller.text;
+                        val inps =
+                            (x.Eincalc.Ndcontroller.inps
+                                |> Array.map (fun ((sr, sc), (er, ec)) -> 
+                                    (object%js 
+                                        val startrow = sr
+                                        val startcol = sc
+                                        val endrow   = er
+                                        val endcol   = ec
+                                    end)
+                                )
+                        );
+                        val wrts = 
+                            (x.Eincalc.Ndcontroller.wrts
+                                |> Array.map (fun ((sr, sc), (er, ec)) -> 
+                                    (object%js 
+                                        val startrow = sr
+                                        val startcol = sc
+                                        val endrow   = er
+                                        val endcol   = ec
+                                    end)
+                                )
+                        );
+                        end)
+                )
+                |> Array.of_list
+            | Error e   -> 
+                (!sheet).onlog (e, Eincalc.Ndcontroller.Error);
+                [||]
+        )
+
         method get row col  = (
             match Eincalc.Ndcontroller.fetch_grid_label !sheet !((!sheet).active) with
             | Some { grid=_g; _ } -> 

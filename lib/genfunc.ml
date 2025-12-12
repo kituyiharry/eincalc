@@ -754,8 +754,10 @@ let transform (Stmt ({ prog=stm; stamp; source; _}): formula)  =
                             let eq = List.map (fun x -> x.dimen) upd in
                             let newtree = ({ inps=lin; outs=(Some upd, eq, maskl); }) in 
                             let (_, _shp, _ ) = newtree.outs in 
+                            (* collect embedded masks in the einsum *)
+                            let mwrts = collectwrts maskl _shp in
                             let (dep', wrt)   = collectdeps _par in
-                            Ok (Literal (EinSpec (_ein, _par, Some newtree)), (dep') @ depstate, wrt @ writes)
+                            Ok (Literal (EinSpec (_ein, _par, Some newtree)), (dep') @ depstate, mwrts @ wrt @ writes)
                         | None -> 
                             let newtree = { inps=lin; outs=(None, [], []); } in
                             let (dep', wrt)   = collectdeps _par in

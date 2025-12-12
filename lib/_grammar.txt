@@ -11,7 +11,7 @@ group       -> '(' formulae ')'
 
 tensor      -> '[' (',' tensor | numeric)* ']'
 
-einsum      -> quoted | function
+einsum      -> quoted | function ',' parameters
 quoted      -> '"' function '"'
 function    -> input '->' output
 input       -> dimension (',' dimension)*
@@ -20,8 +20,8 @@ dimension   -> alpha
 
 parameters  -> range (, range)*
 range       -> param (,  mask '|' )*
-range       ->
-    | '@' function '<' function_params '>'
+param       ->
+    | '@' spec '<' spec_params '>'
     | '@' index '..' index
     | '@' index '..' numeric
     | '@' index '..' '[' (',' numeric)* ']'
@@ -79,7 +79,7 @@ plottype    ->
 keyvalue    -> 
     '{' (alpha '=' (alpha | numeric))* '}'
 
-function    ->
+spec    ->
     | "fill"
     | "eye"
     | "diag"
@@ -89,7 +89,7 @@ function    ->
     | "alt"
     | "enum"
 
-function_params -> param_type*
+spec_params -> param_type*
 
 param_type  ->
     | numeric

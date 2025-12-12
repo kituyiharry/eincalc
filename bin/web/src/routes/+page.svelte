@@ -23,6 +23,36 @@
   let visibleCells = new Set();
   let cellData = $state({})
 
+  /***
+   * @typedef  FormulaSpan
+   * @type     {object}
+   * @property {number} startrow
+   * @property {number} startcol
+   * @property {number} endrow
+   * @property {number} endcol
+   ***/
+
+  /** 
+   * @typedef  FormulaCtx
+   * @type     {object}
+   * @property {number} indx
+   * @property {string} text
+   * @property {FormulaSpan[]} inps
+   * @property {FormulaSpan[]} wrts
+   * */
+
+  /** @type {FormulaCtx[]} */
+  let formulaes = $state([])
+  function updateFormulaes() {
+    let g = $controller.myLib.formulaes(false).splice(1);
+    // remove tags from OCaml
+    formulaes = g.map((f) => {
+        f.inps = f.inps.splice(1);
+        f.wrts = f.wrts.splice(1);
+        return f;
+    });
+  }
+  updateFormulaes();
 
   onMount(() => {
 
@@ -273,6 +303,12 @@
   let selectionEnd   = $state(null);
   let isDragging     = false;
   let erasorState    = $state(false)
+
+  let debugFormula        = $state('')
+  /** @type {FormulaSpan[]} */
+  let readFormulaeCells   = $state([]);
+  /** @type {FormulaSpan[]} */
+  let writeFormulaeCells  = $state([]);
 
   /** 
    * @typedef  EditingCell
@@ -571,7 +607,8 @@
             const cellStart = `${getColumnLabel(selectedCell.col)}${selectedCell.row+1}`;
             let code = `(${data.substring(1)}) | write<${cellStart}>`;
             $controller.myLib.executecode(code);
-            funcText = `=${code}`;
+            updateFormulaes();
+            funcText = `=${code}`.replaceAll('\n', '');
             editValue = funcText;
             cellData = {};
             visibleCells.clear();
@@ -618,7 +655,11 @@
       if (editOut.startsWith('=')) {
         // executed code and write it back into this cell
         let code = `(${editOut.substring(1).trim()}) | write<${cellStart}>`;
+
+        // TODO: make more explicit that after running executecode we update formulaes
         $controller.myLib.executecode(code);
+        updateFormulaes();
+
         funcText = `=${code}`;
         cellData = {};
         visibleCells.clear();
@@ -628,7 +669,6 @@
         if (isNaN(num)) {
             $controller.myLib.gridaddstring(editingCell.row, editingCell.col, editOut);
         } else {
-            console.log("add num");
             $controller.myLib.gridaddnumber(editingCell.row, editingCell.col, num);
             cellData = {};
             visibleCells.clear();
@@ -673,13 +713,18 @@
   let selectionLabel = $derived(selectionEnd ? getShapeLabels() : '');
   let selectionSize  = $derived(selectionEnd ? getShape() : '');
 
+
   // listen for changes in global state
   controller.subscribe(
       (_) => {
           // TODO: better handled in store
+          updateFormulaes();
           visibleCells.clear();
           cellData = {};
           refresh++;
+          debugFormula = "";
+          readFormulaeCells  = [];
+          writeFormulaeCells = [];
       }, 
       () => { }
   );
@@ -743,8 +788,7 @@
                     </div>
                 </div>
             </div>
-        </div>
-
+            </div>
             <!--<div bind:this={overlay} class="pointer-events-none h-[90%] w-[100vw]">-->
             <!--</div>-->
 
@@ -919,6 +963,43 @@
                                 context.strokeRect(x, y, w, h);
                             }
 
+                            context.save();
+                            context.setLineDash([5, 5]);
+                            // Draw debug border
+                            for (const i of writeFormulaeCells) {
+                                const x = getColumnX(i.startcol) - scrollX + ROW_HEADER_WIDTH;
+                                const y = getRowY(i.startrow) - scrollY + HEADER_HEIGHT;
+                                let w = 0;
+                                for (let col = i.startcol; col <= i.endcol; col++) {
+                                  w += getColumnWidth(col);
+                                }
+                                let h = 0;
+                                for (let row = i.startrow; row <= i.endrow; row++) {
+                                  h += getRowHeight(row);
+                                }
+                                context.strokeStyle = "green";
+                                context.lineWidth   = 2.;
+                                context.strokeRect(x, y, w, h);
+                            }
+
+                            // Draw debug border
+                            for (const i of readFormulaeCells) {
+                                const x = getColumnX(i.startcol) - scrollX + ROW_HEADER_WIDTH;
+                                const y = getRowY(i.startrow) - scrollY + HEADER_HEIGHT;
+                                let w = 0;
+                                for (let col = i.startcol; col <= i.endcol; col++) {
+                                  w += getColumnWidth(col);
+                                }
+                                let h = 0;
+                                for (let row = i.startrow; row <= i.endrow; row++) {
+                                  h += getRowHeight(row);
+                                }
+                                context.strokeStyle = "red";
+                                context.lineWidth   = 2.;
+                                context.strokeRect(x, y, w, h);
+                            }
+                            context.restore()
+
                             // Draw column headers
                             context.fillStyle = '#f5f5f5';
                             context.fillRect(ROW_HEADER_WIDTH, 0, width - ROW_HEADER_WIDTH, HEADER_HEIGHT);
@@ -926,14 +1007,14 @@
                             context.font = ' bold 12px Outfit';
                             context.strokeStyle = '#ddd';
 
+                            // Highlight selected column headers
+                            // const bounds = getSelectionBounds();
                             for (let col = startCol; col <= endCol; col++) {
                                 //const x = col * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
                                 const x = getColumnX(col) - scrollX + ROW_HEADER_WIDTH;
                                 const w = getColumnWidth(col);
 
 
-                                // Highlight selected column headers
-                                const bounds = getSelectionBounds();
                                 if (bounds && col >= bounds.startCol && col <= bounds.endCol) {
                                     // context.fillStyle = '#cce5ff';
                                     context.fillStyle = selectStyle.foregroundColor;
@@ -1016,14 +1097,15 @@
                                 if (funcText.trim().startsWith('=')) {
                                     funcText.trim().substring(1).split(';').filter((v) => v.length > 0).forEach((code) => {
                                         if (!breaker) {
-                                            breaker = !$controller.myLib.executecode(code);
+                                            breaker   = !$controller.myLib.executecode(code);
+                                            updateFormulaes();
                                         }
                                     })
                                 } else {
                                     funcText.trim().split(';').filter((v) => v.length > 0).forEach((code) => {
                                         if (!breaker) {
-                                            console.log('execute1 ', code);
                                             breaker = !$controller.myLib.executecode(code);
+                                            updateFormulaes();
                                         }
                                     })
                                 }
@@ -1198,6 +1280,58 @@
                                     <span>{styleBuffer.color}</span>
                                 </label>
                             </div>
+                        </div>
+                    </div>
+                </li>
+
+                <li class="dropdown dropdown-right dropdown-center">
+                    <button tabindex="0" class="text-md is-drawer-close:tooltip
+                        is-drawer-close:tooltip-right" data-tip="Formulaes">
+                        <i class="fa fa-code" aria-hidden="true"></i>
+                        <span class="is-drawer-close:hidden">Formulaes</span>
+                    </button>
+                    <div tabindex="-1" class="dropdown-content menu bg-base-100
+                        shadow-xl transition-shadow duration-150
+                        hover:shadow-primary-blue/50 rounded-box z-1 p-0
+                        mx-4 min-w-[420px]">
+                        <div class="menu flex flex-col min-w-[420px] items-start"> 
+                            <h3 class="menu-title text-black text-lg">Formulaes</h3>
+                            <div class="divider grow py-0 my-0"></div>
+                            <ul class=" list ">
+                                {#each formulaes as frm (frm.indx) }
+                                    <li class="list-row grow justify-between px-0">
+                                        <div class="flex-8 list-col-grow grow align-text-bottom pt-2">
+                                          <span class="text-sm text-center">
+                                            {frm.text.replaceAll('\n', '')}
+                                         </span>
+                                        </div>
+                                        <button aria-label="formulae" 
+                                            onclick={() => {
+                                                if (debugFormula == frm.text) {
+                                                    readFormulaeCells  = [];
+                                                    writeFormulaeCells = [];
+                                                    debugFormula = "";
+                                                    return
+                                                }
+                                                readFormulaeCells  = frm.inps;
+                                                writeFormulaeCells = frm.wrts;
+                                                debugFormula = frm.text
+                                            }}
+                                            class="flex-2 btn btn-circle btn-ghost scale-80">
+                                            <i class='fa fa-md {frm.text === debugFormula ? "fa-eye-slash" : "fa-eye"}'></i>
+                                        </button>
+                                        <button onclick={() => {
+                                            $controller.myLib.executecode(frm.text);
+                                            visibleCells.clear();
+                                            cellData = {};
+                                            funcText = frm.text;
+                                        }} aria-label="formular" class="flex-2 btn
+                                            btn-circle btn-ghost scale-80">
+                                            <i class="fa fa-md fa-refresh"></i>
+                                        </button>
+                                    </li>
+                                {/each}
+                            </ul>
                         </div>
                     </div>
                 </li>

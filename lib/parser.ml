@@ -17,11 +17,11 @@ let (let*) = Result.bind;;
 module CharSet = Set.Make (Char);;
 
 type einmatch = {
-        label: char 
-    ;   param: int
-    ;   index: int 
-    ;   dimen: int
-    ;   outlc: int
+        label: char (* the label itself eg i k ... *)
+    ;   param: int  (* its parameter number *)
+    ;   index: int  (* its index in the expression, i in ik is 0 *)
+    ;   dimen: int  (* number of dimensions to corresponding shape *)
+    ;   outlc: int  (* if it appears in the output expression *)
 } 
 and eincomp = {
        shape: int list

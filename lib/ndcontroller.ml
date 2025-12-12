@@ -46,11 +46,19 @@ let nt   = FormGraphSerializer.AttrbTbl.create 1;;
 FormGraphSerializer.StyleTbl.add gt "rankdir" "TB";;
 FormGraphSerializer.StyleTbl.add gt "color" "green";;
 
+(* collect information about formulae for display *)
+type formulactx = {
+        text: string
+    ;   inps: ((int * int) * (int * int)) array (* start and span *)
+    ;   wrts: ((int * int) * (int * int)) array (* start and span *)
+    ;   indx: int
+}
+
 type fgraph =  FormGraph.adj FormGraph.NodeMap.t
 ;;
 
 type dotctx = { 
-        global: string FormGraphSerializer.StyleTbl.t
+        global:  string FormGraphSerializer.StyleTbl.t
     ;   prnode: (string FormGraphSerializer.StyleTbl.t) FormGraphSerializer.AttrbTbl.t
     ;   predge: (string FormGraphSerializer.StyleTbl.t) FormGraphSerializer.AttrbTbl.t
 }
@@ -110,6 +118,7 @@ let delete_sheet controller label =
         | Some x -> 
             fst x
         | None ->
+            (* make a new sheet and make it default *)
             let _ = new_sheet controller "Default" in
             "Default"
     )
@@ -157,18 +166,18 @@ let span_of_shape shp =
         | [] -> 
             (0, 0)
         | col :: [] -> 
-            (0, col)
+            (0, col - 1)
         | row :: col :: [] ->  
-            (row, col)
+            (row - 1, col - 1)
         | batch :: row :: col :: [] -> 
             (* project extra dimensions along the row and account for gaps from
                slice iteration 
                ln - 2 gives the number of gaps between slices on a row *)
-            (batch * row + ((batch) - (ln - 2)), col)
+            ((batch * row + ((batch) - (ln))) + 1, col - 1)
         | mult :: rem -> 
             let (row, col) = calc (ln - 1) rem in 
             (* restore the extra gap from the previous frame *)
-            ((mult * row) + ((mult - 1) * (ln - 2)), col)
+            ((mult * row) + ((mult - 1) * (ln)) - 2, col)
     in calc len shp
 ;;
 
@@ -257,6 +266,8 @@ let dependants contr (Parser.Stmt ast as prog) =
                     | [] -> 
                         ()
                     | _ -> 
+                        (* writes can write into the input of another formula *)
+                        (* TODO: if a write doesn't write into another input zone we can prune it from the graph *)
                         contr.onlog ("Some writes adding to graph", Warn);
                         controller.frmgrph := (FormGraph.add prog !(controller.frmgrph));
                         controller.frmlst := (prog :: !(controller.frmlst))
@@ -354,6 +365,49 @@ let notify contr (region: mask) (shp: int list) =
                 acc'
         ) [] (List.rev !(controller.frmlst))
     | _ -> []
+;;
+
+let formulaes controller  = 
+    (match GridTable.find_opt controller.sheets !(controller.active) with 
+    | Some v -> 
+        !(v.frmlst)
+        |> List.mapi (fun indx (Parser.Stmt r) -> 
+            {
+                    text = r.source
+                ;   inps = (
+                        r.inputs
+                        |> List.map (function 
+                            |  (Range (r, e)) -> 
+                                ((key_of_ref r), (key_of_ref e))
+                            |  (Span  (s, r)) ->
+                                let (r', e') = key_of_ref s in
+                                let (cr, ce) = span_of_shape r in
+                                ((r', e'), (r' + cr, e' + ce))
+                            |  (Scalar s) -> 
+                                let s'       = key_of_ref s in
+                                (s', s')
+                            | _  ->
+                                ((0, 0), (0, 0))
+                        ) |> Array.of_list
+                    )
+                ;   wrts = (
+                        r.writes
+                        |> List.map (function 
+                            | (Write w, shp) -> 
+                                let (s,  e)  = key_of_ref w in
+                                let (cs, ce) = span_of_shape shp in
+                                ((s, e), (s+cs, e+ce))
+                            | _ -> 
+                               ((0, 0), (0, 0))
+                        ) |> Array.of_list
+                    )
+                ;   indx
+            }
+        )
+        |> Result.ok
+    | None -> 
+        Stdlib.Error "Fatal!: Missing grid")
+
 ;;
 
 let fetch_grid_label controller label = 
