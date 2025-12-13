@@ -29,7 +29,8 @@ type plotctx = {
         xbound: int 
     ;   ybound: int 
     ;   handle: string
-    ;   padding: int
+    ;   paddingx: int
+    ;   paddingy: int
     ;   plotcb:  ((string * int list * shape list) -> unit)
 }
 
@@ -101,14 +102,14 @@ let make_countdown_seq start =
 
 let grid_hor_lines height num _pfloat tx_mn tx_mx = 
     let numf = float_of_int num in
-    let span = ((float_of_int height) /. (numf)) in 
+    let span = (((float_of_int height) +. (_pfloat /. 2.)) /. (numf)) in 
     make_countdown_seq (numf) 
     |> Seq.map (fun id -> 
         let cy = (id) *. span in
         Line { 
             x =tx_mn;  y=(cy);
             fx=tx_mx; fy=(cy);
-            linewidth=0.5;    color="gray"
+            linewidth=0.25;    color="gray"
         }
     )
     |> List.of_seq
@@ -116,15 +117,15 @@ let grid_hor_lines height num _pfloat tx_mn tx_mx =
 
 let grid_hor_text height num _pfloat tx_mn _tx_mx invscaler translate = 
     let numf = float_of_int num in
-    let span = ((float_of_int height) /. numf) in 
+    let span = ((float_of_int height) +. (_pfloat)) /. numf in 
     make_countdown_seq numf
     |> Seq.map (fun id -> 
         let cy = id *. span in
-        let t = (-. translate cy) in
-        let v = invscaler t in
-        let _ = Format.printf "%f: cy is %f -> %f inv: %f\n" id cy t v in
+        let t = (translate cy) in
+        let v = invscaler   t in
+        (*let _ = Format.printf "%f: cy is %f -> %f inv: %f\n" id cy t v in*)
         Text { 
-            x =tx_mn-.24.;  y=(cy);
+            x =tx_mn-.24.;  y=(cy+.12.);
             color="black"; size=8;
             text=(Format.sprintf "%.2f" v)
         }
@@ -134,14 +135,14 @@ let grid_hor_text height num _pfloat tx_mn _tx_mx invscaler translate =
 
 let grid_vert_lines width num _pfloat ty_mn ty_mx = 
     let numf = float_of_int num in
-    let span = ((float_of_int width) /. (numf)) in 
+    let span = ((float_of_int (width) -. (_pfloat /. 2.)) /. (numf)) in 
     make_countdown_seq (numf) 
     |> Seq.map (fun id -> 
-        let cy = id *. span in
+        let cy = (id *. span) +. _pfloat in
         Line { 
             x=(cy) ; y =ty_mn;
             fx=(cy); fy=ty_mx;
-            linewidth=0.5;    color="gray"
+            linewidth=0.25;    color="gray"
         }
     )
     |> List.of_seq
@@ -149,14 +150,16 @@ let grid_vert_lines width num _pfloat ty_mn ty_mx =
 
 
 let grid_vert_text width num _pfloat ty_mn _ty_mx invscaler = 
+    (* number of bars *)
     let numf = float_of_int num in
-    let span = ((float_of_int width) /. (numf)) in 
+    (* space between bars *)
+    let span = ((float_of_int width) -. (_pfloat /. 2.)) /. (numf) in 
     make_countdown_seq (numf) 
     |> Seq.map (fun id -> 
-        let cx = id *. span in
+        let cx = (id *. span) +. 14. in
         let v = invscaler cx in
         Text { 
-            x=(cx) ; y =ty_mn+.8.;
+            x=(cx) ; y =ty_mn+.10.;
             color="black"; size=8;
             text=(Format.sprintf "%.2f" v)
         }
@@ -170,29 +173,35 @@ INFO: Test on https://www.mathsisfun.com/data/scatter-xy-plots.html
 *)
 let scatter (type data) (ctx: scatterctx) (module SliceView: NDView with type t = data) (_xview: data) (_yview: data) = 
 
+
     let (_x_mn, _x_mx) = Masks.minmaxvalue (module SliceView) _xview in
     let (_y_mn, _y_mx) = Masks.minmaxvalue (module SliceView) _yview in
 
     let _xseq   = SliceView.to_seq _xview in
     let _yseq   = SliceView.to_seq _yview in
 
-    let width  = ctx.plot.xbound+(ctx.plot.padding*2) in
-    let height = ctx.plot.ybound+(ctx.plot.padding*2)in
+    let width  = ctx.plot.xbound+(ctx.plot.paddingx*2) in
+    let height = ctx.plot.ybound+(ctx.plot.paddingy*2)in
 
-    let hfloat = float_of_int height in
-    let pfloat = float_of_int ctx.plot.padding in
+    let hfloat  = float_of_int height in
+    let pfloatx = float_of_int ctx.plot.paddingx in
+    let pfloaty = float_of_int ctx.plot.paddingy in
 
     let num = Types.cardinal_of_dim (SliceView.shape _xview) in
+    (*let num = 10 in*)
 
-    let xscaler  = make_scaler _x_mn _x_mx (pfloat) ((float_of_int ctx.plot.xbound) +. pfloat) in
-    let xinverse = inverse_transform_scaler _x_mn _x_mx (pfloat) ((float_of_int ctx.plot.xbound) +. pfloat) in
+    let xscaler  = make_scaler _x_mn _x_mx (pfloatx) ((float_of_int ctx.plot.xbound) +. pfloatx) in
+    let xinverse = inverse_transform_scaler _x_mn _x_mx (pfloatx) ((float_of_int ctx.plot.xbound) +. pfloatx) in
     let yscaler  = make_scaler _y_mn _y_mx (0.)     (float_of_int (ctx.plot.ybound)) in
     let yinverse = inverse_transform_scaler _y_mn _y_mx (0.) (float_of_int (ctx.plot.ybound)) in
 
-    let transformy yv = hfloat -. (pfloat +. yv) in
-    (* reverse transform y values to distances on the canvas *)
-    let reversetry yv = (yv -. hfloat) +. pfloat in
+    (* FIXME: switch to origin based demarkation and tickers *)
 
+    let transformy yv = hfloat -. ((pfloaty) +. yv) in
+    (* reverse transform y values to distances on the canvas *)
+    let reversetransy yv = (hfloat -. (pfloaty) -. yv) in
+
+    (* convert data to scaled points *)
     let _vals   = (Seq.zip _xseq _yseq) |> Seq.map (fun (x,y) -> 
         let x', y' = (xscaler x), (yscaler y) in
         Circle {
@@ -205,35 +214,40 @@ let scatter (type data) (ctx: scatterctx) (module SliceView: NDView with type t 
     let xt  = make_plot_x_label width height ctx.xlabel in
     let yt  = make_plot_y_label width height ctx.ylabel in
 
-    let xlegend = make_axis xscaler (_x_mn-.pfloat) (_x_mx+.pfloat) yscaler
+    (* draw line for displaying ticker *)
+    let xlegend = make_axis xscaler (_x_mn-.pfloatx) (_x_mx+.pfloatx) yscaler
         (_y_mn) (transformy) (_y_mn)
     in
 
     let ylegend = make_axis xscaler (_x_mn) (_x_mn) yscaler
-        (_y_mn-.(pfloat*.2.)) (transformy) (_y_mx+.(pfloat*.2.))
+        (_y_mn-.(pfloaty*.2.)) (transformy) (_y_mx+.(pfloaty*.2.))
     in
 
     (* FIXME: clear start points in the graph *)
 
     (* from top to bottom *)
-    let vlines = grid_vert_lines width num pfloat 
-        (transformy @@ yscaler (_y_mn)) 
-        (transformy @@ yscaler (_y_mx)) in 
+    let vlines = 
+        [] in
+        (*grid_vert_lines width num pfloatx *)
+        (*(transformy @@ yscaler (_y_mn)) *)
+        (*(transformy @@ yscaler (_y_mx)) in *)
 
-    let vtext = grid_vert_text width num pfloat 
+    (* text on the x axis *)
+    let vtext = grid_vert_text width num pfloatx
         (transformy @@ yscaler (_y_mn)) 
         (transformy @@ yscaler (_y_mx)) xinverse in 
 
     (* from left to right *)
     let hlines = 
-        grid_hor_lines height num pfloat 
+        grid_hor_lines height num pfloaty 
         ((xscaler _x_mn)) 
-        (xscaler (_x_mx+.pfloat)) in 
+        (xscaler (_x_mx)) in 
 
+    (* text on the y axis *)
     let htext = 
-        grid_hor_text height num pfloat 
+        grid_hor_text height num pfloatx 
         ((xscaler _x_mn)) 
-        (xscaler (_x_mx+.pfloat)) yinverse reversetry in 
+        (xscaler (_x_mx)) yinverse reversetransy in 
 
     ctx.plot.plotcb (
         ctx.plot.handle, 

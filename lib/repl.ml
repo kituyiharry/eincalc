@@ -87,12 +87,11 @@ let scan_and_notify sheet vstr =
             | Ok ({ ast=(Parser.Stmt s); _ } as cell) ->
                 let _ = Ndcontroller.dependants sheet cell.ast in
                 let _ = handle_eval sheet cell in
-                let dotc = Ndcontroller.plaindctx () in 
                 (* see if we wrote over other formulaes *)
                 let _ = (
                     List.iter (fun (msk, shp) ->
                         Ndcontroller.notify sheet msk shp
-                        |> List.map (Ndcontroller.affected sheet dotc)
+                        |> List.map (Ndcontroller.affected sheet (Ndcontroller.plaindctx ()))
                         |> List.concat
                         |> List.sort_uniq (fun (Parser.Stmt x) (Parser.Stmt y) ->
                             Float.compare x.stamp y.stamp

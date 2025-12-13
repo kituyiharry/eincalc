@@ -169,24 +169,24 @@ let create_default_controller label cb logger  =
    columns, [1,2,3] = 2 rows and 3 columns, ....*)
 let span_of_shape shp =
     let len = List.length shp in 
-    let rec calc ln =
-        function 
+    let rec calc = function 
         | [] -> 
-            (0, 0)
+            (0, 0, 0)
         | col :: [] -> 
-            (0, col - 1)
+            (0, col, 0)
         | row :: col :: [] ->  
-            (row - 1, col - 1)
+            (row, col, 0)
         | batch :: row :: col :: [] -> 
             (* project extra dimensions along the row and account for gaps from
                slice iteration 
                ln - 2 gives the number of gaps between slices on a row *)
-            ((batch * row + ((batch) - (ln))) + 1, col - 1)
+            (((batch * row) + (((batch - 1)))), col, 1)
         | mult :: rem -> 
-            let (row, col) = calc (ln - 1) rem in 
-            (* restore the extra gap from the previous frame *)
-            ((mult * row) + ((mult - 1) * (ln)) - 2, col)
-    in calc len shp
+            let (row, col, spc) = calc rem in 
+            let nsp = spc + 1 in
+            (* restore the extra gaps from the previous frame *)
+            ((mult * row) + (((mult - 1) * (nsp))), col, (spc+1))
+    in calc shp
 ;;
 
 let get_column_label col_num =
@@ -213,7 +213,7 @@ let ref_of_key (row, col) =
    out how this would work *)
 let overlaps wrt shp reg = match (wrt, reg)  with  
     |  Write w, Parser.Range (startc, endc) ->
-        let (rsp,   csp) = span_of_shape shp in
+        let (rsp,   csp, _) = span_of_shape shp in
         (* write top and bottom rows and columns *)
 
         let (wsr,   wsc) = key_of_ref w in 
@@ -227,8 +227,8 @@ let overlaps wrt shp reg = match (wrt, reg)  with
         ((wsc <= rendc) && (wec >= rsc) && wsr <= rer && wer >= rsr)
 
     |  Write w, Parser.Span (startc, shc) ->
-        let (rsp,   csp) = span_of_shape shp in
-        let (rs',   cs') = span_of_shape shc in
+        let (rsp,   csp, _) = span_of_shape shp in
+        let (rs',   cs', _) = span_of_shape shc in
 
         let (wsr,   wsc) = key_of_ref w in (* top left *)
         let (wer,   wec) = (wsr + rsp, wsc + csp) in 
@@ -240,7 +240,7 @@ let overlaps wrt shp reg = match (wrt, reg)  with
         ((wsc <= rendc) && (wec >= rsc) && wsr <= rer && wer >= rsr)
 
     |  Write w, Parser.Scalar (startc) ->
-        let (rsp,   csp) = span_of_shape shp in
+        let (rsp,   csp, _) = span_of_shape shp in
 
         let (wsr,   wsc) = key_of_ref w in (* top left *)
         let (wer,   wec) = (wsr + rsp, wsc + csp) in 
@@ -389,7 +389,7 @@ let formulaes controller  =
                                 ((key_of_ref r), (key_of_ref e))
                             |  (Span  (s, r)) ->
                                 let (r', e') = key_of_ref s in
-                                let (cr, ce) = span_of_shape r in
+                                let (cr, ce, _) = span_of_shape r in
                                 ((r', e'), (r' + cr, e' + ce))
                             |  (Scalar s) -> 
                                 let s'       = key_of_ref s in
@@ -403,7 +403,7 @@ let formulaes controller  =
                         |> List.map (function 
                             | (Write w, shp) -> 
                                 let (s,  e)  = key_of_ref w in
-                                let (cs, ce) = span_of_shape shp in
+                                let (cs, ce, _) = span_of_shape shp in
                                 ((s, e), (s+cs, e+ce))
                             | _ -> 
                                ((0, 0), (0, 0))

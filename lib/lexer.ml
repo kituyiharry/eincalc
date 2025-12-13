@@ -66,32 +66,32 @@ let scan_token (line, colm, sstr) index rest =
     | '+'  -> Ok ((mktok line colm KPlus),        index, rest)
 
     | '.'  ->
-        (match rest with
-            |  ('.') :: rest' ->
+        (match Seq.uncons rest with
+            |  Some (('.'), rest') ->
                 Ok ((mktok line colm TRange), (index+1), rest')
             | _ ->
                 Error (line, colm, Format.sprintf "expected range '..'")
         )
-    | '-'  -> (match rest with
-            | ('>') :: rest' ->
+    | '-'  -> (match Seq.uncons rest with
+            | Some(('>'), rest') ->
                 Ok ((mktok line colm TArrow), index+1, rest')
             | _ ->
-                Ok ((mktok line colm KMinus),       index, rest)
+                Ok ((mktok line colm KMinus), index, rest)
         )
     | '\'' -> 
         (*let dbuf = Buffer.create 8 in*)
         let _ = Buffer.clear dbuf in
         let drp  = ref 0 in
-        let _ = List.drop_while (fun c ->
+        let rem = Seq.drop_while (fun c ->
             let isd = not @@ Char.equal '\'' c in
             if isd then (
                 incr drp;
                 Buffer.add_char dbuf c
             );
             isd
-        ) rest in
+        ) rest () in
         let alp = Buffer.contents dbuf in
-        Ok ((mktok line colm (TAlphaNum alp)), (index + !drp), (List.drop (!drp+1) rest))
+        Ok ((mktok line colm (TAlphaNum alp)), (index + !drp), (Seq.drop (1) (fun _ -> rem)))
 
     |  chr -> (
         let _ = Buffer.clear dbuf in
@@ -99,49 +99,49 @@ let scan_token (line, colm, sstr) index rest =
         let () = Buffer.add_char dbuf chr in
         let drp = ref 0 in
         if isDigit chr then
-            let rem = List.drop_while (fun c ->
+            let rem = Seq.drop_while (fun c ->
                 let isd = isDigit c in
                 if isd then (
                     incr drp;
                     Buffer.add_char dbuf c
                 );
                 isd
-            ) rest in
-            (match rem with
-                | []  ->
+            ) rest () in
+            (match Seq.uncons (fun _ -> rem) with
+                | None  ->
                     let alp = Buffer.contents dbuf |> int_of_string in
-                    Ok ((mktok line colm (TNumeral alp)), index + !drp, rem)
-                | hd :: rest -> (
+                    Ok ((mktok line colm (TNumeral alp)), index + !drp, (fun _ -> rem))
+                | Some (hd, rest) -> (
                     (* floating point *)
                     if hd == '.' then (
                         Buffer.add_char dbuf hd;
-                        let rem = List.drop_while (fun c ->
+                        let rem = Seq.drop_while (fun c ->
                             let isd = isDigit c in
                             if isd then (
                                 incr drp;
                                 Buffer.add_char dbuf c
                             );
                             isd
-                        ) rest in
+                        ) rest () in
                         let alp = Buffer.contents dbuf |> float_of_string in
-                        Ok ((mktok line colm (TFloat alp)), index + !drp, rem)
+                        Ok ((mktok line colm (TFloat alp)), index + !drp, (fun _ -> rem))
                     ) else (
                         let alp = Buffer.contents dbuf |> int_of_string in
-                        Ok ((mktok line colm (TNumeral alp)), index + !drp, rem)
+                        Ok ((mktok line colm (TNumeral alp)), index + !drp, (fun _ -> rem))
                     )
                 )
             )
         else if isAlphaNum chr then
-            let _ = List.take_while (fun c ->
+            let rem = Seq.drop_while (fun c ->
                 let isd = isAlphaNum c in
                 if isd then (
                     incr drp;
                     Buffer.add_char dbuf c;
                 );
                 isd
-            ) rest in
+            ) rest () in
             let alp = Buffer.contents dbuf in
-            Ok ((mktok line colm (TAlphaNum alp)), (index + !drp), (List.drop !drp rest))
+            Ok ((mktok line colm (TAlphaNum alp)), (index + !drp), (fun _ -> rem))
         else
             Error (line, colm, Format.sprintf "unexpected token %c" chr)
     )
@@ -153,18 +153,17 @@ let (let*) = Result.bind
 (* run on a single line *)
 let run line pstring =
     let rec _tokenize index tseq pstate =
-        match pstate with
-        | [] ->
+        match (Seq.uncons pstate) with
+        | None ->
             Ok (tseq)
-        | ' ' :: rest ->
+        | Some(' ', rest) ->
             _tokenize (index + 1)  (tseq) rest
-        | hd :: rest ->
+        | Some (hd, rest) ->
             let* (tok, index', rest') = scan_token (line, index, hd) index rest in
             _tokenize (index' + 1) (tok :: tseq) rest'
     in
     pstring
     |> String.to_seq
-    |> List.of_seq
     |> _tokenize 0 []
     |> (function
             | Ok l -> Ok (List.rev l)

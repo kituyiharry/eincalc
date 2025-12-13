@@ -11,7 +11,7 @@
     (build_runtime_flags (:standard --target-env=browser))
   )
   (wasm_of_ocaml 
-    (flags :standard)
+    (flags :standard --target-env=browser)
     (build_runtime_flags (:standard -noassert --target-env=browser))))
 
 ;(dirs :standard \ node_modules static src)

@@ -970,34 +970,38 @@
                                 const x = getColumnX(i.startcol) - scrollX + ROW_HEADER_WIDTH;
                                 const y = getRowY(i.startrow) - scrollY + HEADER_HEIGHT;
                                 let w = 0;
-                                for (let col = i.startcol; col <= i.endcol; col++) {
+                                const iendcolminus = i.endcol - 1;
+                                const iendrowminus = i.endrow - 1;
+                                for (let col = i.startcol; col <= iendcolminus; ++col) {
                                   w += getColumnWidth(col);
                                 }
                                 let h = 0;
-                                for (let row = i.startrow; row <= i.endrow; row++) {
+                                for (let row = i.startrow; row <= iendrowminus; ++row) {
                                   h += getRowHeight(row);
                                 }
                                 context.strokeStyle = "green";
                                 context.lineWidth   = 2.;
-                                context.strokeRect(x, y, w, h);
+                                context.strokeRect(x-3, y-3, w+6, h+6);
                             }
 
-                            context.setLineDash([5, 7]);
+                            context.setLineDash([7, 10]);
                             // Draw debug border
                             for (const i of readFormulaeCells) {
                                 const x = getColumnX(i.startcol) - scrollX + ROW_HEADER_WIDTH;
                                 const y = getRowY(i.startrow) - scrollY + HEADER_HEIGHT;
                                 let w = 0;
-                                for (let col = i.startcol; col <= i.endcol; col++) {
+                                const iendcolminus = i.endcol - 1;
+                                const iendrowminus = i.endrow - 1;
+                                for (let col = i.startcol; col <= iendcolminus; ++col) {
                                   w += getColumnWidth(col);
                                 }
                                 let h = 0;
-                                for (let row = i.startrow; row <= i.endrow; row++) {
+                                for (let row = i.startrow; row <= iendrowminus; ++row) {
                                   h += getRowHeight(row);
                                 }
                                 context.strokeStyle = "red";
                                 context.lineWidth   = 2.;
-                                context.strokeRect(x, y, w, h);
+                                context.strokeRect(x-1, y-1, w+2, h+2);
                             }
                             context.restore()
 
@@ -1302,7 +1306,7 @@
                                 {#each formulaes as frm (frm.indx) }
                                     <li class="list-col-wrap grow justify-between px-0">
                                         <div class="flex-8 list-col-grow grow align-text-bottom pt-2">
-                                          <span class="text-sm whitespace-nowrap">
+                                          <span class="text-sm ">
                                             {frm.text.trim().replaceAll('\n', '')}
                                          </span>
                                         </div>
