@@ -26,11 +26,12 @@ type shape =
 [@@deriving show];;
 
 type plotctx = {
-        xbound: int 
-    ;   ybound: int 
-    ;   handle: string
+        xbound:   int 
+    ;   ybound:   int 
+    ;   handle:   string
     ;   paddingx: int
     ;   paddingy: int
+    ;   gridstep: float
     ;   plotcb:  ((string * int list * shape list) -> unit)
 }
 
@@ -83,96 +84,76 @@ let inverse_transform_scaler minval maxval minbound maxbound =
         ((v -. minbound) /. (rdiff)) *. (mdiff) +. minval 
 ;;
 
-let make_axis xscaler xst xbound yscaler yst transformy ybound = 
-    Line {
-        x= (xscaler xst);     y=(transformy (yscaler yst));
-        fx=(xscaler xbound); fy=(transformy (yscaler ybound));
-        linewidth=1.;        color="black"
-    }
+(* lines running from top to bottom along the x axis *)
+let grid_vlines width incr y_mn y_mx x_min_scl = 
+    let xst = Float.ceil x_min_scl in
+    let rec addvlns vlc state = 
+        if vlc >= width then 
+            state
+        else
+            (addvlns[@tailcall]) (vlc +. incr) (Line {
+                x =vlc; y =y_mn;
+                fx=vlc; fy=y_mx;
+                linewidth=0.5; color="gray"
+            } :: state)
+    in addvlns xst []
 ;;
 
-let make_countdown_seq start = 
-    Seq.unfold (fun x -> 
-        if x <= 0. then 
-            None 
-        else 
-            Some (x, x -. 1.)
-    ) start
+(* text along x axis *)
+let grid_vtext width incr y_mn x_min_scl inv = 
+    let xst = Float.ceil x_min_scl in
+    let rec addvlns vlc state = 
+        if vlc >= width then 
+            state
+        else
+            (addvlns[@tailcall]) (vlc +. incr) (
+                Text { 
+                    x=(vlc) ; y =y_mn+.10.;
+                    color="black"; size=8;
+                    text=(Format.sprintf "%.0f" (inv vlc))
+                } :: state
+            )
+    in addvlns xst []
 ;;
 
-let grid_hor_lines height num _pfloat tx_mn tx_mx = 
-    let numf = float_of_int num in
-    let span = (((float_of_int height) +. (_pfloat /. 2.)) /. (numf)) in 
-    make_countdown_seq (numf) 
-    |> Seq.map (fun id -> 
-        let cy = (id) *. span in
-        Line { 
-            x =tx_mn;  y=(cy);
-            fx=tx_mx; fy=(cy);
-            linewidth=0.25;    color="gray"
-        }
-    )
-    |> List.of_seq
+(* lines running from left to right along the y axis *)
+let grid_hlines height incr x_mn x_mx y_max_scl = 
+    let yst = Float.ceil y_max_scl in
+    let rec addvlns vlc state = 
+        if vlc < incr then 
+            state
+        else
+            (addvlns[@tailcall]) (vlc -. incr) (Line {
+                x =x_mn; y =vlc;
+                fx=x_mx; fy=vlc;
+                linewidth=0.5; color="gray"
+            } :: state)
+    in addvlns yst []
 ;;
 
-let grid_hor_text height num _pfloat tx_mn _tx_mx invscaler translate = 
-    let numf = float_of_int num in
-    let span = ((float_of_int height) +. (_pfloat)) /. numf in 
-    make_countdown_seq numf
-    |> Seq.map (fun id -> 
-        let cy = id *. span in
-        let t = (translate cy) in
-        let v = invscaler   t in
-        (*let _ = Format.printf "%f: cy is %f -> %f inv: %f\n" id cy t v in*)
-        Text { 
-            x =tx_mn-.24.;  y=(cy+.12.);
-            color="black"; size=8;
-            text=(Format.sprintf "%.2f" v)
-        }
-    )
-    |> List.of_seq
-;;
-
-let grid_vert_lines width num _pfloat ty_mn ty_mx = 
-    let numf = float_of_int num in
-    let span = ((float_of_int (width) -. (_pfloat /. 2.)) /. (numf)) in 
-    make_countdown_seq (numf) 
-    |> Seq.map (fun id -> 
-        let cy = (id *. span) +. _pfloat in
-        Line { 
-            x=(cy) ; y =ty_mn;
-            fx=(cy); fy=ty_mx;
-            linewidth=0.25;    color="gray"
-        }
-    )
-    |> List.of_seq
-;;
-
-
-let grid_vert_text width num _pfloat ty_mn _ty_mx invscaler = 
-    (* number of bars *)
-    let numf = float_of_int num in
-    (* space between bars *)
-    let span = ((float_of_int width) -. (_pfloat /. 2.)) /. (numf) in 
-    make_countdown_seq (numf) 
-    |> Seq.map (fun id -> 
-        let cx = (id *. span) +. 14. in
-        let v = invscaler cx in
-        Text { 
-            x=(cx) ; y =ty_mn+.10.;
-            color="black"; size=8;
-            text=(Format.sprintf "%.2f" v)
-        }
-    )
-    |> List.of_seq
+(* text along y axis *)
+let grid_htext height incr x_mn y_max_scl inv = 
+    let yst = Float.ceil y_max_scl in
+    let rec addvlns vlc state = 
+        if vlc < incr then 
+            state
+        else
+            (addvlns[@tailcall]) (vlc -. incr) (
+                Text { 
+                    x=(x_mn-.16.) ; y =vlc;
+                    color="black"; size=8;
+                    text=(Format.sprintf "%.0f" (inv (height -. vlc)))
+                }
+            :: state)
+    in addvlns yst []
 ;;
 
 (*
 INFO: Test on https://www.mathsisfun.com/data/scatter-xy-plots.html
 =(@b4..c15) | plot<'Heat', [320,240], scatter<[::, 0:1:], [::, 1:1:], {xl='Temp',yl='Ice Cream',c='red',r=3}>>
 *)
+(*TODO: Cache scaling functions as closures to prevent recalc when called multiple times *)
 let scatter (type data) (ctx: scatterctx) (module SliceView: NDView with type t = data) (_xview: data) (_yview: data) = 
-
 
     let (_x_mn, _x_mx) = Masks.minmaxvalue (module SliceView) _xview in
     let (_y_mn, _y_mx) = Masks.minmaxvalue (module SliceView) _yview in
@@ -184,22 +165,23 @@ let scatter (type data) (ctx: scatterctx) (module SliceView: NDView with type t 
     let height = ctx.plot.ybound+(ctx.plot.paddingy*2)in
 
     let hfloat  = float_of_int height in
+    let wfloat  = float_of_int width in
+
     let pfloatx = float_of_int ctx.plot.paddingx in
     let pfloaty = float_of_int ctx.plot.paddingy in
 
-    let num = Types.cardinal_of_dim (SliceView.shape _xview) in
+    (*let num = Types.cardinal_of_dim (SliceView.shape _xview) in*)
     (*let num = 10 in*)
 
     let xscaler  = make_scaler _x_mn _x_mx (pfloatx) ((float_of_int ctx.plot.xbound) +. pfloatx) in
     let xinverse = inverse_transform_scaler _x_mn _x_mx (pfloatx) ((float_of_int ctx.plot.xbound) +. pfloatx) in
-    let yscaler  = make_scaler _y_mn _y_mx (0.)     (float_of_int (ctx.plot.ybound)) in
-    let yinverse = inverse_transform_scaler _y_mn _y_mx (0.) (float_of_int (ctx.plot.ybound)) in
+    let yscaler  = make_scaler _y_mn _y_mx (pfloaty) ((float_of_int ctx.plot.ybound) +. pfloaty) in
+    let yinverse = inverse_transform_scaler _y_mn _y_mx (pfloaty) ((float_of_int ctx.plot.ybound) +. pfloaty) in
 
     (* FIXME: switch to origin based demarkation and tickers *)
 
-    let transformy yv = hfloat -. ((pfloaty) +. yv) in
-    (* reverse transform y values to distances on the canvas *)
-    let reversetransy yv = (hfloat -. (pfloaty) -. yv) in
+    (* because the y axis is inverted and we want the origin to be at the bottom! *)
+    let transformy yv = hfloat -. (yv) in
 
     (* convert data to scaled points *)
     let _vals   = (Seq.zip _xseq _yseq) |> Seq.map (fun (x,y) -> 
@@ -214,46 +196,42 @@ let scatter (type data) (ctx: scatterctx) (module SliceView: NDView with type t 
     let xt  = make_plot_x_label width height ctx.xlabel in
     let yt  = make_plot_y_label width height ctx.ylabel in
 
-    (* draw line for displaying ticker *)
-    let xlegend = make_axis xscaler (_x_mn-.pfloatx) (_x_mx+.pfloatx) yscaler
-        (_y_mn) (transformy) (_y_mn)
-    in
+    (* draw origin lines for x and y axes and displaying tickers *)
+    let origin_x_ = Line {
+        x= (0.); y=((hfloat -. pfloaty));
+        fx=(xscaler (wfloat)); fy=(hfloat -. pfloaty);
+        linewidth=2.; color="black"
+    } in
 
-    let ylegend = make_axis xscaler (_x_mn) (_x_mn) yscaler
-        (_y_mn-.(pfloaty*.2.)) (transformy) (_y_mx+.(pfloaty*.2.))
-    in
-
-    (* FIXME: clear start points in the graph *)
+    let origin_y_ = Line {
+        x= (pfloatx); y=(0.);
+        fx=(pfloatx); fy=(hfloat);
+        linewidth=2.; color="black"
+    } in
 
     (* from top to bottom *)
     let vlines = 
-        [] in
-        (*grid_vert_lines width num pfloatx *)
-        (*(transformy @@ yscaler (_y_mn)) *)
-        (*(transformy @@ yscaler (_y_mx)) in *)
+        grid_vlines (wfloat) ctx.plot.gridstep (pfloaty) (hfloat-.pfloaty) (pfloatx) in
 
     (* text on the x axis *)
-    let vtext = grid_vert_text width num pfloatx
-        (transformy @@ yscaler (_y_mn)) 
-        (transformy @@ yscaler (_y_mx)) xinverse in 
+    let vtext = 
+        grid_vtext (wfloat) ctx.plot.gridstep (pfloaty+.(float_of_int ctx.plot.ybound)) (pfloatx) xinverse in
 
     (* from left to right *)
     let hlines = 
-        grid_hor_lines height num pfloaty 
-        ((xscaler _x_mn)) 
-        (xscaler (_x_mx)) in 
+        grid_hlines (hfloat) ctx.plot.gridstep (pfloatx) (wfloat+.pfloatx) (pfloaty+.(float_of_int ctx.plot.ybound)) in
 
     (* text on the y axis *)
     let htext = 
-        grid_hor_text height num pfloatx 
-        ((xscaler _x_mn)) 
-        (xscaler (_x_mx)) yinverse reversetransy in 
+        grid_htext (hfloat) ctx.plot.gridstep (pfloatx) (pfloaty+.(float_of_int ctx.plot.ybound)) yinverse  in
 
     ctx.plot.plotcb (
         ctx.plot.handle, 
         [width; height],  
-        Reset :: ylegend :: xlegend :: ttl :: xt :: yt :: (List.of_seq _vals) @
-        vlines @ vtext @ hlines @ htext
+        Reset ::
+            origin_x_ :: origin_y_ ::
+            ttl :: xt :: yt :: (List.of_seq _vals) @
+            vlines @ vtext @ hlines @ htext
     ) 
 ;;
 

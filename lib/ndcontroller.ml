@@ -168,7 +168,6 @@ let create_default_controller label cb logger  =
 (* calculate projected size of any shape on a 2d grid. e.g [2,2] = 2 rows and 2
    columns, [1,2,3] = 2 rows and 3 columns, ....*)
 let span_of_shape shp =
-    let len = List.length shp in 
     let rec calc = function 
         | [] -> 
             (0, 0, 0)
@@ -180,7 +179,7 @@ let span_of_shape shp =
             (* project extra dimensions along the row and account for gaps from
                slice iteration 
                ln - 2 gives the number of gaps between slices on a row *)
-            (((batch * row) + (((batch - 1)))), col, 1)
+            (((batch * row) + (batch - 1)), col, 1)
         | mult :: rem -> 
             let (row, col, spc) = calc rem in 
             let nsp = spc + 1 in

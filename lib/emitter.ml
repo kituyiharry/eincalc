@@ -216,7 +216,8 @@ let transform_draw_elmnts elmnts =
 ;;
 
 let handle_plot_type (type data) xbound ybound handle plt grid (module M: Ndarray.NDarray with type t = data) (data: data) = 
-    let pltctx: Plotter.plotctx = { xbound; ybound; handle; plotcb=grid.plotcb; paddingx=90; paddingy=30; } in
+    let pltctx: Plotter.plotctx = { xbound; ybound; handle; plotcb=grid.plotcb;
+        paddingx=90; paddingy=30; gridstep=30. } in
     match plt with
     | Scatter { slices; props; _  } -> 
         (match slices with
@@ -231,8 +232,9 @@ let handle_plot_type (type data) xbound ybound handle plt grid (module M: Ndarra
             let border  = find_default_value props "b" "white"(select_str "scatter.b") in
             let paddingx= find_default_value props "px" 90    (select_positive_nat "scatter.px") in
             let paddingy= find_default_value props "py" 30    (select_positive_nat "scatter.py") in
+            let gridstep= find_default_value props "gs" 30.   (select_positive_num "scatter.py") in
             let ctx: Plotter.scatterctx = {
-                plot={ pltctx with paddingx; paddingy };xlabel;ylabel;color;border;radius
+                plot={ pltctx with paddingx; paddingy; gridstep };xlabel;ylabel;color;border;radius
             } in 
             Plotter.scatter ctx (module SliceView) xview yview 
         | _ -> 
@@ -402,6 +404,7 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
         acc
 ;;
 
+(* TODO: cache on recall *)
 let rec range_to_ndarray _grid n shp =
     (* spreadsheet cell *)
     (* TODO: optimization to avoid having to create tensors for some functions  *)
