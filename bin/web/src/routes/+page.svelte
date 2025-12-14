@@ -900,15 +900,7 @@
                     style={Object.entries(editorStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}
                 />
 
-                <div style={`
-position: absolute;
-top: 32px;
-right: 12px;
-background: white;
-padding: 10px;
-border-radius: 4px;
-font-size: 12px;
-`} class="shadow-2xl w-38 ">
+                <div style="position: absolute; top: 32px; right: 12px; background: white; padding: 10px; border-radius: 4px; font-size: 12px;" class="shadow-2xl w-38 ">
                     <div class="flex flex-col items-center"> 
                         <div class="text-lg">{selectionLabel}</div>
                         <div class="text-xs">{selectionSize}</div>
@@ -1115,7 +1107,7 @@ font-size: 12px;
                                         h += getRowHeight(row);
                                     }
                                     context.strokeStyle = "green";
-                                    context.lineWidth   = 1.;
+                                    context.lineWidth   = 1.25;
                                     context.strokeRect(x-5, y-5, w+10, h+10);
                                 }
 
@@ -1135,7 +1127,7 @@ font-size: 12px;
                                         h += getRowHeight(row);
                                     }
                                     context.strokeStyle = "red";
-                                    context.lineWidth   = 1.;
+                                    context.lineWidth   = 1.25;
                                     context.strokeRect(x+3, y+3, w-6, h-6);
                                 }
                                 context.restore()
@@ -1432,11 +1424,11 @@ ${erasorState ? "border border-red-400" : "" }`}
                         <div tabindex="-1" class="dropdown-content menu bg-base-100
                             shadow-xl transition-shadow duration-150
                             hover:shadow-primary-blue/50 rounded-box z-1 p-0
-                            mx-4 min-w-[420px]">
-                            <div class="menu flex flex-col min-w-[420px] items-start"> 
+                            mx-4 min-w-105">
+                            <div class="menu flex flex-col min-w-105 items-start"> 
                                 <h3 class="menu-title text-black text-lg">Formulaes</h3>
                                 <div class="divider grow py-0 my-0"></div>
-                                <ul class=" list ">
+                                <ul class=" list min-w-95 max-h-75 overflow-y-scroll">
                                     {#each formulaes as frm (frm.indx) }
                                         <li class="list-col-wrap grow justify-between px-0">
                                             <div class="flex-8 list-col-grow grow align-text-bottom pt-2">
@@ -1444,7 +1436,7 @@ ${erasorState ? "border border-red-400" : "" }`}
                                                     {frm.text.trim().replaceAll('\n', '')}
                                                 </span>
                                             </div>
-                                            <div class="bg-base-100"> 
+                                            <div class="bg-base-100 justify-start"> 
                                                 <button aria-label="formulae" 
                                                     onclick={() => {
                                                         if (debugFormula == frm.text) {
@@ -1457,7 +1449,7 @@ ${erasorState ? "border border-red-400" : "" }`}
                                                         writeFormulaeCells = frm.wrts;
                                                         debugFormula = frm.text
                                                     }}
-                                                    class="flex-2 btn btn-circle scale-80">
+                                                    class="btn btn-circle scale-80">
                                                     <i class='fa fa-md {frm.text ===
                                                         debugFormula ? "text-red-400 fa-eye-slash" : " fa-eye"}'></i>
                                                 </button>
@@ -1466,9 +1458,24 @@ ${erasorState ? "border border-red-400" : "" }`}
                                                     visibleCells.clear();
                                                     cellData = {};
                                                     funcText = frm.text.trim();
-                                                }} aria-label="formular" class="flex-2 btn
+                                                }} aria-label="formular" class="btn
                                                     btn-circle scale-80">
                                                     <i class="fa fa-md fa-refresh"></i>
+                                                </button>
+                                                <button aria-label="formulae" 
+                                                    onclick={() => {
+                                                    if ($controller.myLib?.deleteformulae(frm.text)) {
+                                                        if (debugFormula == frm.text) {
+                                                            readFormulaeCells  = [];
+                                                            writeFormulaeCells = [];
+                                                            debugFormula = "";
+                                                            return
+                                                        }
+                                                        updateFormulaes();
+                                                    }
+                                                    }}
+                                                    class="btn btn-circle scale-80">
+                                                    <i class='fa fa-md fa-trash'></i>
                                                 </button>
                                             </div>
                                         </li>

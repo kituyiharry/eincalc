@@ -117,6 +117,19 @@ let clear_sheet controller label =
         Stdlib.Error ("sheet " ^ label ^ " not found!")
 ;;
 
+let delete_formulae controller label src = 
+    match GridTable.find_opt controller.sheets label with
+    | Some grid -> 
+        let _ = grid.frmlst := List.filter (fun ((Parser.Stmt v) as p) -> 
+            let eq = String.equal (v.source) src in
+            let _ = if eq then grid.frmgrph := FormGraph.remove p !(grid.frmgrph) else () in
+            not eq
+        ) !(grid.frmlst) in 
+        Ok ()
+    | None -> 
+        Stdlib.Error ("sheet " ^ label ^ " not found!")
+;;
+
 let delete_sheet controller label = 
     let _ = GridTable.remove controller.sheets label in 
     GridTable.to_seq_keys controller.sheets 

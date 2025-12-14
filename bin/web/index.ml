@@ -94,6 +94,16 @@ let _ =
             js_str nsh
         )
 
+        method deleteformulae (formula: Js.js_string Js.t) = (
+            let shstr = Js.to_string formula in
+            match Eincalc.Ndcontroller.delete_formulae !sheet !((!sheet).active) shstr with 
+            | Ok _ -> 
+                Js._true
+            | Error e -> 
+                (!sheet).onlog (e, Eincalc.Ndcontroller.Error);
+                Js._false
+        )
+
         method clear (sheetname: Js.js_string Js.t)  = (
             let shstr = Js.to_string sheetname in
             match Eincalc.Ndcontroller.clear_sheet !sheet shstr with
