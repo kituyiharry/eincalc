@@ -62,8 +62,10 @@ To build and run the repl:
 ```bash 
 dune build --profile release
 dune exec  --profile release eincalc
-```
+# run an sample script
+dune exec --profile release eincalc -- --load ./sample/test.tsv --run ./sample/test.ein -i
 
+```
 To use the frontend
 
 ```bash 

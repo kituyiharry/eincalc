@@ -275,7 +275,7 @@ let dependants contr (Parser.Stmt ast as prog) =
                     | _ -> 
                         (* writes can write into the input of another formula *)
                         (* TODO: if a write doesn't write into another input zone we can prune it from the graph *)
-                        contr.onlog ("Some writes adding to graph", Warn);
+                        (*contr.onlog ("Some writes adding to graph", Warn);*)
                         controller.frmgrph := (FormGraph.add prog !(controller.frmgrph));
                         controller.frmlst := (prog :: !(controller.frmlst))
                 )

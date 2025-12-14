@@ -1,11 +1,22 @@
 <script>
   import { default as eincalc } from '$lib/eincalcwrapper';
+
   import { Canvas, Layer } from 'svelte-canvas';
   // TODO: standardize $controller so that we can type it
   import { onMount } from 'svelte';
-  import { Tween }   from 'svelte/motion';
+  import { controller } from './store';
 
- import { controller } from './store';
+  const is_chrome = /chrome/i.test( navigator.userAgent );
+  // const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+  // @
+  let sheets   = $state([])
+  function updateSheets() {
+      // ocaml arrays have a tag 
+      sheets = $controller.myLib?.available(false).splice(1);
+  }
+
+
 
   // editing support via floating input 
   let editor
@@ -44,7 +55,7 @@
   /** @type {FormulaCtx[]} */
   let formulaes = $state([])
   function updateFormulaes() {
-    let g = $controller.myLib.formulaes(false).splice(1);
+    let g = $controller.myLib?.formulaes(false).splice(1);
     // remove tags from OCaml
     formulaes = g.map((f) => {
         f.inps = f.inps.splice(1);
@@ -56,8 +67,19 @@
 
   onMount(() => {
 
-    $controller.myLib.renderarea(plotArea);
-    $controller.myLib.notificationcallback(function(obj){
+    updateSheets();
+    if (sheets.length < 1) {
+        $controller.myLib?.create("default");
+        $controller.myLib?.activate(sheets[0]);
+        $controller.active = "default";
+        sheets.push("default");
+    } else {
+        $controller.myLib?.activate(sheets[0]);
+        $controller.active = sheets[0];
+    }
+
+    $controller.myLib?.renderarea(plotArea);
+    $controller.myLib?.notificationcallback(function(obj){
         notifications.push(obj);
         setTimeout(() => { 
             notifications.splice(notifications.findIndex(({ id }) => id == obj.id), 1)
@@ -323,13 +345,13 @@
   let editValue = $state('');
 
   let funcBudgetWidth  = $state(0)
-  let funcBlockHeight  = Tween.of(() => 100, { duration: 200 });
+  let funcBlockHeight  = 100;
 
   let funcText  = $state('=(ij -> ji | write<B2>, @rand<100,[10,10]>)')
   let funcStyle = $derived ({
     position: 'fixed',
     bottom: `0px`,
-    height: `${funcBlockHeight.current}px`,
+    height: `${funcBlockHeight}px`,
     width:  `${funcBudgetWidth}px`,
     left:   `${DRAWER}px`
   });
@@ -388,7 +410,7 @@
 
 
   function erase(rowstart, colstart, rowend, colend) { 
-    $controller.myLib.griderase(rowstart, colstart, rowend, colend)
+    $controller.myLib?.griderase(rowstart, colstart, rowend, colend)
   }
   
   function handleWheel(e) {
@@ -404,7 +426,7 @@
           //  console.log(`Cell (${row}, ${col}) came into view - fetch data here`);
           //  actual async data fetching
           if (!cellData[key]) {
-              cellData[key] = $controller.myLib.get(row, col);
+              cellData[key] = $controller.myLib?.get(row, col);
           }
           visibleCells.add(key);
       }
@@ -606,14 +628,14 @@
             // executed code and write it back into this cell
             const cellStart = `${getColumnLabel(selectedCell.col)}${selectedCell.row+1}`;
             let code = `(${data.substring(1)}) | write<${cellStart}>`;
-            $controller.myLib.executecode(code);
+            $controller.myLib?.executecode(code);
             updateFormulaes();
             funcText = `=${code}`.replaceAll('\n', '');
             editValue = funcText;
             cellData = {};
             visibleCells.clear();
           } else {
-              $controller.myLib.paste(selectedCell.row, selectedCell.col, data);
+              $controller.myLib?.paste(selectedCell.row, selectedCell.col, data);
               if (editingCell != null) {
                   onCellVisible(selectedCell.row, selectedCell.col);
                   const key = `${selectedCell.row},${selectedCell.col}`;
@@ -657,7 +679,7 @@
         let code = `(${editOut.substring(1).trim()}) | write<${cellStart}>`;
 
         // TODO: make more explicit that after running executecode we update formulaes
-        $controller.myLib.executecode(code);
+        $controller.myLib?.executecode(code);
         updateFormulaes();
 
         funcText = `=${code}`;
@@ -667,9 +689,9 @@
         const num = parseFloat(editOut);  
         cellData[cellKey] = editOut;
         if (isNaN(num)) {
-            $controller.myLib.gridaddstring(editingCell.row, editingCell.col, editOut);
+            $controller.myLib?.gridaddstring(editingCell.row, editingCell.col, editOut);
         } else {
-            $controller.myLib.gridaddnumber(editingCell.row, editingCell.col, num);
+            $controller.myLib?.gridaddnumber(editingCell.row, editingCell.col, num);
             cellData = {};
             visibleCells.clear();
         }
@@ -732,749 +754,861 @@
 </script>
 
 <!--<svelte:window />-->
-<div class="drawer fixed mt-26 drawer-open" >
-    <input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
-    <div class="drawer-content" bind:this={plotArea} >
 
-        <div class='h-[90%] w-[100vw]'>
+<div>
+    <header class="after:pointer-events-none after:absolute
+        after:inset-x-0 after:inset-y-0 after:border-y after:border-white/10
+        border-b border-b-black z-auto">
+        <div class="pl-0">
+            <div role="tablist" class="pl-14 tabs "> 
 
-            <div class="mb-24 ml-12 toast toast-end toast-bottom">
-                {#each notifications as n (n.id) }
-                    <div class={`alert ${n.level == "error" ? "alert-error" : "alert-info"}`}>
-                        <div class="flex flex-row w-64 justify-between"> 
-                            <span class="text-xs whitespace-pre-wrap">{n.msg}</span>
-                            <button onclick={() => {
-                                notifications.splice(notifications.findIndex(({ id }) => id == n.id), 1)
-                            }} class="btn btn-xs btn-circle btn-neutral btn-outline" aria-label="close">
-                                <i class="fa fa-xs fa-window-close"></i>
+                {#each sheets as sh (sh)}
+                    <div role="tab" class='{!(is_chrome) ? "pr-8" : ""} menu outline-black row-auto space-x-2 px-2 tab tab-active border-x border-x-black {$controller.active == sh ? "bg-green-200" : ""}'>
+                        <button aria-label={sh} onclick={() => {
+                            if($controller.myLib?.activate(sh)) {
+                                controller.update(function(c){
+                                    c.active = sh;
+                                    c.refresh += 1;
+                                    return c
+                                });
+                            };
+                        }} class="cursor-pointer badge text-sm
+                            badge-neutral bg-white badge-outline">
+                            <i class={$controller.active == sh ? "fa fa-circle text-green-200" : "fa fa-circle text-gray-200"}> </i>
+                            {sh}
+                        </button>
+
+                        <div class="dropdown dropdown-bottom dropdown-center">
+                            <button tabindex="0" aria-label="edit"
+                                class='text-md badge border-black {$controller.active == sh ? "bg-green-200" : ""} hover:bg-gray-200 cursor-pointer'>
+                                <i class="fa fa-xs fa-ellipsis-v"></i>
                             </button>
+                            <div tabindex="-1" class="dropdown-content menu bg-base-100 shadow-xl transition-shadow duration-150 ">
+                                <ul class="px-0 gap-1"> 
+                                    <li class="py-1">
+                                        <button 
+                                            onclick={() => {
+                                                const newname = prompt(`Rename ${sh}`, `New Sheet: ${new Date().toLocaleString()}`);
+                                                if(newname && $controller.myLib?.rename($controller.active, newname)) {
+                                                    controller.update(function(c){
+                                                        updateSheets();
+                                                        c.myLib?.activate(newname);
+                                                        c.active = newname;
+                                                        c.refresh += 1;
+                                                        return c
+                                                    });
+                                                }
+                                            }}
+                                            aria-label="edit" class="text-md badge hover:bg-gray-200 cursor-pointer">
+                                            <i class="fa fa-sm fa-edit"></i>
+                                            Rename
+                                        </button>
+                                    </li>
+                                    <li class="py-1">
+                                        <button 
+                                            onclick={() => {
+                                                if($controller.myLib?.clear($controller.active)) {
+                                                    controller.update(function(c){
+                                                        updateSheets();
+                                                        c.refresh += 1;
+                                                        return c
+                                                    });
+                                                }
+                                            }}
+                                            aria-label="edit" class="text-md badge hover:bg-gray-200 cursor-pointer">
+                                            <i class="fa fa-sm fa-eraser"></i>
+                                            Clear
+                                        </button>
+                                    </li>
+                                    <li class="py-1">
+                                        <button 
+                                            disabled={sheets.length == 1}
+                                            aria-label="close"
+                                            onclick={() => {
+                                                const nsh = $controller.myLib?.delete(sh);
+                                                updateSheets();
+                                                controller.update(function(c){
+                                                    c.myLib?.activate(nsh);
+                                                    c.active = nsh;
+                                                    c.refresh += 1;
+                                                    return c
+                                                });
+                                            }}
+                                            class="text-md badge hover:bg-gray-200 cursor-pointer">
+                                            <i class={sheets.length == 1 ? "fa fa-sm text-gray-200 fa-close" : "fa fa-sm text-red-400 fa-close"}></i>
+                                            Close
+                                        </button>
+                                    </li>
+                                </ul> 
+                            </div>
                         </div>
                     </div>
                 {/each}
-            </div>
 
-            <!--TODO: wheel and touch events may not work as well on layers - find out why ?? --->
-            <input
-                bind:this={editor}
-                type="text"
-                bind:value={editValue}
-                onblur    ={handleEditorBlur}
-                onkeydown ={handleEditorKeyDown}
-                onpaste={handlePaste}
-                class="bg-black text-white text-xs "
-                style={Object.entries(editorStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}
-            />
-            
-            <div style={`
-              position: absolute;
-              top: 32px;
-              right: 12px;
-              background: white;
-              padding: 10px;
-              border-radius: 4px;
-              font-size: 12px;
-            `} class="shadow-2xl w-38 ">
-            <div class="flex flex-col items-center"> 
-                <div class="text-lg">{selectionLabel}</div>
-                <div class="text-xs">{selectionSize}</div>
-                <div class="flex flex-row px-8 w-full items-center justify-around">
-                    <div> 
-                        <i class="fa fa-angle-double-left fa-xs text-black text-center" aria-hidden="true"></i>
-                        {Math.round(scrollX)}
-                    </div>
-                    <div> 
-                        <i class="fa fa-angle-double-up fa-xs text-black text-center" aria-hidden="true"></i>
-                        {Math.round(scrollY)}
-                    </div>
-                </div>
-            </div>
-            </div>
-            <!--<div bind:this={overlay} class="pointer-events-none h-[90%] w-[100vw]">-->
-            <!--</div>-->
-
-            <!--layerEvents-->
-            <Canvas
-                bind:this={canvas}
-                ondblclick ={handleDoubleClick} 
-                onmousedown={handleMouseDown} 
-                ontouchstart={handleMouseDown} 
-                onmouseup={handleMouseUp}
-                ontouchend={handleMouseUp}
-                onmousemove={handleMouseMove}
-                ontouchmove={handleMouseMove}
-                onwheel={handleWheel} 
-                style={`display: block; cursor: ${cursorStyle}; font-family: Outfit`}>
-                {#key refresh}
-                    <Layer 
-                        render={ ({ context, width, height }) => { 
-                            // see: https://github.com/sveltejs/svelte/issues/15066
-                            // see: https://github.com/sveltejs/svelte/issues/2068
-                            funcBudgetWidth  = width;
-
-                            // Clear canvas
-                            context.clearRect(0, 0, width, height);
-
-                            // Calculate visible range
-                            // const startCol = Math.floor(scrollX / CELL_WIDTH);
-                            // const endCol   = Math.ceil((scrollX + width) / CELL_WIDTH);
-                            // const startRow = Math.floor(scrollY / CELL_HEIGHT);
-                            // const endRow   = Math.ceil((scrollY + height) / CELL_HEIGHT);
-
-                            // TODO: simplify clamping behaviour - logic is spread about
-                            let startCol = getColumnFromX(scrollX);
-                            if (startCol < 0) { startCol = 0; }
-
-                            let startRow = getRowFromY(scrollY);
-                            if (startRow < 0) { startRow = 0; }
-                             
-                            let endCol = startCol;
-                            let colX = getColumnX(startCol);
-                            while (colX < scrollX + width) {
-                               colX += getColumnWidth(endCol);
-                               endCol++;
-                            }
-                            if (endCol < 0) { endCol = 0; }
-
-                            let endRow = startRow;
-                            let rowY = getRowY(startRow);
-                            while (rowY < scrollY + height) {
-                               rowY += getRowHeight(endRow);
-                               endRow++;
-                            }
-                            if (endRow < 0) { endRow = 0; }
-
-                            const bounds = getSelectionBounds();
-
-                            // Draw cells
-                            // context.strokeStyle = '#ddd';
-                            // context.fillStyle   = '#000';
-                            // context.font        = '12px sans-serif';
-
-                            for (let row = startRow; row <= endRow; row++) {
-                                for (let col = startCol; col <= endCol; col++) {
-
-                                    //const x = col * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
-                                    //const y = row * CELL_HEIGHT - scrollY + HEADER_HEIGHT;
-
-                                    const x = getColumnX(col) - scrollX + ROW_HEADER_WIDTH;
-                                    const y = getRowY(row) - scrollY + HEADER_HEIGHT;
-                                    const w = getColumnWidth(col);
-                                    const h = getRowHeight(row);
-
-                                    // Call visibility callback
-                                    onCellVisible(row, col);
-
-                                    // Get cell style
-                                    const style = getCellStyle(row, col);
-
-                                    // Draw cell background
-                                    context.fillStyle = style.backgroundColor;
-                                    context.fillRect(x, y, w, h);
-
-                                    // Highlight selected cells
-                                    if (isCellSelected(row, col)) {
-                                        // context.fillStyle = '#e3f2fd';
-                                        context.fillStyle = selectStyle.foregroundColor;
-                                        // context.fillRect(x, y, CELL_WIDTH, CELL_HEIGHT);
-                                        context.fillRect(x, y, w, h);
-                                        context.fillStyle = '#000';
-                                    }
-
-                                    // Draw cell border
-                                    // context.strokeRect(x, y, CELL_WIDTH, CELL_HEIGHT);
-                                    context.strokeStyle = style.borderColor;
-                                    context.lineWidth = style.borderWidth;
-                                    context.strokeRect(x, y, w, h);
-
-                                    // Draw cell content
-                                    const cellKey = `${row},${col}`;
-                                    const cellValue = cellData[cellKey] || '';
-                                    if (cellValue) {
-                                        context.fillStyle = '#000';
-                                        // context.font = 'bold 16px sans-serif';
-                                        // context.fillText(cellValue, x + 5, y + 20);
-                                        context.save();
-                                        context.beginPath();
-                                        context.rect(x, y, w, h);
-                                        context.clip();
-
-                                         // Apply text styles
-                                        context.fillStyle = style.color;
-                                        context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize}px Outfit`;
-                                        // context.fillStyle = '#000';
-
-                                         // Calculate text position based on alignment
-                                        let textX = x + 5;
-                                        if (style.textAlign === 'center') {
-                                          textX = x + w / 2;
-                                          context.textAlign = 'center';
-                                        } else if (style.textAlign === 'right') {
-                                          textX = x + w - 5;
-                                          context.textAlign = 'right';
-                                        } else {
-                                          context.textAlign = 'left';
-                                        }
-                                        
-                                        let textY = y + h / 2 + style.fontSize / 3;
-                                        if (style.verticalAlign === 'top') {
-                                          textY = y + style.fontSize + 2;
-                                        } else if (style.verticalAlign === 'bottom') {
-                                          textY = y + h - 5;
-                                        }
- 
-                                        context.fillText(cellValue, textX, textY);
-                                        // context.fillText(cellValue, x + 5, y + (h / 2) + 5);
- 
-                                        // Draw text decoration
-                                        if (style.textDecoration === 'underline') {
-                                          const metrics = context.measureText(cellValue);
-                                          context.beginPath();
-                                          context.moveTo(textX - (style.textAlign === 'center' ? metrics.width / 2 : 0), textY + 2);
-                                          context.lineTo(textX + (style.textAlign === 'center' ? metrics.width / 2 : metrics.width), textY + 2);
-                                          context.strokeStyle = '#000000';
-                                          context.stroke();
-                                        }
-
-                                        context.restore();
-                                    }
-                                }
-                            }
-
-                            // Draw selection border
-                            if (bounds) {
-                                //const x =  bounds.startCol * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
-                                //const y =  bounds.startRow * CELL_HEIGHT - scrollY + HEADER_HEIGHT;
-                                //const w = (bounds.endCol - bounds.startCol + 1) * CELL_WIDTH;
-                                //const h = (bounds.endRow - bounds.startRow + 1) * CELL_HEIGHT;
-
-                                const x = getColumnX(bounds.startCol) - scrollX + ROW_HEADER_WIDTH;
-                                const y = getRowY(bounds.startRow) - scrollY + HEADER_HEIGHT;
-                                let w = 0;
-                                for (let col = bounds.startCol; col <= bounds.endCol; col++) {
-                                  w += getColumnWidth(col);
-                                }
-                                let h = 0;
-                                for (let row = bounds.startRow; row <= bounds.endRow; row++) {
-                                  h += getRowHeight(row);
-                                }
-
-                                context.strokeStyle = selectStyle.borderColor;
-                                context.lineWidth   = selectStyle.borderWidth;
-                                context.strokeRect(x, y, w, h);
-                            }
-
-                            context.save();
-                            context.setLineDash([5, 8]);
-                            // Draw debug border
-                            for (const i of writeFormulaeCells) {
-                                const x = getColumnX(i.startcol) - scrollX + ROW_HEADER_WIDTH;
-                                const y = getRowY(i.startrow) - scrollY + HEADER_HEIGHT;
-                                let w = 0;
-                                const iendcolminus = i.endcol - 1;
-                                const iendrowminus = i.endrow - 1;
-                                for (let col = i.startcol; col <= iendcolminus; ++col) {
-                                  w += getColumnWidth(col);
-                                }
-                                let h = 0;
-                                for (let row = i.startrow; row <= iendrowminus; ++row) {
-                                  h += getRowHeight(row);
-                                }
-                                context.strokeStyle = "green";
-                                context.lineWidth   = 2.;
-                                context.strokeRect(x-3, y-3, w+6, h+6);
-                            }
-
-                            context.setLineDash([7, 10]);
-                            // Draw debug border
-                            for (const i of readFormulaeCells) {
-                                const x = getColumnX(i.startcol) - scrollX + ROW_HEADER_WIDTH;
-                                const y = getRowY(i.startrow) - scrollY + HEADER_HEIGHT;
-                                let w = 0;
-                                const iendcolminus = i.endcol - 1;
-                                const iendrowminus = i.endrow - 1;
-                                for (let col = i.startcol; col <= iendcolminus; ++col) {
-                                  w += getColumnWidth(col);
-                                }
-                                let h = 0;
-                                for (let row = i.startrow; row <= iendrowminus; ++row) {
-                                  h += getRowHeight(row);
-                                }
-                                context.strokeStyle = "red";
-                                context.lineWidth   = 2.;
-                                context.strokeRect(x-1, y-1, w+2, h+2);
-                            }
-                            context.restore()
-
-                            // Draw column headers
-                            context.fillStyle = '#f5f5f5';
-                            context.fillRect(ROW_HEADER_WIDTH, 0, width - ROW_HEADER_WIDTH, HEADER_HEIGHT);
-                            context.fillStyle = '#000';
-                            context.font = ' bold 12px Outfit';
-                            context.strokeStyle = '#ddd';
-
-                            // Highlight selected column headers
-                            // const bounds = getSelectionBounds();
-                            for (let col = startCol; col <= endCol; col++) {
-                                //const x = col * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
-                                const x = getColumnX(col) - scrollX + ROW_HEADER_WIDTH;
-                                const w = getColumnWidth(col);
-
-
-                                if (bounds && col >= bounds.startCol && col <= bounds.endCol) {
-                                    // context.fillStyle = '#cce5ff';
-                                    context.fillStyle = selectStyle.foregroundColor;
-                                    //context.fillRect(x, 0, CELL_WIDTH, HEADER_HEIGHT);
-                                    context.fillRect(x, 0, w, HEADER_HEIGHT);
-                                    context.fillStyle = '#000';
-                                }
-
-                                // context.strokeRect(x, 0, CELL_WIDTH, HEADER_HEIGHT);
-                                context.strokeRect(x, 0, w, HEADER_HEIGHT);
-                                context.fillText(getColumnLabel(col), x + 5, 20);
-                            }
-
-                            // Draw row headers
-                            context.fillStyle = '#f5f5f5';
-                            context.fillRect(0, HEADER_HEIGHT, ROW_HEADER_WIDTH, height - HEADER_HEIGHT);
-                            context.fillStyle = '#000';
-
-                            for (let row = startRow; row <= endRow; row++) {
-                                // const y = row * CELL_HEIGHT - scrollY + HEADER_HEIGHT;
-                                const y = getRowY(row) - scrollY + HEADER_HEIGHT;
-                                const h = getRowHeight(row);
-
-                                // Highlight selected row headers
-                                //const bounds = getSelectionBounds();
-                                if (bounds && row >= bounds.startRow && row <= bounds.endRow) {
-                                    // context.fillStyle = '#cce5ff';
-                                    context.fillStyle = selectStyle.foregroundColor;
-                                    // context.fillRect(0, y, ROW_HEADER_WIDTH, CELL_HEIGHT);
-                                    context.fillRect(0, y, ROW_HEADER_WIDTH, h);
-                                    context.fillStyle = '#000';
-                                }
-
-                                // context.strokeRect(0, y, ROW_HEADER_WIDTH, CELL_HEIGHT);
-                                context.strokeRect(0, y, ROW_HEADER_WIDTH, h);
-                                context.fillText(`${(row + 1)}`, 5, y + (h/2) +5);
-                            }
-
-                            // Draw corner
-                            context.fillStyle = '#f5f5f5';
-                            context.fillRect(0, 0, ROW_HEADER_WIDTH, HEADER_HEIGHT);
-                            context.strokeRect(0, 0, ROW_HEADER_WIDTH, HEADER_HEIGHT);
-                        }} />
-                {/key}
-            </Canvas>
-
-            <div class="flex flex-col bg-transparent backdrop-blur-sm border-t
-                border-t-black resize-y" 
-                style={Object.entries(funcStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}>
-                <div aria-hidden="true" aria-label="drag" 
-                    ondblclick={(e) => { 
-                        if (e.shiftKey) { 
-                            funcBlockHeight.set(Math.max(
-                             funcBlockHeight.current - 20, 
-                             70,
-                            ))
-                        } else {
-                            funcBlockHeight.set(Math.min(
-                                funcBlockHeight.current + 20, 
-                                200
-                            ))
-                        } 
-                    }} 
-                    class="divider p-0 m-0 h-2 bg-gray-200" style="cursor:
-                        s-resize;"> 
-                </div>
-                <div class="flex flex-row bg-transparent h-full"> 
-                    <div class="flex bg-black items-center basis-4">
-                        <span class="p-4 text-center text-white">ƒ𝑥: {refresh}</span>
-                    </div>
-                    <textarea  
-                        class="font-light basis-8 px-4 py-2 text-[16px] resize-none min-w-full 
-                        text-black text-area textarea-neutral rounded-none"
-                        bind:value={funcText}
-                        style="font-family: Google Sans code;"
-                        onkeydown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                var breaker = false;
-                                if (funcText.trim().startsWith('=')) {
-                                    funcText.trim().substring(1).split(';').filter((v) => v.length > 0).forEach((code) => {
-                                        if (!breaker) {
-                                            breaker   = !$controller.myLib.executecode(code);
-                                            updateFormulaes();
-                                        }
-                                    })
-                                } else {
-                                    funcText.trim().split(';').filter((v) => v.length > 0).forEach((code) => {
-                                        if (!breaker) {
-                                            breaker = !$controller.myLib.executecode(code);
-                                            updateFormulaes();
-                                        }
-                                    })
-                                }
-                                // NB: this forces a refetch of data from the grid model
-                                visibleCells.clear();
-                                cellData = {};
+                <div role="tab" class="flex flex-col justify-center align-middle tab">
+                    <button
+                        onclick={() => {
+                            const nsh = `New Sheet: ${new Date().toLocaleString()}`;
+                            if($controller.myLib?.create(nsh)) {
+                                controller.update(function(c){
+                                    updateSheets();
+                                    c.myLib?.activate(nsh);
+                                    c.active = nsh;
+                                    c.refresh += 1;
+                                    return c
+                                });
                             }
                         }}
-                    ></textarea>
+                        aria-label="add" class="text-md badge hover:bg-gray-200 cursor-pointer">
+                        <i class="fa fa-sm
+                            fa-plus text-green-400"></i>
+                        Add
+                    </button>
                 </div>
+
+            </div>
+        </div>
+    </header>
+    <div class="drawer fixed drawer-open" >
+        <input id="my-drawer-4" type="checkbox" class="drawer-toggle" />
+        <div class="drawer-content" bind:this={plotArea} >
+            <div class='h-[90%] w-screen'>
+                <div class="mb-24 ml-12 toast toast-end toast-bottom">
+                    {#each notifications as n (n.id) }
+                        <div class={`alert ${n.level == "error" ? "alert-error" : "alert-info"}`}>
+                            <div class="flex flex-row w-64 justify-between"> 
+                                <span class="text-xs whitespace-pre-wrap">{n.msg}</span>
+                                <button onclick={() => {
+                                    notifications.splice(notifications.findIndex(({ id }) => id == n.id), 1)
+                                }} class="btn btn-xs btn-circle btn-neutral btn-outline" aria-label="close">
+                                    <i class="fa fa-xs fa-window-close"></i>
+                                </button>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+
+                <!--TODO: wheel and touch events may not work as well on layers - find out why ?? --->
+                <input
+                    bind:this={editor}
+                    type="text"
+                    bind:value={editValue}
+                    onblur    ={handleEditorBlur}
+                    onkeydown ={handleEditorKeyDown}
+                    onpaste={handlePaste}
+                    class="bg-black text-white text-xs "
+                    style={Object.entries(editorStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}
+                />
+
+                <div style={`
+position: absolute;
+top: 32px;
+right: 12px;
+background: white;
+padding: 10px;
+border-radius: 4px;
+font-size: 12px;
+`} class="shadow-2xl w-38 ">
+                    <div class="flex flex-col items-center"> 
+                        <div class="text-lg">{selectionLabel}</div>
+                        <div class="text-xs">{selectionSize}</div>
+                        <div class="flex flex-row px-8 w-full items-center justify-around">
+                            <div> 
+                                <i class="fa fa-angle-double-left fa-xs text-black text-center" aria-hidden="true"></i>
+                                {Math.round(scrollX)}
+                            </div>
+                            <div> 
+                                <i class="fa fa-angle-double-up fa-xs text-black text-center" aria-hidden="true"></i>
+                                {Math.round(scrollY)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!--<div bind:this={overlay} class="pointer-events-none h-[90%] w-[100vw]">-->
+                <!--</div>-->
+
+                <!--layerEvents-->
+                <Canvas
+                    bind:this={canvas}
+                    ondblclick ={handleDoubleClick} 
+                    onmousedown={handleMouseDown} 
+                    ontouchstart={handleMouseDown} 
+                    onmouseup={handleMouseUp}
+                    ontouchend={handleMouseUp}
+                    onmousemove={handleMouseMove}
+                    ontouchmove={handleMouseMove}
+                    onwheel={handleWheel} 
+                    style={`display: block; cursor: ${cursorStyle}; font-family: Outfit`}>
+                    {#key refresh}
+                        <Layer 
+                            render={ ({ context, width, height }) => { 
+                                // see: https://github.com/sveltejs/svelte/issues/15066
+                                // see: https://github.com/sveltejs/svelte/issues/2068
+                                funcBudgetWidth  = width;
+
+                                // Clear canvas
+                                context.clearRect(0, 0, width, height);
+
+                                // Calculate visible range
+                                // const startCol = Math.floor(scrollX / CELL_WIDTH);
+                                // const endCol   = Math.ceil((scrollX + width) / CELL_WIDTH);
+                                // const startRow = Math.floor(scrollY / CELL_HEIGHT);
+                                // const endRow   = Math.ceil((scrollY + height) / CELL_HEIGHT);
+
+                                // TODO: simplify clamping behaviour - logic is spread about
+                                let startCol = getColumnFromX(scrollX);
+                                if (startCol < 0) { startCol = 0; }
+
+                                let startRow = getRowFromY(scrollY);
+                                if (startRow < 0) { startRow = 0; }
+
+                                let endCol = startCol;
+                                let colX = getColumnX(startCol);
+                                while (colX < scrollX + width) {
+                                    colX += getColumnWidth(endCol);
+                                    endCol++;
+                                }
+                                if (endCol < 0) { endCol = 0; }
+
+                                let endRow = startRow;
+                                let rowY = getRowY(startRow);
+                                while (rowY < scrollY + height) {
+                                    rowY += getRowHeight(endRow);
+                                    endRow++;
+                                }
+                                if (endRow < 0) { endRow = 0; }
+
+                                const bounds = getSelectionBounds();
+
+                                // Draw cells
+                                // context.strokeStyle = '#ddd';
+                                // context.fillStyle   = '#000';
+                                // context.font        = '12px sans-serif';
+
+                                for (let row = startRow; row <= endRow; row++) {
+                                    for (let col = startCol; col <= endCol; col++) {
+
+                                        //const x = col * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
+                                        //const y = row * CELL_HEIGHT - scrollY + HEADER_HEIGHT;
+
+                                        const x = getColumnX(col) - scrollX + ROW_HEADER_WIDTH;
+                                        const y = getRowY(row) - scrollY + HEADER_HEIGHT;
+                                        const w = getColumnWidth(col);
+                                        const h = getRowHeight(row);
+
+                                        // Call visibility callback
+                                        onCellVisible(row, col);
+
+                                        // Get cell style
+                                        const style = getCellStyle(row, col);
+
+                                        // Draw cell background
+                                        context.fillStyle = style.backgroundColor;
+                                        context.fillRect(x, y, w, h);
+
+                                        // Highlight selected cells
+                                        if (isCellSelected(row, col)) {
+                                            // context.fillStyle = '#e3f2fd';
+                                            context.fillStyle = selectStyle.foregroundColor;
+                                            // context.fillRect(x, y, CELL_WIDTH, CELL_HEIGHT);
+                                            context.fillRect(x, y, w, h);
+                                            context.fillStyle = '#000';
+                                        }
+
+                                        // Draw cell border
+                                        // context.strokeRect(x, y, CELL_WIDTH, CELL_HEIGHT);
+                                        context.strokeStyle = style.borderColor;
+                                        context.lineWidth = style.borderWidth;
+                                        context.strokeRect(x, y, w, h);
+
+                                        // Draw cell content
+                                        const cellKey = `${row},${col}`;
+                                        const cellValue = cellData[cellKey] || '';
+                                        if (cellValue) {
+                                            context.fillStyle = '#000';
+                                            // context.font = 'bold 16px sans-serif';
+                                            // context.fillText(cellValue, x + 5, y + 20);
+                                            context.save();
+                                            context.beginPath();
+                                            context.rect(x, y, w, h);
+                                            context.clip();
+
+                                            // Apply text styles
+                                            context.fillStyle = style.color;
+                                            context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize}px Outfit`;
+                                            // context.fillStyle = '#000';
+
+                                            // Calculate text position based on alignment
+                                            let textX = x + 5;
+                                            if (style.textAlign === 'center') {
+                                                textX = x + w / 2;
+                                                context.textAlign = 'center';
+                                            } else if (style.textAlign === 'right') {
+                                                textX = x + w - 5;
+                                                context.textAlign = 'right';
+                                            } else {
+                                                context.textAlign = 'left';
+                                            }
+
+                                            let textY = y + h / 2 + style.fontSize / 3;
+                                            if (style.verticalAlign === 'top') {
+                                                textY = y + style.fontSize + 2;
+                                            } else if (style.verticalAlign === 'bottom') {
+                                                textY = y + h - 5;
+                                            }
+
+                                            context.fillText(cellValue, textX, textY);
+                                            // context.fillText(cellValue, x + 5, y + (h / 2) + 5);
+
+                                            // Draw text decoration
+                                            if (style.textDecoration === 'underline') {
+                                                const metrics = context.measureText(cellValue);
+                                                context.beginPath();
+                                                context.moveTo(textX - (style.textAlign === 'center' ? metrics.width / 2 : 0), textY + 2);
+                                                context.lineTo(textX + (style.textAlign === 'center' ? metrics.width / 2 : metrics.width), textY + 2);
+                                                context.strokeStyle = '#000000';
+                                                context.stroke();
+                                            }
+
+                                            context.restore();
+                                        }
+                                    }
+                                }
+
+                                // Draw selection border
+                                if (bounds) {
+                                    //const x =  bounds.startCol * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
+                                    //const y =  bounds.startRow * CELL_HEIGHT - scrollY + HEADER_HEIGHT;
+                                    //const w = (bounds.endCol - bounds.startCol + 1) * CELL_WIDTH;
+                                    //const h = (bounds.endRow - bounds.startRow + 1) * CELL_HEIGHT;
+
+                                    const x = getColumnX(bounds.startCol) - scrollX + ROW_HEADER_WIDTH;
+                                    const y = getRowY(bounds.startRow) - scrollY + HEADER_HEIGHT;
+                                    let w = 0;
+                                    for (let col = bounds.startCol; col <= bounds.endCol; col++) {
+                                        w += getColumnWidth(col);
+                                    }
+                                    let h = 0;
+                                    for (let row = bounds.startRow; row <= bounds.endRow; row++) {
+                                        h += getRowHeight(row);
+                                    }
+
+                                    context.strokeStyle = selectStyle.borderColor;
+                                    context.lineWidth   = selectStyle.borderWidth;
+                                    context.strokeRect(x, y, w, h);
+                                }
+
+                                context.save();
+                                context.setLineDash([5, 5]);
+                                // Draw debug border
+                                for (const i of writeFormulaeCells) {
+                                    const x = getColumnX(i.startcol) - scrollX + ROW_HEADER_WIDTH;
+                                    const y = getRowY(i.startrow) - scrollY + HEADER_HEIGHT;
+                                    let w = 0;
+                                    const iendcolminus = i.startcol == i.endcol ? i.endcol : i.endcol - 1;
+                                    const iendrowminus = i.startrow == i.endrow ? i.endrow : i.endrow - 1;
+                                    for (let col = i.startcol; col <= iendcolminus; ++col) {
+                                        w += getColumnWidth(col);
+                                    }
+                                    let h = 0;
+                                    for (let row = i.startrow; row <= iendrowminus; ++row) {
+                                        h += getRowHeight(row);
+                                    }
+                                    context.strokeStyle = "green";
+                                    context.lineWidth   = 1.;
+                                    context.strokeRect(x-5, y-5, w+10, h+10);
+                                }
+
+                                context.setLineDash([5, 5]);
+                                // Draw debug border
+                                for (const i of readFormulaeCells) {
+                                    const x = getColumnX(i.startcol) - scrollX + ROW_HEADER_WIDTH;
+                                    const y = getRowY(i.startrow) - scrollY + HEADER_HEIGHT;
+                                    let w = 0;
+                                    const iendcolminus = i.startcol == i.endcol ? i.endcol : i.endcol - 1;
+                                    const iendrowminus = i.startrow == i.endrow ? i.endrow : i.endrow - 1;
+                                    for (let col = i.startcol; col <= iendcolminus; ++col) {
+                                        w += getColumnWidth(col);
+                                    }
+                                    let h = 0;
+                                    for (let row = i.startrow; row <= iendrowminus; ++row) {
+                                        h += getRowHeight(row);
+                                    }
+                                    context.strokeStyle = "red";
+                                    context.lineWidth   = 1.;
+                                    context.strokeRect(x+3, y+3, w-6, h-6);
+                                }
+                                context.restore()
+
+                                // Draw column headers
+                                context.fillStyle = '#f5f5f5';
+                                context.fillRect(ROW_HEADER_WIDTH, 0, width - ROW_HEADER_WIDTH, HEADER_HEIGHT);
+                                context.fillStyle = '#000';
+                                context.font = ' bold 12px Outfit';
+                                context.strokeStyle = '#ddd';
+
+                                // Highlight selected column headers
+                                // const bounds = getSelectionBounds();
+                                for (let col = startCol; col <= endCol; col++) {
+                                    //const x = col * CELL_WIDTH - scrollX + ROW_HEADER_WIDTH;
+                                    const x = getColumnX(col) - scrollX + ROW_HEADER_WIDTH;
+                                    const w = getColumnWidth(col);
+
+
+                                    if (bounds && col >= bounds.startCol && col <= bounds.endCol) {
+                                        // context.fillStyle = '#cce5ff';
+                                        context.fillStyle = selectStyle.foregroundColor;
+                                        //context.fillRect(x, 0, CELL_WIDTH, HEADER_HEIGHT);
+                                        context.fillRect(x, 0, w, HEADER_HEIGHT);
+                                        context.fillStyle = '#000';
+                                    }
+
+                                    // context.strokeRect(x, 0, CELL_WIDTH, HEADER_HEIGHT);
+                                    context.strokeRect(x, 0, w, HEADER_HEIGHT);
+                                    context.fillText(getColumnLabel(col), x + 5, 20);
+                                }
+
+                                // Draw row headers
+                                context.fillStyle = '#f5f5f5';
+                                context.fillRect(0, HEADER_HEIGHT, ROW_HEADER_WIDTH, height - HEADER_HEIGHT);
+                                context.fillStyle = '#000';
+
+                                for (let row = startRow; row <= endRow; row++) {
+                                    // const y = row * CELL_HEIGHT - scrollY + HEADER_HEIGHT;
+                                    const y = getRowY(row) - scrollY + HEADER_HEIGHT;
+                                    const h = getRowHeight(row);
+
+                                    // Highlight selected row headers
+                                    //const bounds = getSelectionBounds();
+                                    if (bounds && row >= bounds.startRow && row <= bounds.endRow) {
+                                        // context.fillStyle = '#cce5ff';
+                                        context.fillStyle = selectStyle.foregroundColor;
+                                        // context.fillRect(0, y, ROW_HEADER_WIDTH, CELL_HEIGHT);
+                                        context.fillRect(0, y, ROW_HEADER_WIDTH, h);
+                                        context.fillStyle = '#000';
+                                    }
+
+                                    // context.strokeRect(0, y, ROW_HEADER_WIDTH, CELL_HEIGHT);
+                                    context.strokeRect(0, y, ROW_HEADER_WIDTH, h);
+                                    context.fillText(`${(row + 1)}`, 5, y + (h/2) +5);
+                                }
+
+                                // Draw corner
+                                context.fillStyle = '#f5f5f5';
+                                context.fillRect(0, 0, ROW_HEADER_WIDTH, HEADER_HEIGHT);
+                                context.strokeRect(0, 0, ROW_HEADER_WIDTH, HEADER_HEIGHT);
+                            }} />
+                    {/key}
+                </Canvas>
+
+                <div class="flex flex-col bg-transparent backdrop-blur-sm border-t
+                    border-t-black resize-y" 
+                    style={Object.entries(funcStyle).map(([k, v]) => `${k}: ${v}`).join('; ')}>
+                    <div aria-hidden="true" aria-label="drag" 
+                        ondblclick={(e) => { 
+                            if (e.shiftKey) { 
+                                funcBlockHeight = (Math.max(
+                                    funcBlockHeight- 20, 70,
+                                ))
+                            } else {
+                                funcBlockHeight = (Math.min(
+                                    funcBlockHeight + 20, 
+                                    200
+                                ))
+                            } 
+                        }} 
+                        class="divider p-0 m-0 h-2 bg-gray-200" style="cursor:
+                            s-resize;"> 
+                    </div>
+                    <div class="flex flex-row bg-transparent h-full"> 
+                        <div class="flex bg-black items-center basis-4">
+                            <span class="p-4 text-center text-white">ƒ𝑥: {refresh}</span>
+                        </div>
+                        <textarea  
+                            class="font-light basis-8 px-4 py-2 text-[16px] resize-none min-w-full 
+                            text-black text-area textarea-neutral rounded-none"
+                            bind:value={funcText}
+                            style="font-family: Google Sans code;"
+                            onkeydown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    var breaker = false;
+                                    if (funcText.trim().startsWith('=')) {
+                                        funcText.trim().substring(1).split(';').filter((v) => v.length > 0).forEach((code) => {
+                                            if (!breaker) {
+                                                breaker   = !$controller.myLib?.executecode(code);
+                                                updateFormulaes();
+                                            }
+                                        })
+                                    } else {
+                                        funcText.trim().split(';').filter((v) => v.length > 0).forEach((code) => {
+                                            if (!breaker) {
+                                                breaker = !$controller.myLib?.executecode(code);
+                                                updateFormulaes();
+                                            }
+                                        })
+                                    }
+                                    // NB: this forces a refetch of data from the grid model
+                                    visibleCells.clear();
+                                    cellData = {};
+                                }
+                            }}
+                        ></textarea>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="drawer-side is-drawer-close:overflow-visible  border-r border-r-black">
+            <label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
+            <div class="is-drawer-close:w-14 is-drawer-open:w-64 bg-base-200 
+                flex flex-col items-start min-h-full">
+                <!-- Sidebar content here -->
+                <ul class="menu w-full grow gap-2">
+
+                    <!-- list item -->
+                    <li class="">
+                        <button class="text-md is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Homepage">
+                            <i class="fa fa-th  text-gray-300" aria-hidden="true"></i>
+                            <span class="is-drawer-close:hidden">...</span>
+                        </button>
+                    </li>
+
+                    <!-- list item -->
+                    <li >
+                        <button onclick={() => modal?.showModal()} for="help_modal" class="text-md is-drawer-close:tooltip is-drawer-close:tooltip-right" 
+                            data-tip="Help">
+                            <i class="fa fa-question-circle" aria-hidden="true"></i>
+                            <span class="is-drawer-close:hidden">Help</span>
+                        </button>
+                    </li>
+
+                    <li>
+                        <button onclick={() => { 
+                            erasorState = !erasorState;
+                            cursorStyle = "crosshair";
+                            if (erasorState) {
+                                selectStyle.borderColor = 'red'; 
+                                selectStyle.borderWidth = 1;
+                                selectStyle.foregroundColor = '#fcc7ce'; 
+                                refresh++;
+                            } else {
+                                selectStyle.borderColor = '#1976d2'; 
+                                selectStyle.borderWidth = 1;
+                                selectStyle.foregroundColor = '#cce5ff'; 
+                                refresh++;
+                            }
+                        }} 
+                            class={`text-md is-drawer-close:tooltip
+is-drawer-close:tooltip-right 
+${erasorState ? "border border-red-400" : "" }`} 
+                            data-tip="Eraser mode">
+                            <i class={`fa fa-eraser ${erasorState ? "text-red-400" : "" }`} 
+                                aria-hidden="true"></i>
+                            <span class="is-drawer-close:hidden">Erase cells</span>
+                        </button>
+                    </li>
+
+                    <li class="dropdown dropdown-right dropdown-center">
+                        <button tabindex="0" class="text-md is-drawer-close:tooltip
+                            is-drawer-close:tooltip-right" data-tip="Text style">
+                            <i class="fa fa-font" aria-hidden="true"></i>
+                            <span class="is-drawer-close:hidden">Text Style</span>
+                        </button>
+                        <div tabindex="-1" class="dropdown-content menu bg-base-100
+                            shadow-xl transition-shadow duration-150
+                            hover:shadow-primary-blue/50 rounded-box z-1 w-56 p-2
+                            items-center justify-center mx-4">
+                            <div class="menu flex flex-col items-center"> 
+                                <h3 class="menu-title text-black text-lg">Text Style</h3>
+                                <div class="divider py-0 my-0"></div>
+                                <div class="flex flex-row py-4 px-3 items-center justify-between w-full">
+                                    <input id="fontsize" 
+                                        class="basis-2/3 range range-xs range-neutral" type="range" min="10" max="20" step="1" 
+                                        bind:value={styleBuffer.fontSize}
+                                        onclick={() => {
+                                            applyStyleToSelection({ fontSize: styleBuffer.fontSize })
+                                        }}
+                                        onchange={() => {
+                                            applyStyleToSelection({ fontSize: styleBuffer.fontSize })
+                                        }}  />
+                                    <label for="fontsize" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
+                                        <span>{styleBuffer.fontSize} px</span>
+                                    </label>
+                                </div> 
+                                <div class="flex flex-row py-2 px-6 justify-between w-full">
+                                    <button aria-label="none" class="px-3 border border-black rounded  text-md tooltip tooltip-bottom" 
+                                        data-tip="Bold" onclick={()=> {
+                                            if(styleBuffer.fontWeight == 'bold'){
+                                                styleBuffer.fontWeight = 'normal';
+                                            } else {
+                                                styleBuffer.fontWeight = 'bold';
+                                            }
+                                            applyStyleToSelection({ fontWeight: styleBuffer.fontWeight });
+                                        }}>
+                                        <i class="fa fa-bold fa-xs" aria-hidden="true"></i>
+                                    </button>
+                                    <button aria-label="none" class="px-3 border border-black rounded text-md tooltip
+                                        tooltip-bottom" data-tip="Italic" onclick={()=> {
+                                            if(styleBuffer.fontStyle == 'italic'){
+                                                styleBuffer.fontStyle = 'normal';
+                                            } else {
+                                                styleBuffer.fontStyle = 'italic';
+                                            }
+                                            applyStyleToSelection({ fontStyle: styleBuffer.fontStyle });
+                                        }}>
+                                        <i class="fa fa-italic fa-xs" aria-hidden="true"></i>
+                                    </button>
+                                    <button aria-label="none" class="px-3 border border-black rounded  text-md tooltip
+                                        tooltip-bottom" data-tip="Underline" onclick={()=> {
+                                            if(styleBuffer.textDecoration == 'none'){
+                                                styleBuffer.textDecoration = 'underline';
+                                            } else {
+                                                styleBuffer.textDecoration = 'none';
+                                            }
+                                            applyStyleToSelection({ textDecoration: styleBuffer.textDecoration });
+                                        }}>
+                                        <i class="fa fa-underline fa-xs" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                <div class="flex flex-row py-2 px-6 justify-between w-full">
+                                    <button aria-label="none" class="px-2 border border-black rounded  text-md tooltip tooltip-bottom" 
+                                        data-tip="Align Left" onclick={()=> {
+                                            if(styleBuffer.textAlign != 'left'){
+                                                styleBuffer.textAlign = 'left';
+                                            } else {
+                                                styleBuffer.textAlign = 'center';
+                                            }
+                                            applyStyleToSelection({ textAlign: styleBuffer.textAlign });
+                                        }}>
+                                        <i class="fa fa-align-left fa-xs" aria-hidden="true"></i>
+                                    </button>
+                                    <button aria-label="none" class="px-2 border border-black rounded text-md tooltip
+                                        tooltip-bottom" data-tip="Align Center" onclick={()=> {
+                                            styleBuffer.textAlign = 'center';
+                                            applyStyleToSelection({ textAlign: styleBuffer.textAlign });
+                                        }}>
+                                        <i class="fa fa-align-center fa-xs" aria-hidden="true"></i>
+                                    </button>
+                                    <button aria-label="none" class="px-2 border border-black rounded  text-md tooltip
+                                        tooltip-bottom" data-tip="Align Right" onclick={()=> {
+                                            if (styleBuffer.textAlign != 'right') {
+                                                styleBuffer.textAlign = 'right';
+                                            } else {
+                                                styleBuffer.textAlign = 'center';
+                                            }
+                                            applyStyleToSelection({ textAlign: styleBuffer.textAlign });
+                                        }}>
+                                        <i class="fa fa-align-right fa-xs" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                <div class="flex flex-row py-2 px-6 justify-between w-full">
+                                    <input id="fontcolor" 
+                                        class="basis-2/3 range range-xs range-neutral" 
+                                        type="color"
+                                        bind:value={styleBuffer.color}
+                                        onclick={() => {
+                                            applyStyleToSelection({ color: styleBuffer.color })
+                                        }}  
+                                        onchange={() => {
+                                            applyStyleToSelection({ color: styleBuffer.color })
+                                        }}  
+                                    />
+                                    <label for="fontcolor" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
+                                        <span>{styleBuffer.color}</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="dropdown dropdown-right dropdown-center">
+                        <button tabindex="0" class="text-md is-drawer-close:tooltip
+                            is-drawer-close:tooltip-right" data-tip="Formulaes">
+                            <i class="fa fa-code" aria-hidden="true"></i>
+                            <span class="is-drawer-close:hidden">Formulaes</span>
+                        </button>
+                        <div tabindex="-1" class="dropdown-content menu bg-base-100
+                            shadow-xl transition-shadow duration-150
+                            hover:shadow-primary-blue/50 rounded-box z-1 p-0
+                            mx-4 min-w-[420px]">
+                            <div class="menu flex flex-col min-w-[420px] items-start"> 
+                                <h3 class="menu-title text-black text-lg">Formulaes</h3>
+                                <div class="divider grow py-0 my-0"></div>
+                                <ul class=" list ">
+                                    {#each formulaes as frm (frm.indx) }
+                                        <li class="list-col-wrap grow justify-between px-0">
+                                            <div class="flex-8 list-col-grow grow align-text-bottom pt-2">
+                                                <span class="text-sm ">
+                                                    {frm.text.trim().replaceAll('\n', '')}
+                                                </span>
+                                            </div>
+                                            <div class="bg-base-100"> 
+                                                <button aria-label="formulae" 
+                                                    onclick={() => {
+                                                        if (debugFormula == frm.text) {
+                                                            readFormulaeCells  = [];
+                                                            writeFormulaeCells = [];
+                                                            debugFormula = "";
+                                                            return
+                                                        }
+                                                        readFormulaeCells  = frm.inps;
+                                                        writeFormulaeCells = frm.wrts;
+                                                        debugFormula = frm.text
+                                                    }}
+                                                    class="flex-2 btn btn-circle scale-80">
+                                                    <i class='fa fa-md {frm.text ===
+                                                        debugFormula ? "text-red-400 fa-eye-slash" : " fa-eye"}'></i>
+                                                </button>
+                                                <button onclick={() => {
+                                                    $controller.myLib?.executecode(frm.text);
+                                                    visibleCells.clear();
+                                                    cellData = {};
+                                                    funcText = frm.text.trim();
+                                                }} aria-label="formular" class="flex-2 btn
+                                                    btn-circle scale-80">
+                                                    <i class="fa fa-md fa-refresh"></i>
+                                                </button>
+                                            </div>
+                                        </li>
+                                    {/each}
+                                </ul>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="dropdown dropdown-right dropdown-center">
+                        <button tabindex="0" class="text-md is-drawer-close:tooltip
+                            is-drawer-close:tooltip-right" data-tip="Table Style">
+                            <i class="fa fa-table" aria-hidden="true"></i>
+                            <span class="is-drawer-close:hidden">Table Style</span>
+                        </button>
+                        <div tabindex="-1" class="dropdown-content menu bg-base-100
+                            shadow-xl transition-shadow duration-150
+                            hover:shadow-primary-blue/50 rounded-box z-1 w-56 p-2
+                            items-center justify-center mx-4">
+                            <div class="menu flex flex-col items-center"> 
+                                <h3 class="menu-title text-black text-lg">Cell Style</h3>
+                                <div class="divider py-0 my-0"></div>
+                                <h3 class="text-black text-sm">Border Width</h3>
+                                <div class="flex flex-row py-4 px-3 items-center justify-between w-full">
+                                    <input id="bordersize" 
+                                        class="basis-2/3 range range-xs range-neutral" type="range" min="1" max="4" step="1" 
+                                        bind:value={styleBuffer.borderWidth}
+                                        onclick={() => {
+                                            applyStyleToSelection({ borderWidth: styleBuffer.borderWidth })
+                                        }}
+                                        onchange={() => {
+                                            applyStyleToSelection({ borderWidth: styleBuffer.borderWidth })
+                                        }}
+                                    />
+                                    <label for="bordersize" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
+                                        <span>{styleBuffer.borderWidth} em </span>
+                                    </label>
+                                </div>
+                                <h3 class="text-black text-xs">Background Color</h3>
+                                <div class="flex flex-row py-2 px-6 justify-between w-full">
+                                    <input id="backgroundcolor" 
+                                        class="basis-2/3 range range-xs range-neutral" 
+                                        type="color"
+                                        bind:value={styleBuffer.backgroundColor}
+                                        onclick={() => {
+                                            applyStyleToSelection({ backgroundColor: styleBuffer.backgroundColor })
+                                        }}  
+                                        onchange={() => {
+                                            applyStyleToSelection({ backgroundColor: styleBuffer.backgroundColor })
+                                        }}  
+                                    />
+                                    <label for="backgroundcolor" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
+                                        <span>{styleBuffer.backgroundColor }</span>
+                                    </label>
+                                </div>
+                                <h3 class="text-black text-sm">Border Color</h3>
+                                <div class="flex flex-row py-2 px-6 justify-between w-full">
+                                    <input id="bordercolor" 
+                                        class="basis-2/3 range range-xs range-neutral" 
+                                        type="color"
+                                        bind:value={styleBuffer.borderColor}
+                                        onclick={() => {
+                                            applyStyleToSelection({ borderColor: styleBuffer.borderColor })
+                                        }} 
+                                        onchange={() => {
+                                            applyStyleToSelection({ borderColor: styleBuffer.borderColor })
+                                        }} 
+                                    />
+                                    <label for="bordercolor" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
+                                        <span>{styleBuffer.borderColor}</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li>
+                        <button class="text-md is-drawer-close:tooltip
+                            is-drawer-close:tooltip-right" data-tip="Import">
+                            <i class="fa fa-upload text-gray-300" aria-hidden="true"></i>
+                            <span class="is-drawer-close:hidden">Import</span>
+                        </button>
+                    </li>
+
+                </ul>
             </div>
         </div>
 
+
+        <!-- Put this part before </body> tag -->
+        <input type="checkbox" id="help_modal" />
+        <dialog bind:this={modal} class="modal">
+            <div class="modal-box">
+                <h3 class="text-lg font-bold">Hello!<i class="fa fa-magic px-1"></i></h3>
+                <article class="py-4">
+
+                    <p>
+                        Eincalc is spreadsheet engine modeled around tensor operations targeting
+                        the web. This product is still in Alpha so expect some bugs. Saving is
+                        not supported at the moment!
+                    </p>
+
+                    <br />
+                    <p>
+                        Try it out - copy this into any cell 
+
+
+                        <br /> 
+                        <kbd>=([1,2,3,4,5,6,7,8,9]*2) | reshape&lt[3,3]&gt</kbd>
+                        <br /> 
+                        or Multiply 2 random valued matrices and square the values (bounds
+                        of 1 and -1 respectively)
+
+                        <br />
+                        <br />
+                        <kbd>=(ij,jk->ik, @rand&lt1,[100,100]&gt, @rand&lt-1,[100,100]&gt) | pow&lt2&gt </kbd>
+                        <br />
+                    </p>
+                    <br />
+
+                    <a target="_blank" class="text-blue-700" 
+                        href="https://github.com/kituyiharry/eincalc?tab=readme-ov-file#formulae">
+                        more example functions | expressions to start experimenting
+                    </a>
+
+                    <p> <strong>Quick Tip</strong>: Cell ranges are separated by <kbd>..</kbd> and not
+                        a column for you excel or sheets users. So <em>A1:B2</em> becomes 
+                        <em>@A1..B2</em> and <em>=A1+A2</em> becomes <em>=@A1 + @A2</em>
+                    </p>
+
+                    More to come!
+                    <form method="dialog">
+                        <button onclick={() => modal.close()} class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                    </form>
+                </article>
+
+            </div>
+            <label class="modal-backdrop" for="help_modal">Close</label>
+        </dialog>
     </div>
-
-    <div class="drawer-side is-drawer-close:overflow-visible  border-r border-r-black">
-        <label for="my-drawer-4" aria-label="close sidebar" class="drawer-overlay"></label>
-        <div class="is-drawer-close:w-14 is-drawer-open:w-64 bg-base-200 
-            flex flex-col items-start min-h-full">
-            <!-- Sidebar content here -->
-            <ul class="menu w-full grow gap-2">
-
-                <!-- list item -->
-                <li class="">
-                    <button class="text-md is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Homepage">
-                        <i class="fa fa-th  text-gray-300" aria-hidden="true"></i>
-                        <span class="is-drawer-close:hidden">...</span>
-                    </button>
-                </li>
-
-                <!-- list item -->
-                <li >
-                    <button onclick={() => modal?.showModal()} for="help_modal" class="text-md is-drawer-close:tooltip is-drawer-close:tooltip-right" 
-                        data-tip="Help">
-                        <i class="fa fa-question-circle" aria-hidden="true"></i>
-                        <span class="is-drawer-close:hidden">Help</span>
-                    </button>
-                </li>
-
-                <li>
-                    <button onclick={() => { 
-                                erasorState = !erasorState;
-                                cursorStyle = "crosshair";
-                                if (erasorState) {
-                                    selectStyle.borderColor = 'red'; 
-                                    selectStyle.borderWidth = 1;
-                                    selectStyle.foregroundColor = '#fcc7ce'; 
-                                    refresh++;
-                                } else {
-                                    selectStyle.borderColor = '#1976d2'; 
-                                    selectStyle.borderWidth = 1;
-                                    selectStyle.foregroundColor = '#cce5ff'; 
-                                    refresh++;
-                                }
-                            }} 
-                        class={`text-md is-drawer-close:tooltip
-                        is-drawer-close:tooltip-right 
-                        ${erasorState ? "border border-red-400" : "" }`} 
-                        data-tip="Eraser mode">
-                        <i class={`fa fa-eraser ${erasorState ? "text-red-400" : "" }`} 
-                            aria-hidden="true"></i>
-                        <span class="is-drawer-close:hidden">Erase cells</span>
-                    </button>
-                </li>
-
-                <li class="dropdown dropdown-right dropdown-center">
-                    <button tabindex="0" class="text-md is-drawer-close:tooltip
-                        is-drawer-close:tooltip-right" data-tip="Text style">
-                        <i class="fa fa-font" aria-hidden="true"></i>
-                        <span class="is-drawer-close:hidden">Text Style</span>
-                    </button>
-                    <div tabindex="-1" class="dropdown-content menu bg-base-100
-                        shadow-xl transition-shadow duration-150
-                        hover:shadow-primary-blue/50 rounded-box z-1 w-56 p-2
-                        items-center justify-center mx-4">
-                        <div class="menu flex flex-col items-center"> 
-                            <h3 class="menu-title text-black text-lg">Text Style</h3>
-                            <div class="divider py-0 my-0"></div>
-                            <div class="flex flex-row py-4 px-3 items-center justify-between w-full">
-                                <input id="fontsize" 
-                                class="basis-2/3 range range-xs range-neutral" type="range" min="10" max="20" step="1" 
-                                    bind:value={styleBuffer.fontSize}
-                                    onclick={() => {
-                                        applyStyleToSelection({ fontSize: styleBuffer.fontSize })
-                                    }}
-                                    onchange={() => {
-                                        applyStyleToSelection({ fontSize: styleBuffer.fontSize })
-                                    }}  />
-                                <label for="fontsize" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
-                                    <span>{styleBuffer.fontSize} px</span>
-                                </label>
-                            </div> 
-                            <div class="flex flex-row py-2 px-6 justify-between w-full">
-                                <button aria-label="none" class="px-3 border border-black rounded  text-md tooltip tooltip-bottom" 
-                                    data-tip="Bold" onclick={()=> {
-                                        if(styleBuffer.fontWeight == 'bold'){
-                                            styleBuffer.fontWeight = 'normal';
-                                        } else {
-                                            styleBuffer.fontWeight = 'bold';
-                                        }
-                                        applyStyleToSelection({ fontWeight: styleBuffer.fontWeight });
-                                    }}>
-                                  <i class="fa fa-bold fa-xs" aria-hidden="true"></i>
-                                </button>
-                                <button aria-label="none" class="px-3 border border-black rounded text-md tooltip
-                                    tooltip-bottom" data-tip="Italic" onclick={()=> {
-                                        if(styleBuffer.fontStyle == 'italic'){
-                                            styleBuffer.fontStyle = 'normal';
-                                        } else {
-                                            styleBuffer.fontStyle = 'italic';
-                                        }
-                                        applyStyleToSelection({ fontStyle: styleBuffer.fontStyle });
-                                    }}>
-                                  <i class="fa fa-italic fa-xs" aria-hidden="true"></i>
-                                </button>
-                                <button aria-label="none" class="px-3 border border-black rounded  text-md tooltip
-                                    tooltip-bottom" data-tip="Underline" onclick={()=> {
-                                        if(styleBuffer.textDecoration == 'none'){
-                                            styleBuffer.textDecoration = 'underline';
-                                        } else {
-                                            styleBuffer.textDecoration = 'none';
-                                        }
-                                        applyStyleToSelection({ textDecoration: styleBuffer.textDecoration });
-                                    }}>
-                                  <i class="fa fa-underline fa-xs" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                            <div class="flex flex-row py-2 px-6 justify-between w-full">
-                                <button aria-label="none" class="px-2 border border-black rounded  text-md tooltip tooltip-bottom" 
-                                    data-tip="Align Left" onclick={()=> {
-                                        if(styleBuffer.textAlign != 'left'){
-                                            styleBuffer.textAlign = 'left';
-                                        } else {
-                                            styleBuffer.textAlign = 'center';
-                                        }
-                                        applyStyleToSelection({ textAlign: styleBuffer.textAlign });
-                                    }}>
-                                  <i class="fa fa-align-left fa-xs" aria-hidden="true"></i>
-                                </button>
-                                <button aria-label="none" class="px-2 border border-black rounded text-md tooltip
-                                    tooltip-bottom" data-tip="Align Center" onclick={()=> {
-                                        styleBuffer.textAlign = 'center';
-                                        applyStyleToSelection({ textAlign: styleBuffer.textAlign });
-                                    }}>
-                                  <i class="fa fa-align-center fa-xs" aria-hidden="true"></i>
-                                </button>
-                                <button aria-label="none" class="px-2 border border-black rounded  text-md tooltip
-                                    tooltip-bottom" data-tip="Align Right" onclick={()=> {
-                                        if (styleBuffer.textAlign != 'right') {
-                                            styleBuffer.textAlign = 'right';
-                                        } else {
-                                            styleBuffer.textAlign = 'center';
-                                        }
-                                        applyStyleToSelection({ textAlign: styleBuffer.textAlign });
-                                    }}>
-                                  <i class="fa fa-align-right fa-xs" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                            <div class="flex flex-row py-2 px-6 justify-between w-full">
-                                <input id="fontcolor" 
-                                    class="basis-2/3 range range-xs range-neutral" 
-                                    type="color"
-                                    bind:value={styleBuffer.color}
-                                    onclick={() => {
-                                        applyStyleToSelection({ color: styleBuffer.color })
-                                    }}  
-                                    onchange={() => {
-                                        applyStyleToSelection({ color: styleBuffer.color })
-                                    }}  
-                                />
-                                <label for="fontcolor" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
-                                    <span>{styleBuffer.color}</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </li>
-
-                <li class="dropdown dropdown-right dropdown-center">
-                    <button tabindex="0" class="text-md is-drawer-close:tooltip
-                        is-drawer-close:tooltip-right" data-tip="Formulaes">
-                        <i class="fa fa-code" aria-hidden="true"></i>
-                        <span class="is-drawer-close:hidden">Formulaes</span>
-                    </button>
-                    <div tabindex="-1" class="dropdown-content menu bg-base-100
-                        shadow-xl transition-shadow duration-150
-                        hover:shadow-primary-blue/50 rounded-box z-1 p-0
-                        mx-4 min-w-[420px]">
-                        <div class="menu flex flex-col min-w-[420px] items-start"> 
-                            <h3 class="menu-title text-black text-lg">Formulaes</h3>
-                            <div class="divider grow py-0 my-0"></div>
-                            <ul class=" list ">
-                                {#each formulaes as frm (frm.indx) }
-                                    <li class="list-col-wrap grow justify-between px-0">
-                                        <div class="flex-8 list-col-grow grow align-text-bottom pt-2">
-                                          <span class="text-sm ">
-                                            {frm.text.trim().replaceAll('\n', '')}
-                                         </span>
-                                        </div>
-                                        <div class="bg-base-100"> 
-                                        <button aria-label="formulae" 
-                                            onclick={() => {
-                                                if (debugFormula == frm.text) {
-                                                    readFormulaeCells  = [];
-                                                    writeFormulaeCells = [];
-                                                    debugFormula = "";
-                                                    return
-                                                }
-                                                readFormulaeCells  = frm.inps;
-                                                writeFormulaeCells = frm.wrts;
-                                                debugFormula = frm.text
-                                            }}
-                                            class="flex-2 btn btn-circle scale-80">
-                                            <i class='fa fa-md {frm.text ===
-                                                debugFormula ? "text-red-400 fa-eye-slash" : " fa-eye"}'></i>
-                                        </button>
-                                        <button onclick={() => {
-                                            $controller.myLib.executecode(frm.text);
-                                            visibleCells.clear();
-                                            cellData = {};
-                                            funcText = frm.text.trim();
-                                        }} aria-label="formular" class="flex-2 btn
-                                            btn-circle scale-80">
-                                            <i class="fa fa-md fa-refresh"></i>
-                                        </button>
-                                        </div>
-                                    </li>
-                                {/each}
-                            </ul>
-                        </div>
-                    </div>
-                </li>
-
-                <li class="dropdown dropdown-right dropdown-center">
-                    <button tabindex="0" class="text-md is-drawer-close:tooltip
-                        is-drawer-close:tooltip-right" data-tip="Table Style">
-                        <i class="fa fa-table" aria-hidden="true"></i>
-                        <span class="is-drawer-close:hidden">Table Style</span>
-                    </button>
-                    <div tabindex="-1" class="dropdown-content menu bg-base-100
-                        shadow-xl transition-shadow duration-150
-                        hover:shadow-primary-blue/50 rounded-box z-1 w-56 p-2
-                        items-center justify-center mx-4">
-                        <div class="menu flex flex-col items-center"> 
-                            <h3 class="menu-title text-black text-lg">Cell Style</h3>
-                            <div class="divider py-0 my-0"></div>
-                            <h3 class="text-black text-sm">Border Width</h3>
-                            <div class="flex flex-row py-4 px-3 items-center justify-between w-full">
-                                <input id="bordersize" 
-                                    class="basis-2/3 range range-xs range-neutral" type="range" min="1" max="4" step="1" 
-                                    bind:value={styleBuffer.borderWidth}
-                                    onclick={() => {
-                                        applyStyleToSelection({ borderWidth: styleBuffer.borderWidth })
-                                    }}
-                                    onchange={() => {
-                                        applyStyleToSelection({ borderWidth: styleBuffer.borderWidth })
-                                    }}
-                                />
-                                <label for="bordersize" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
-                                    <span>{styleBuffer.borderWidth} em </span>
-                                </label>
-                            </div>
-                            <h3 class="text-black text-xs">Background Color</h3>
-                            <div class="flex flex-row py-2 px-6 justify-between w-full">
-                                <input id="backgroundcolor" 
-                                    class="basis-2/3 range range-xs range-neutral" 
-                                    type="color"
-                                    bind:value={styleBuffer.backgroundColor}
-                                    onclick={() => {
-                                        applyStyleToSelection({ backgroundColor: styleBuffer.backgroundColor })
-                                    }}  
-                                    onchange={() => {
-                                        applyStyleToSelection({ backgroundColor: styleBuffer.backgroundColor })
-                                    }}  
-                                />
-                                <label for="backgroundcolor" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
-                                    <span>{styleBuffer.backgroundColor }</span>
-                                </label>
-                            </div>
-                            <h3 class="text-black text-sm">Border Color</h3>
-                            <div class="flex flex-row py-2 px-6 justify-between w-full">
-                                <input id="bordercolor" 
-                                    class="basis-2/3 range range-xs range-neutral" 
-                                    type="color"
-                                    bind:value={styleBuffer.borderColor}
-                                    onclick={() => {
-                                        applyStyleToSelection({ borderColor: styleBuffer.borderColor })
-                                    }} 
-                                    onchange={() => {
-                                        applyStyleToSelection({ borderColor: styleBuffer.borderColor })
-                                    }} 
-                                />
-                                <label for="bordercolor" class="basis-1/3 w-full items-center text-center px-2.5 text-md"> 
-                                    <span>{styleBuffer.borderColor}</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </li>
-
-                <li>
-                    <button class="text-md is-drawer-close:tooltip
-                        is-drawer-close:tooltip-right" data-tip="Import">
-                        <i class="fa fa-upload text-gray-300" aria-hidden="true"></i>
-                        <span class="is-drawer-close:hidden">Import</span>
-                    </button>
-                </li>
-
-            </ul>
-        </div>
-    </div>
-
-
-    <!-- Put this part before </body> tag -->
-    <input type="checkbox" id="help_modal" />
-    <dialog bind:this={modal} class="modal">
-      <div class="modal-box">
-        <h3 class="text-lg font-bold">Hello!<i class="fa fa-magic px-1"></i></h3>
-        <article class="py-4">
-
-        <p>
-        Eincalc is spreadsheet engine modeled around tensor operations targeting
-        the web. This product is still in Alpha so expect some bugs. Saving is
-        not supported at the moment!
-        </p>
-
-        <br />
-        <p>
-            Try it out - copy this into any cell 
-
-
-            <br /> 
-            <kbd>=([1,2,3,4,5,6,7,8,9]*2) | reshape&lt[3,3]&gt</kbd>
-            <br /> 
-            or Multiply 2 random valued matrices and square the values (bounds
-            of 1 and -1 respectively)
-
-            <br />
-            <br />
-            <kbd>=(ij,jk->ik, @rand&lt1,[100,100]&gt, @rand&lt-1,[100,100]&gt) | pow&lt2&gt </kbd>
-            <br />
-        </p>
-        <br />
-        
-        <a target="_blank" class="text-blue-700" 
-            href="https://github.com/kituyiharry/eincalc?tab=readme-ov-file#formulae">
-            more example functions | expressions to start experimenting
-        </a>
-
-        <p> <strong>Quick Tip</strong>: Cell ranges are separated by <kbd>..</kbd> and not
-            a column for you excel or sheets users. So <em>A1:B2</em> becomes 
-            <em>@A1..B2</em> and <em>=A1+A2</em> becomes <em>=@A1 + @A2</em>
-        </p>
-
-        More to come!
-        <form method="dialog">
-            <button onclick={() => modal.close()} class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-        </form>
-        </article>
-
-      </div>
-      <label class="modal-backdrop" for="help_modal">Close</label>
-    </dialog>
-
 </div>
 
 
