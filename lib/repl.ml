@@ -114,20 +114,27 @@ let handle_input grid (data: Buffer.t) =
     let l = Buffer.length data in
     (if l > 0 then
         let o = Buffer.to_bytes data |> Bytes.trim |> Bytes.to_string in
-        (match String.unsafe_get o 0 with 
-            | '!' -> (
-                (match String.get o 1 with 
-                    | 'q' | 'Q' ->  let _ = Format.printf "Goodbye :-)\n" in false
-                    | _   ->  true
-                )
-            )
-            | '=' -> (
+        if String.starts_with ~prefix:"=" o then 
                 let _ = scan_and_notify grid (String.sub o 1 (l-1)) in 
                 let _ = Buffer.clear data in
                 true
-            ) 
+        else
+        (match o with 
+            | "q" | "quit" | "!q" -> (
+                let _ = Format.printf "Goodbye :-)\n" in false
+            )
+            | "f" | "formulaes" | "formulas" -> (
+                (match Ndcontroller.formulaes grid !(grid.active) with 
+                |  Ok fl ->
+                    let _ = 
+                        List.iter (fun f -> Format.printf "%d: %s\n" f.Ndcontroller.indx f.Ndcontroller.text) fl
+                        in true
+                | Error e -> 
+                    let _ = Format.printf "Error: %s\n" e 
+                    in true
+                )
+            )
             |  _  -> (
-                let _ = Format.printf "%s" o   in
                 let _ = Buffer.clear data      in
                 true
             )
@@ -136,15 +143,20 @@ let handle_input grid (data: Buffer.t) =
         true)
 ;;
 
+(* FIXME: input bufferring seems wonky on some terminals - idk why!! *)
 let repl (grid: Ndcontroller.gridcontroller) () = 
     let buf = Buffer.create 1024 in 
     let rec input_formula bufc = 
         let l = Buffer.length bufc in
-        let _ = if l == 0 then Format.printf ">>> %!" else () in
+        let _ = if l == 0 then Format.printf ">>>> %!" else () in
         let _ =
-            Seq.of_dispenser (fun () -> In_channel.input_char In_channel.stdin)
-            |> Seq.take_while ((!=)'\n')
-            |> Seq.iter (Buffer.add_char buf) 
+            In_channel.input_line In_channel.stdin
+            |> (function 
+                | Some s -> 
+                    Buffer.add_string bufc s 
+                | None _ -> 
+                    ()
+            )
         in 
         if handle_input grid bufc then input_formula bufc else ()
     in 

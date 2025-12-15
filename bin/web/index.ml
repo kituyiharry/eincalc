@@ -132,7 +132,7 @@ let _ =
         )
 
         method formulaes (_)  = (
-            match Eincalc.Ndcontroller.formulaes !sheet with
+            match Eincalc.Ndcontroller.formulaes !sheet !((!sheet).active) with
             | Ok frms -> 
                 frms 
                 |> List.map (fun x -> 

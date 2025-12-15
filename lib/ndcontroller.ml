@@ -387,8 +387,8 @@ let notify contr (region: mask) (shp: int list) =
     | _ -> []
 ;;
 
-let formulaes controller  = 
-    (match GridTable.find_opt controller.sheets !(controller.active) with 
+let formulaes controller sheet = 
+    (match GridTable.find_opt controller.sheets sheet with 
     | Some v -> 
         !(v.frmlst)
         |> List.mapi (fun indx (Parser.Stmt r) -> 
