@@ -54,8 +54,7 @@ module MakeSliceView(N: NDarray) = struct
 
     let shape { shape; _ } = shape 
 
-    (* INFO: in this case , the index is following the slice and not the underlying
-       shape *)
+    (* INFO: in this case , the index is following the slice and not the underlying shape *)
     let get  { shape; sliceval; basedata; _ } (indx: int array)  = 
         let _ = assert (Array.length indx  = Array.length shape && Array.for_all2 (<) indx shape) in
         let dmaindim = N.shape basedata in

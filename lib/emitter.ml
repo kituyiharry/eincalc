@@ -396,6 +396,8 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                 acc
             | Parser.Axis (_, _) -> 
                 failwith "nested axis operations not allowed!!"
+            | Parser.Sort _ -> 
+                failwith "unimplemented"
         )
     | _hd :: _rest -> 
         let _ = List.fold_left (fun acc _mask -> 
@@ -437,7 +439,7 @@ let rec range_to_ndarray _grid n shp =
             let col' = (Int.max 0 col-1) in
             fetch_grid (Ndcontroller.fetch_active_grid _grid).grid adds ((fst adds + row'), (snd adds + col')) (Fun.const 0.)
         | _ -> 
-            let _ = _grid.onlog  ("Unsupported shape span", Error) in 
+            let _ = _grid.onlog  ("Unsupported shape span", Ndcontroller.Err) in 
             failwith "Unsupported shape span!"
         )
     | Parser.Scalar cell -> 
@@ -573,6 +575,8 @@ and masked_to_ndarray _grid _masks range =
                         acc
                     | Parser.Axis (axis, masks) -> 
                         handle_masks _grid axis masks acc (module M) data
+                    | Parser.Sort _ -> 
+                        failwith "unimplemented"
                 )
             | _ -> 
                 failwith "Invalid mask argument!!"
@@ -658,6 +662,8 @@ and transform_mask _grid ndarr masks =
                         acc
                     | Parser.Axis (axis, masks) -> 
                         handle_masks _grid axis masks acc (module M) data
+                    | Parser.Sort _ -> 
+                        failwith "unimplemented"
                 )
             | _ -> 
                 failwith "Invalid mask argument!!"

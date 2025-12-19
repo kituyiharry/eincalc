@@ -110,14 +110,14 @@ let grid_vtext width incr y_mn x_min_scl inv =
                 Text { 
                     x=(vlc) ; y =y_mn+.10.;
                     color="black"; size=8;
-                    text=(Format.sprintf "%.0f" (inv vlc))
+                    text=(Format.sprintf "%.2f" (inv vlc))
                 } :: state
             )
     in addvlns xst []
 ;;
 
 (* lines running from left to right along the y axis *)
-let grid_hlines height incr x_mn x_mx y_max_scl = 
+let grid_hlines _height incr x_mn x_mx y_max_scl = 
     let yst = Float.ceil y_max_scl in
     let rec addvlns vlc state = 
         if vlc < incr then 
@@ -142,7 +142,7 @@ let grid_htext height incr x_mn y_max_scl inv =
                 Text { 
                     x=(x_mn-.16.) ; y =vlc;
                     color="black"; size=8;
-                    text=(Format.sprintf "%.0f" (inv (height -. vlc)))
+                    text=(Format.sprintf "%.2f" (inv (height -. vlc)))
                 }
             :: state)
     in addvlns yst []

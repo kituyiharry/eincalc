@@ -30,7 +30,7 @@ let _ =
                 Js.Unsafe.set obj (Js.string "id")  (js_num !refcntr);
                 Js.Unsafe.set obj (Js.string "msg") (js_str msg);
                 (match lglvl with 
-                    | Eincalc.Ndcontroller.Error -> 
+                    | Eincalc.Ndcontroller.Err -> 
                         Js.Unsafe.set obj (Js.string "level") (js_str "error");
                         let _ = Js.Unsafe.fun_call cb [|obj|] in
                         Con.console##error msg;
@@ -100,7 +100,7 @@ let _ =
             | Ok _ -> 
                 Js._true
             | Error e -> 
-                (!sheet).onlog (e, Eincalc.Ndcontroller.Error);
+                (!sheet).onlog (e, Eincalc.Ndcontroller.Err);
                 Js._false
         )
 
@@ -110,7 +110,7 @@ let _ =
             | Ok _ -> 
                 Js._true
             | Error e   -> 
-                (!sheet).onlog (e, Eincalc.Ndcontroller.Error);
+                (!sheet).onlog (e, Eincalc.Ndcontroller.Err);
                 Js._false
         )
 
@@ -121,7 +121,7 @@ let _ =
             | Ok _ -> 
                 Js._true
             | Error e   -> 
-                (!sheet).onlog (e, Eincalc.Ndcontroller.Error);
+                (!sheet).onlog (e, Eincalc.Ndcontroller.Err);
                 Js._false
         )
 
@@ -149,7 +149,8 @@ let _ =
                                         val endcol   = ec
                                     end)
                                 )
-                        );
+                            )
+                        ;
                         val wrts = 
                             (x.Eincalc.Ndcontroller.wrts
                                 |> Array.map (fun ((sr, sc), (er, ec)) -> 
@@ -160,12 +161,13 @@ let _ =
                                         val endcol   = ec
                                     end)
                                 )
-                        );
+                            )
+                        ;
                         end)
                 )
                 |> Array.of_list
             | Error e   -> 
-                (!sheet).onlog (e, Eincalc.Ndcontroller.Error);
+                (!sheet).onlog (e, Eincalc.Ndcontroller.Err);
                 [||]
         )
 
@@ -175,9 +177,10 @@ let _ =
                 (match Eincalc.Ndmodel.Grid.find_opt _g (row, col) with 
                     | Some Eincalc.Ndmodel.TValue  s -> (js_str s)
                     | Some Eincalc.Ndmodel.TNumber f -> (js_str (Format.sprintf "%.4f" f))
-                    | Some Eincalc.Ndmodel.TNat f    -> (js_str (string_of_int f))
+                    | Some Eincalc.Ndmodel.TNat    f -> (js_str (string_of_int f))
                     | Some Eincalc.Ndmodel.TCover (_f, s) -> (js_str s)
-                    | None   -> js_str "")
+                    | None   -> js_str ""
+                )
             | None -> 
                 let _ = Con.console##error "Missing grid!!!" in
                 js_str ""
@@ -267,7 +270,8 @@ let _ =
                             ) s.writes
                         ) in
                         let _ = Buffer.clear buf in
-                        let _ = Eincalc.Ndcontroller.FormGraphSerializer.to_dot ~dir:true "Affected" dotc.global dotc.prnode dotc.predge 
+                        let _ = Eincalc.Ndcontroller.FormGraphSerializer.to_dot 
+                            ~dir:true "Affected" dotc.global dotc.prnode dotc.predge 
                             !(act.frmgrph) |> Seq.concat |> Seq.iter (fun s -> 
                                 Buffer.add_string buf (s ())
                             ) in 
@@ -275,11 +279,11 @@ let _ =
                         let _ = !(sheet).onlog (Format.sprintf "%s" s, Eincalc.Ndcontroller.Warn) in
                         Js._true
                     | Error s -> 
-                        !(sheet).onlog (s, Eincalc.Ndcontroller.Error);
+                        !(sheet).onlog (s, Eincalc.Ndcontroller.Err);
                         Js._false
                 )
             | Error s -> 
-                !(sheet).onlog (s, Eincalc.Ndcontroller.Error);
+                !(sheet).onlog (s, Eincalc.Ndcontroller.Err);
                 Js._false
         )
 

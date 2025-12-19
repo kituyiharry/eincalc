@@ -19,6 +19,51 @@ type spinmodel =
     | TValue    of string (* all other values *)
 [@@deriving show];;
 
+(* serialize to string *)
+let ser = function 
+    | TCover  (f, c) -> Format.sprintf "c%s$%s" (Float.to_string f) c  
+    | TNumber f ->     "f"     ^ Float.to_string f 
+    | TNat    n ->     "n"     ^ Int.to_string n 
+    | TValue  s ->     "v" ^ (String.escaped s)
+;;
+
+(* deserialize from string *)
+let deser s = 
+    (* TODO: trim?? *)
+    let len = String.length s in
+    if len > 0 then
+        (match String.unsafe_get s 0 with
+        | 'f' -> 
+            (match (float_of_string_opt (String.sub s 1 (len - 1))) with 
+            | Some x -> 
+                Ok (TNumber x)
+            | None   -> 
+                Error ("parse_error: " ^ s))
+        | 'n' -> 
+            (match (int_of_string_opt (String.sub s 1 (len - 1))) with 
+            | Some x -> 
+                Ok (TNat x)
+            | None   -> 
+                Error ("parse_error: " ^ s))
+        | 'v' -> 
+                Ok (TValue (String.sub s 1 (len - 1)))
+        | 'c' -> 
+                let split = String.index_from s 0 '$' in
+                let fltvl = String.sub s 1 (split - 1) in
+                let rest  = String.sub s (split+1) (len - split - 1) in
+                (match (float_of_string_opt fltvl) with 
+                | Some x -> 
+                    Ok (TCover (x, rest))
+                | None   -> 
+                    let _ = Format.printf "parseerror: %s of (%s and %s)\n" s fltvl rest in
+                    Error ("parse_error: " ^ s))
+        | _  ->  
+                Error "unspecified deserialize format"
+        )
+    else
+        (Error ("unrecognized value to deserialize " ^ s))
+;;
+
 (* eg D1, E100 ... etc. format is column first then row number *)
 type gridref = (string * int) 
 

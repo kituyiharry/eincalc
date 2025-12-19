@@ -33,3 +33,9 @@
   (modules test_eincalc_ndview)
   (libraries eincalc ounit2)
 )
+
+(test
+  (name test_eincalc_csr)
+  (modules test_eincalc_csr)
+  (libraries eincalc ounit2)
+)

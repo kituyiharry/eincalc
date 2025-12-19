@@ -21,13 +21,15 @@ the grid for easier management.
         - [x] Stddev
         - [x] Sum
         - [x] Cumulative Summing
-        - [x] Trig (cos, sin, tan, tanh)
+        - [x] Trig (cos, sin, tan, tanh, ...)
         - [x] Log, Pow, Logsumexp, Softmax
     - [x] Reshaping
     - [x] Slicing
     - [x] Axis based operations (e.g Mean along an axis)
     - [x] Reading and Writing values to cells
 - [X] 🚧 Cell Reactivity (Formulaes recalculate on edit)
+- [ ] 🚧 Optimizations
+- [ ] 🚧 Queries and Logic
 - [ ] 🚧 Draw and Plotting
 - [ ] 🚧 Javascript and OCaml API 
 - [ ] 🚧 Headless support (with Canvas or Svg)
@@ -35,6 +37,7 @@ the grid for easier management.
     - [x] Random number 
     - [x] Diagonal matrices
     - [x] Ones, Zeros, Fill or Alternating values
+    - [ ] 🚧 Signals (Yield on event)
 - [ ] 🚧 Serialization 
 - [ ] 🚧 Audit trails 
 - [ ] 🚧 Custom data types

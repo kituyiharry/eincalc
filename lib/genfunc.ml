@@ -367,6 +367,8 @@ let shape_of_mask m map =
                    tensor - right now we report an error *)
                 shapeslice [] _slices map
             )
+        | Sort _ -> 
+            failwith "not implemented"
         | Axis (_c, _masks) -> 
             if nest > 0 then Error "axis mask cannot be nested in another axis mask due to ambiguity!" else  
             (* TODO: verify semantics of axis with reshapes - it may be incoherent *)

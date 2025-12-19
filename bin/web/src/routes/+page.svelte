@@ -87,8 +87,12 @@
     });
 
     if (modal) {
-        modal?.showModal();
+        if (!localStorage.getItem("modalOnFirstShowComplete")) {
+            modal?.showModal();
+            localStorage.setItem("modalOnFirstShowComplete", "1")
+        }
     }
+
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     window.addEventListener('mouseup', handleMouseUp);
@@ -412,8 +416,16 @@
   function erase(rowstart, colstart, rowend, colend) { 
     $controller.myLib?.griderase(rowstart, colstart, rowend, colend)
   }
+
+  var startY = 0
+  var startX = 0
   
   function handleWheel(e) {
+    if (e.touches) {
+        scrollX = Math.max(0, scrollX + ((startX - e.touches[0].clientX)/10));
+        scrollY = Math.max(0, scrollY + ((startY - e.touches[0].clientY)/10));
+        return
+    }
     e.preventDefault();
     scrollX = Math.max(0, scrollX + e.deltaX);
     scrollY = Math.max(0, scrollY + e.deltaY);
@@ -471,6 +483,11 @@
       // ensure plots don't block
       e.stopPropagation();
 
+      if (e.touches) {
+          startY = e.touches[0].clientY;
+          startX = e.touches[0].clientX;
+      }
+
       const rect = e.target.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -507,8 +524,8 @@
       // ensure plots don't block
 
       const rect = e.target.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = (e.clientX - rect.left);
+      const y = (e.clientY - rect.top);
 
 
       // Update cursor based on hover
@@ -928,7 +945,7 @@
                     onmouseup={handleMouseUp}
                     ontouchend={handleMouseUp}
                     onmousemove={handleMouseMove}
-                    ontouchmove={handleMouseMove}
+                    ontouchmove={handleWheel}
                     onwheel={handleWheel} 
                     style={`display: block; cursor: ${cursorStyle}; font-family: Outfit`}>
                     {#key refresh}

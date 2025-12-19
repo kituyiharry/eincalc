@@ -58,7 +58,7 @@ type fgraph =  FormGraph.adj FormGraph.NodeMap.t
 ;;
 
 type dotctx = { 
-        global:  string FormGraphSerializer.StyleTbl.t
+        global: (string FormGraphSerializer.StyleTbl.t)
     ;   prnode: (string FormGraphSerializer.StyleTbl.t) FormGraphSerializer.AttrbTbl.t
     ;   predge: (string FormGraphSerializer.StyleTbl.t) FormGraphSerializer.AttrbTbl.t
 }
@@ -75,7 +75,7 @@ type loglevel =
     | Debug
     | Info
     | Warn 
-    | Error 
+    | Err 
 ;;
 
 type gridcontroller = { 
@@ -156,7 +156,7 @@ let rename controller label newlabel =
             Ok (GridTable.add controller.sheets newlabel grid)
         )
     | None -> 
-        Error ("sheet " ^ label ^ " not found!")
+        Stdlib.Error ("sheet " ^ label ^ " not found!")
 ;;
 
 let available_sheets controller = 
@@ -201,6 +201,7 @@ let span_of_shape shp =
     in calc shp
 ;;
 
+(* convert a column number to its label e.g A, AA, BC, DA ... *)
 let get_column_label col_num =
     let label  = Buffer.create 3 in
     let colnum = ref (col_num + 1) in
@@ -509,4 +510,12 @@ let paste_values controller label separator (_row, _col) data =
                 Ok (!rc, 0))
     | None -> 
         Error ""
+;;
+
+let serialize (book: gridcontroller) (labels: string array) = 
+    Array.to_seq labels
+    |> Seq.filter_map (fun l -> GridTable.find_opt (book.sheets) l )
+    |> Seq.map (fun _sh -> 
+        Format.sprintf "{ }"
+    )
 ;;

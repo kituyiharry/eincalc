@@ -53,6 +53,17 @@ and factor =
 and term = 
     | Sub 
     | Add 
+(*and comparison = *)
+    (*| Greater *)
+    (*| GreaterEq *)
+    (*| Lesser *)
+    (*| LesserEq *)
+(*and equality = *)
+    (*| Eq *)
+    (*| NotEq *)
+(*and logical = *)
+    (*| And*)
+    (*| Or*)
 and referral = 
     | Self  (* the current cell *)
 and call = 
@@ -131,6 +142,7 @@ and mask =
     | Write   of cell             (* executes an effect to the grid *)           
     (* axis<'j', mean | ...> *)
     | Axis    of int * mask list  (* apply mask along an axis *)
+    (* TODO: Logits?? *)
     (* slice<[1, -1:10:3]> *)        
     | Slice   of slice list       (* slice an array - np slice syntax *)
     (*draw<handle, [height, width], [{...props},..]>*)
@@ -145,6 +157,7 @@ and mask =
         ;   oftype: plot 
         ;   bounds: int list
     }
+    | Sort of (int * expr * int list)
     (*| Binning *)
     (*| Unbox                     (* undo top dimension maybe by running a function over it ?? *) *)
     (*| Partition                 (* break into groups *) *)
@@ -162,6 +175,8 @@ and  motion  =
 and 'a ndarray = 
     | Itemize of 'a list          (* The columns *)
     | Collect of 'a ndarray list  (* The rows    *)
+and query = 
+    | Filter   of int * int list * expr
 and  crange  = 
     | Range    of cell * cell     (* spreadsheet cells *)
     | Span     of cell * int list (* spreadsheet cell and a shape or length *)
@@ -170,8 +185,8 @@ and  crange  =
     | Relative of motion * crange (* Relative cell - Up ^, Down _, Left <, Right, > *)
     | Refer    of referral        (* a way to refer to the current cell *) 
     | Create   of call 
-    (* Support masks that DONT copy over data  *)
     | Mask     of crange * mask list (* functional masks - copy over data *)
+    | Query    of query * crange    (* modify from a start cell with a shape*)
     | Void
 and  params  = crange list       (* function parameters *)
 and  einsum  = { 
@@ -182,6 +197,12 @@ and expr     =
     | Literal  of lit
     | Factor   of factor
     | Term     of term
+
+    (* TODO: arbitrary expressions for filters and sorts ... etc *)
+    (*| Compr     of comparison*)
+    (*| Operator  of equality*)
+    (*| Logic     of logical*)
+
     | Unary    of unary * expr
     | Binary   of expr  * expr * expr
     | Reduce   of expr  * mask list
@@ -1237,20 +1258,16 @@ let parse_diag_reference state =
                             (>>==) (consume next' TComma) (fun after -> 
                                 let* num = takenum after in
                                 (match (num) with
-                                    (*| Some { tokn; _ } -> *)
-                                        (*(match tokn with *)
-                                            | (TNumeral shp, after) -> 
-                                                (>>==) (consume (after) TRightAngle) (fun final -> 
-                                                    Ok (final, Create (Diag (fval, shp)))
-                                                )
-                                            | (TFloat shp, after) -> 
-                                                (>>==) (consume (after) TRightAngle) (fun final -> 
-                                                    Ok (final, Create (Diag (fval, (int_of_float shp))))
-                                                )
-                                            | _ -> 
-                                                Error (Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn))
-                                    (*| _ ->*)
-                                        (*Error "Expected shape fill spec"*)
+                                    | (TNumeral shp, after) -> 
+                                        (>>==) (consume (after) TRightAngle) (fun final -> 
+                                            Ok (final, Create (Diag (fval, shp)))
+                                        )
+                                    | (TFloat shp, after) -> 
+                                        (>>==) (consume (after) TRightAngle) (fun final -> 
+                                            Ok (final, Create (Diag (fval, (int_of_float shp))))
+                                        )
+                                    | _ -> 
+                                        Error (Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn))
                                 )
                             )
                         | _ -> 

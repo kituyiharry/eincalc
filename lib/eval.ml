@@ -28,13 +28,11 @@ type vm = {
 };;
 
 let debug_stack { spine; stkidx; source; sheet; _ } = 
-    (*let _ = sheet.onlog ("Stacktrace ============", Ndcontroller.Info) in*)
     for i = (stkidx - 1) downto 0 do 
-        let y = Array.unsafe_get spine i in
-        (match y with 
-            | SNdim _n ->  
+        (match Array.unsafe_get spine i with 
+            | SNdim _n as y ->  
                 let s = (show_spinval y) in 
-                let k = (show_kernel y) in 
+                let k = (show_kernel  y) in 
                 let _ = Format.printf "%s\n" k in 
                 sheet.onlog ((Format.sprintf "%s \n" s), Ndcontroller.Debug)
             | SKern ix ->  
@@ -42,10 +40,9 @@ let debug_stack { spine; stkidx; source; sheet; _ } =
                 let _ = Format.printf "%s\n" k in 
                 let s = (show_spinval source.kernels.(ix)) in 
                 sheet.onlog ((Format.sprintf "%s \n" s), Ndcontroller.Debug)
-            | _ ->
+            | y ->
                 let s = Format.sprintf "%s\n" (Types.show_spinval y) in
                 (sheet.onlog (s, Ndcontroller.Debug))
-                (*Format.print_flush ()*)
         )
     done
 ;;
@@ -286,8 +283,7 @@ let timeonly f =
 (* access grid via controller *)
 let eval (pr: vm) = 
     (*let _ = pprint_instr pr.source.oprtns in*)
-    let tval = timeonly (fun _ -> consume pr.source (handle_op pr)
-    )
+    let tval = timeonly (fun _ -> consume pr.source (handle_op pr))
     in let _ = debug_stack pr
     in 
     (*let _ =*)

@@ -22,7 +22,7 @@ let handle_eval grid (t) =
 let handle_transform_formulae grid form = 
     (match Eval.tosource grid form with 
     | Ok    t -> handle_eval grid t
-    | Error e -> grid.onlog (Format.sprintf "Error: %s\n" e, Ndcontroller.Error)
+    | Error e -> grid.onlog (Format.sprintf "Error: %s\n" e, Ndcontroller.Err)
     )
 ;;
 
@@ -34,7 +34,7 @@ let handle_parse_exp grid src (lex: Lexer.lexeme list) =
                 handle_transform_formulae grid prog
             )
             | Error s   -> 
-                grid.onlog ((Format.sprintf "Parse Error: %s\n" s, Ndcontroller.Error))
+                grid.onlog ((Format.sprintf "Parse Error: %s\n" s, Ndcontroller.Err))
         )
     )
 ;;
@@ -71,7 +71,7 @@ let handle_scan_exp grid (_exp: string) =
         |> (function 
             | Ok _res -> handle_parse_exp grid _exp _res
             | Error (l,c,s) ->  
-                grid.onlog ((Format.sprintf "Scan Error: l:%d c:%d %s" l c s, Ndcontroller.Error))
+                grid.onlog ((Format.sprintf "Scan Error: l:%d c:%d %s" l c s, Ndcontroller.Err))
         )
     )
 ;;
@@ -96,14 +96,11 @@ let scan_and_notify sheet vstr =
                         |> List.sort_uniq (fun (Parser.Stmt x) (Parser.Stmt y) ->
                             Float.compare x.stamp y.stamp
                         )
-                        |> List.iter (fun fml -> 
-                            handle_transform_formulae sheet fml
-                        )
+                        |> List.iter (handle_transform_formulae sheet)
                     ) s.writes
-                ) in
-                ()
+                ) in ()
             | Error s -> 
-                sheet.onlog (s, Ndcontroller.Error)
+                sheet.onlog (s, Ndcontroller.Err)
         )
     | Error e -> 
         (failwith ("ParseError: %s" ^ e))
@@ -154,7 +151,7 @@ let repl (grid: Ndcontroller.gridcontroller) () =
             |> (function 
                 | Some s -> 
                     Buffer.add_string bufc s 
-                | None _ -> 
+                | None -> 
                     ()
             )
         in 
