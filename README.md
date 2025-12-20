@@ -12,7 +12,7 @@ the grid for easier management.
     - [x] Arithmetic operations
     - [x] Einsum evaluation
 - [ ] Formulaes
-    - [ ] 🚧 Formulae documentation
+    - [ ] Formulae documentation
     - [x] Rescaling 
         - [x] MinMax
         - [x] Zscore
@@ -27,30 +27,30 @@ the grid for easier management.
     - [x] Slicing
     - [x] Axis based operations (e.g Mean along an axis)
     - [x] Reading and Writing values to cells
-- [X] 🚧 Cell Reactivity (Formulaes recalculate on edit)
-- [ ] 🚧 Optimizations
-- [ ] 🚧 Queries and Logic
-- [ ] 🚧 Draw and Plotting
-- [ ] 🚧 Javascript and OCaml API 
-- [ ] 🚧 Headless support (with Canvas or Svg)
-- [ ] 🚧 Generator functions (not yet lazy)
+- [X] Cell Reactivity (Formulaes recalculate on edit)
+- [ ] Optimizations
+- [ ] Queries and Logic
+- [ ] Draw and Plotting
+- [ ] Javascript and OCaml API 
+- [ ] Headless support (with Canvas or Svg)
+- [ ] Generator functions (not yet lazy)
     - [x] Random number 
     - [x] Diagonal matrices
     - [x] Ones, Zeros, Fill or Alternating values
-    - [ ] 🚧 Signals (Yield on event)
-- [ ] 🚧 Serialization 
-- [ ] 🚧 Audit trails 
-- [ ] 🚧 Custom data types
+    - [ ] Signals (Yield on event)
+- [ ] Serialization 
+- [ ] Audit trails 
+- [ ] Custom data types
     - [x] Float values | arrays
     - [ ] Complex numbers 
     - [ ] Custom data types
-    - [ ] 🚧 Text embedding
-    - [ ] 🚧 Streams
+    - [ ] Text embedding
+    - [ ] Streams
         - [ ] Images 
         - [ ] Video 
         - [ ] Audio
-- [ ] 🚧 [WebNN](https://www.w3.org/TR/webnn/)
-- [ ] 🚧  OCR and gen-AI ??
+- [ ] [WebNN](https://www.w3.org/TR/webnn/)
+- [ ] OCR and gen-AI ??
 
 ### Building the project
 
