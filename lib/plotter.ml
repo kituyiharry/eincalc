@@ -332,10 +332,11 @@ let bar (type data) (ctx: barctx) (module SliceView: NDView with type t = data) 
     let _vals   = 
         (*Seq.empty*)
          _hseq |> Seq.mapi (fun indx x -> 
+            (* properly handle negative values *)
             let height = (transformy (heightscaler x)) -. theightmin in
              Box {
                 x=(pfloatx +. ((float_of_int indx) *. breadth) +. 4.); 
-                y=(transformy pfloaty); 
+                y=(theightmin); 
                 width=(breadth-.8.);height;
                 color=ctx.color; linewidth=0.; border=ctx.border 
              }

@@ -351,7 +351,7 @@
   let funcBudgetWidth  = $state(0)
   let funcBlockHeight  = 100;
 
-  let funcText  = $state("=(@b2..m23) | plot<'Output', [620,240], bar<[::, 5:1:],@a2..a23, {xl='Year',yl='Output',c='red',r=3,px=100,xt=-24}>>")
+  let funcText  = $state("=(@b2..m23) | plot<'Output', [620,240], bar<[::, 5:1:],@a2..a23, {xl='Year',yl='Output',c='red',r=3,px=100,yx=-24}>>")
   let funcStyle = $derived ({
     position: 'fixed',
     bottom: `0px`,
