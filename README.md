@@ -29,8 +29,13 @@ the grid for easier management.
     - [x] Reading and Writing values to cells
 - [X] Cell Reactivity (Formulaes recalculate on edit)
 - [ ] Optimizations
-- [ ] Queries and Logic
+- [ ] Queries, Context and Logic
 - [ ] Draw and Plotting
+    - [x] raw draw calls
+    - [x] mask scatter plot
+    - [x] mask bar  plot
+    - [ ] mask pie  plot
+    - [ ] mask line plot
 - [ ] Javascript and OCaml API 
 - [ ] Headless support (with Canvas or Svg)
 - [ ] Generator functions (not yet lazy)
