@@ -104,9 +104,12 @@ let () =
     let grid = Eincalc.Ndcontroller.new_sheet contr "Default" in
     let _ = Format.printf "%d args\n" ln in
     if ln > 1 then 
+        let _ = Eincalc.Repl._DEBUG := true in
         let ctx = parse_args ln in
         let _ = Format.printf "%s\n" (show_startctx ctx) in
         let _ = interp_args grid ctx in
-        Eincalc.Repl.repl grid ()
+        if ctx.interactive then 
+            Eincalc.Repl.repl grid ()
+        else ()
     else
         Eincalc.Repl.repl grid ()

@@ -170,6 +170,31 @@ let collectrow g range r sparse apply =
     ) 
 ;;
 
+let collect_string g range r apply = 
+    range
+    |> Seq.map (fun c'' -> 
+        (*let _ = Format.printf "grid: %d-%d\n" r, c'' in *)
+        (match Grid.find_opt g (r, c'') with 
+            | Some  v -> 
+                (match v with 
+                    | TNumber   f -> 
+                        ((r, c''), (string_of_float f))
+                    | TNat   f -> 
+                        ((r, c''), (string_of_int f))
+                    | TCover (_, s) -> 
+                        ((r, c''), (s))
+                    | TValue    s -> 
+                        ((r, c''), s)
+                )
+            | None -> 
+                ((r, c''), "")
+        )
+    ) 
+    |> Seq.iter (fun ((r, c), v) -> 
+        apply (r, c) v
+    ) 
+;;
+
 (*  
     creates a sequence from values -> inclusive range
     [0, 0] -> [ 0 ]
@@ -242,20 +267,17 @@ let fetch_grid g (r, c) (r', c') sparse =
         let (module Matrix) = _scal in
         let _sdat = Matrix.make [|(Int.abs _lenr) + 1;(Int.abs _lenc) + 1|] 0. in
         (* TODO: can we eliminate this counter to allow for out of order computation *)
-        let _cntr = ref 0 in
         let _ = 
-            (genrange r r')
-            |> Seq.map (fun r'' -> 
+            (genrange r r') |> Seq.iteri (fun _cntr r'' -> 
                 (* TODO: can we eliminate this counter - maybe recover it from
                    the row and column offsets - somehow?? *)
                 let _cntc = ref 0 in
                 let _ = collectrow g (genrange c c') r'' sparse (fun (_r, _c) v -> 
-                    let _ = Matrix.set _sdat [|(!_cntr);(!_cntc)|] v in 
+                    let _ = Matrix.set _sdat [|(_cntr);(!_cntc)|] v in 
                     incr _cntc
-                ) in 
-                incr _cntr
+                ) in ()
             )
-            |> Seq.iter (ignore)
+            (*|> Seq.iter (ignore)*)
         in 
         (SNdim(_scal, _sdat))
     ) in 

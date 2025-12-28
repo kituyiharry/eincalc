@@ -1,11 +1,6 @@
 open OUnit;;
 open Eincalc;;
 
-    (*[[1, 0, 2],*)
-    (*[0, 3, 0],*)
-    (*[4, 5, 6]]*)
-
-
 let _tests = "Ndcsr unit tests" >::: [
     "CSR case 1" >:: (fun _ -> 
         (* ensure the list is sorted!! *)
@@ -15,11 +10,11 @@ let _tests = "Ndcsr unit tests" >::: [
             ((1, 1), Ndmodel.TNumber 3.);
             ((2, 0), Ndmodel.TNumber 4.);
             ((2, 1), Ndmodel.TNumber 5.);
-            ((2, 2), Ndmodel.TNumber 6.);
+            ((2, 2), Ndmodel.TNumber 6.3333356);
         ] in
         let tbl = Ndmodel.Grid.create 6 in
         let s = Ndcsr.encode 6 (List.to_seq data) in 
-        let _ = Ndcsr.decode tbl s in
+        let _ = ignore @@ Ndcsr.decode tbl s in
         let l = 
             Ndmodel.Grid.to_seq tbl |> List.of_seq |> List.sort (
             fun (x, _) (y, _) -> 
@@ -30,7 +25,7 @@ let _tests = "Ndcsr unit tests" >::: [
         (*let _ = List.iter (fun ((x, y), sp) -> Format.printf "%d,%d -> %s \n" x y (Ndmodel.show_spinmodel sp)) l in*)
         (*let _ = Format.printf "%s\n" (Ndcsr.show_csrstore s) in*)
         assert_equal s
-            ({ Ndcsr.values = [|"f1."; "f2."; "f3."; "f4."; "f5."; "f6."|]; 
+            ({ Ndcsr.values = [|"f1."; "f2."; "f3."; "f4."; "f5."; "f6.3333356"|]; 
                 columns = [|0; 2; 1; 0; 1; 2|]; rows = [
                     { Ndcsr.index=0; row=0 }; 
                     { Ndcsr.index=2; row=1 }; 
@@ -100,7 +95,7 @@ let _tests = "Ndcsr unit tests" >::: [
                 ];
             });
         assert_equal data l; 
-        );
+    );
 ]
 
 let _ = run_test_tt_main _tests

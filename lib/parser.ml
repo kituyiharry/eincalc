@@ -101,7 +101,11 @@ and draw =
     | Reset
 and plot = 
     | Line    of props
-    | Bar     of props
+    | Bar     of { 
+        data:  slice list; (* data from zero, usually a pair of a slice along the row and column *)
+        ylabl: crange;     (* labels for each entry of data *)
+        props: props
+    }
     | Hist    of props
     | Pie     of props
     (* TODO: don't restrict to slices, maybe up a level to support axis or cell ranges
@@ -165,7 +169,7 @@ and mask =
     (*| Rescale                   (* values add up to a certain num *)*)
     (*| Map *)
     (*| Reduce *)
-and  cell    = string * int      (* Rows are strings, Columns are numbers *)
+and  cell    = string * int      (* Columns are strings, Rows are numbers *)
 and  dimnsn  = shape             (* literal and its index *)
 and  motion  =  
     | North of int (* ^ *)
@@ -181,6 +185,9 @@ and  crange  =
     | Range    of cell * cell     (* spreadsheet cells *)
     | Span     of cell * int list (* spreadsheet cell and a shape or length *)
     | Scalar   of cell
+    (* categorical data e.g [ "One", "Two", "Three", ... ] 
+       can be paired with numbers for use with cover *)
+    (*| Category of string * float list*)
     | NdArray  of float ndarray
     | Relative of motion * crange (* Relative cell - Up ^, Down _, Left <, Right, > *)
     | Refer    of referral        (* a way to refer to the current cell *) 
@@ -886,6 +893,8 @@ let parse_param_data _start next =
                                 match shp with 
                                 | [] -> 
                                     Ok (final, Span (scell, shp))
+                                (* TODO: single shape makes it row based though this
+                                   may cause some ambiguity with shapes *)
                                 | x :: [] -> 
                                     Ok (final, Span (scell, [x;1]))
                                 | _ -> 
@@ -1393,6 +1402,19 @@ let parse_scatter_params state =
     Ok (final, Scatter { slices=[xslices;yslices]; props; })
 ;;
 
+
+let parse_bar_params state = 
+    let* after, slices = enclosed TLeftBracket TRightBracket (fun state' -> 
+        (* get row,col as slices into the data *)
+        (parse_extract_slice_indices state')
+    ) (state) in 
+    let* next = consume after TComma in
+    let* proc, rng = (parse_ein_params next) in
+    let* comm  = consume proc TComma in
+    let* (final, props) = parse_key_value comm in
+    Ok (final, Bar { data=slices; ylabl=rng; props; })
+;;
+
 let parse_plot_params state = 
     (match (fst state).curr with 
         | Some ({ tokn=(TAlphaNum plottype); _ }) -> 
@@ -1406,7 +1428,7 @@ let parse_plot_params state =
                 | "pie" -> 
                     Ok ((advance state), Pie  (Hashtbl.create 2))
                 | "bar" -> 
-                    Ok ((advance state), Bar  (Hashtbl.create 2))
+                    enclosed TLeftAngle TRightAngle (parse_bar_params) (advance state)
                 | _ -> 
                     Error "unrecognized plot"
             )

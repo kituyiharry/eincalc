@@ -24,6 +24,7 @@ type vm = {
     ;   mutable stkidx: int 
     ;   mutable frmptr: int
     ;   mutable oldframe: int list
+    ;   mutable debug_stack: bool
     ;   sheet:  Ndcontroller.gridcontroller
 };;
 
@@ -284,7 +285,8 @@ let timeonly f =
 let eval (pr: vm) = 
     (*let _ = pprint_instr pr.source.oprtns in*)
     let tval = timeonly (fun _ -> consume pr.source (handle_op pr))
-    in let _ = debug_stack pr
+    in 
+        let _ = if pr.debug_stack then debug_stack pr else ()
     in 
     (*let _ =*)
         (*(*for i = Array.length pr.source.kernels downto 1 do *)*)
@@ -300,12 +302,13 @@ let tosource (controller) (vw: program) =
 
 let stck = Array.make _stack_size SNil;;
 
-let mkvm controller src = {
+let mkvm controller debug src = {
         spine    = stck
     ;   stkidx   = 0
     ;   frmptr   = 0 
     ;   oldframe = []
     ;   source   = src
     ;   sheet    = controller
+    ;   debug_stack = debug
 }
 

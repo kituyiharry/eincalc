@@ -217,7 +217,8 @@ let transform_draw_elmnts elmnts =
 
 let handle_plot_type (type data) xbound ybound handle plt grid (module M: Ndarray.NDarray with type t = data) (data: data) = 
     let pltctx: Plotter.plotctx = { xbound; ybound; handle; plotcb=grid.plotcb;
-        paddingx=90; paddingy=30; gridstep=30. } in
+        paddingx=90; paddingy=30; gridstep=30.;xtextoff=0.;ytextoff=0.;
+        xytextoff=0.; yxtextoff=0. } in
     match plt with
     | Scatter { slices; props; _  } -> 
         (match slices with
@@ -232,14 +233,80 @@ let handle_plot_type (type data) xbound ybound handle plt grid (module M: Ndarra
             let border  = find_default_value props "b" "white"(select_str "scatter.b") in
             let paddingx= find_default_value props "px" 90    (select_positive_nat "scatter.px") in
             let paddingy= find_default_value props "py" 30    (select_positive_nat "scatter.py") in
-            let gridstep= find_default_value props "gs" 30.   (select_positive_num "scatter.py") in
+            let gridstep= find_default_value props "gs" 30.   (select_num "scatter.py") in
+            let xtextoff= find_default_value props "xt"  0.   (select_num "scatter.xt") in
+            let ytextoff= find_default_value props "yt"  0.   (select_num "scatter.yt") in
+            let xytextoff= find_default_value props "xy"  0.   (select_num "scatter.xy") in
+            let yxtextoff= find_default_value props "yx"  0.   (select_num "scatter.yx") in
             let ctx: Plotter.scatterctx = {
-                plot={ pltctx with paddingx; paddingy; gridstep };xlabel;ylabel;color;border;radius
-            } in 
+                plot={ pltctx with paddingx; paddingy; gridstep; xtextoff;
+                        ytextoff; xytextoff; yxtextoff };
+                xlabel; ylabel; color; border; radius;             } in 
             Plotter.scatter ctx (module SliceView) xview yview 
         | _ -> 
             failwith "should be unreachable in scatter plot"
         )
+    |  Bar { ylabl; data=slicedata; props  } -> 
+        let module SliceView = MakeSliceView(M) in 
+        let xview   = SliceView.make data slicedata in
+        let _labls = (
+            let sze    = Types.cardinal_of_shp @@ Result.get_ok @@ shape_of_expr (Literal (Tensor ylabl)) in
+            let arr    = Array.make sze ("") in
+            match ylabl with 
+            | Parser.Range (sc, ec) -> 
+                let r , c  = key_of_ref sc in
+                let r', c' = key_of_ref ec in
+                let closure = collect_string ((fetch_active_grid grid).grid) in
+                let _cntc = ref 0 in
+                let _ = (genrange r r') |> Seq.iteri (fun _cntr r'' -> 
+                    let _ = closure (genrange c c') r'' (fun (_r, _c) v -> 
+                        Array.unsafe_set arr (!_cntc) v;
+                        incr _cntc
+                    ) in ()
+                ) in arr
+            | Parser.Span (sc, er :: ec :: _rem) -> 
+                let r , c  = key_of_ref sc in
+                let r', c' = (r + (Int.max 0 (er - 1)), (c + (Int.max 0 (ec - 1)))) in
+                let closure = collect_string ((fetch_active_grid grid).grid) in
+                let _cntc = ref 0 in
+                let _ = (genrange r r') |> Seq.iteri (fun _cntr r'' -> 
+                    let _ = closure (genrange c c') r'' (fun (_r, _c) v -> 
+                        Array.unsafe_set arr (!_cntc) v;
+                        incr _cntc
+                    ) in ()
+                ) in arr
+            | Parser.Span (sc, er :: []) -> 
+                let r , c  = key_of_ref sc in
+                let r', c' = (r + (Int.max 0 (er - 1)), c) in
+                let closure = collect_string ((fetch_active_grid grid).grid) in
+                let _cntc = ref 0 in
+                let _ = (genrange r r') |> Seq.iteri (fun _cntr r'' -> 
+                    let _ = closure (genrange c c') r'' (fun (_r, _c) v -> 
+                        Array.unsafe_set arr (!_cntc) v;
+                        incr _cntc
+                    ) in ()
+                ) in arr
+            | _ -> 
+                arr
+        ) in
+        let xlabel  = find_default_value props "xl" ""    (select_str "scatter.xlabel") in
+        let ylabel  = find_default_value props "yl" ""    (select_str "scatter.ylabel") in
+        let color   = find_default_value props "c" "red"  (select_str "scatter.c") in
+        let border  = find_default_value props "b" "white"(select_str "scatter.b") in
+        let paddingx= find_default_value props "px" 90    (select_positive_nat "scatter.px") in
+        let paddingy= find_default_value props "py" 30    (select_positive_nat "scatter.py") in
+        let gridstep= find_default_value props "gs" 30.   (select_positive_num "scatter.py") in
+        let xtextoff= find_default_value props "xt"  0.   (select_num "scatter.xt") in
+        let ytextoff= find_default_value props "yt"  0.   (select_num "scatter.yt") in
+        let xytextoff= find_default_value props "xy"  0.   (select_num "scatter.xy") in
+        let yxtextoff= find_default_value props "yx"  0.   (select_num "scatter.yx") in
+        let ctx: Plotter.barctx = {
+            plot={ pltctx with paddingx; paddingy; gridstep; xtextoff; ytextoff; xytextoff; yxtextoff };
+            xlabel; ylabel; color; border;
+        } in 
+        (*let _ = Format.printf "lokkig\n" in*)
+        (*let _ = Array.iter (fun s -> Format.printf "%s\n" s) _labls in*)
+        Plotter.bar ctx (module SliceView) xview _labls
     | _  ->
         ()
 ;;

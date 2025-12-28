@@ -267,28 +267,6 @@ let draw_shape_valid handle elmnts map =
 
 ;;
 
-let plot_shape_valid plt shp = 
-    let shp = (match shp with | [] -> [1] | o -> o) in
-    match plt with 
-    | (Scatter { slices; _ }) -> 
-        (match slices with 
-            | xslice :: yslice :: _ ->  
-                let* xshp = shapeslice [] xslice shp in
-                let* yshp = shapeslice [] yslice shp in
-                if (Types.cardinal_of_shp xshp != Types.cardinal_of_shp yshp) then
-                    Error (
-                        Format.sprintf "plot axis slices cannot be broadcasted together! %s != %s\n" 
-                            (Types.string_of_shape xshp) (Types.string_of_shape yshp)
-                    ) 
-                else
-                    Ok shp
-            | _ -> 
-                Error "expected at least 2 slices for x and y and an optional slice for labels"
-        )
-    | _ -> 
-        Error "Unhandled shape"
-;;
-
 let slicetoarr curdim sl =  
     Array.of_list @@ List.mapi (fun i slice ->
         (match slice with 
@@ -317,8 +295,38 @@ let slicetoarr curdim sl =
     ) sl 
 ;;
 
+let rec plot_shape_valid plt shp = 
+    let shp = (match shp with | [] -> [1] | o -> o) in
+    match plt with 
+    | (Scatter { slices; _ }) -> 
+        (match slices with 
+            | xslice :: yslice :: _ ->  
+                let* xshp = shapeslice [] xslice shp in
+                let* yshp = shapeslice [] yslice shp in
+                if (Types.cardinal_of_shp xshp != Types.cardinal_of_shp yshp) then
+                    Error (
+                        Format.sprintf "plot axis slices cannot be broadcasted together! %s != %s\n" 
+                            (Types.string_of_shape xshp) (Types.string_of_shape yshp)
+                    ) 
+                else
+                    Ok shp
+            | _ -> 
+                Error "expected at least 2 slices for x and y and an optional slice for labels"
+        )
+    | Bar { data; ylabl; _ } ->
+        let* dshp = shapeslice [] data shp in
+        let* cshp = calcshape ylabl in
+        if (Types.cardinal_of_shp cshp != Types.cardinal_of_shp dshp) then
+            Error (
+                Format.sprintf "plot axis slices cannot be broadcasted together! %s != %s\n" 
+                    (Types.string_of_shape dshp) (Types.string_of_shape cshp)
+            ) 
+        else
+            Ok shp
+    | _ -> 
+        Error "Unhandled plot type"
 (* l holds the dimensions of the input, m is the mask and map is the infered shape *)
-let shape_of_mask m map = 
+and shape_of_mask m map = 
     let rec findshape m map nest =
         match m with
         | MinMax (_, _) -> 
@@ -415,9 +423,7 @@ let shape_of_mask m map =
                 | None -> Error "missing axis dimension in input (data could be lower dimension than expected!)!"
             ) 
     in findshape m map 0
-;;
-
-let calcmaskshapes m lshp = 
+and calcmaskshapes m lshp = 
     List.fold_left (fun acc maskval -> 
         match acc with 
         | Ok a ->
@@ -444,10 +450,8 @@ let calcmaskshapes m lshp =
         | _ -> 
             acc
     ) (Ok lshp) m
-;;
-
 (* calculate shape from checking parameter structure *)
-let rec calcshape c = 
+and calcshape c = 
     match c with 
     | Range (_cellstart, _cellend) -> 
         (* get the grid indexes for the references e.g A10 -> (9, 0) *)

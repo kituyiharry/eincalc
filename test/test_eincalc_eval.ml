@@ -8,7 +8,7 @@ let execute grid src =
     |  Ok tokens -> 
         (>>==) (Parser.parse tokens "") (fun tree -> 
             (>>==) (Eval.tosource grid (fst tree).prog) (fun comp -> 
-                let vm = Eval.mkvm grid (Emitter.convert comp) in 
+                let vm = Eval.mkvm grid true (Emitter.convert comp) in 
                 let () = Eval.eval vm in
                 Ok (vm)
             )
@@ -22,7 +22,7 @@ let compare_kernels x y =
 ;;
 
 let make_scalar v  = 
-    ndarray_of_dim_init [] (fun _ -> v)
+    ndarray_of_dim_init [] (Fun.const v)
 ;;
 
 let vector_of_list l = 

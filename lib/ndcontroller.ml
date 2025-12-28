@@ -303,14 +303,14 @@ let dependants contr (Parser.Stmt ast as prog) =
                             if 
                             List.exists (fun (msk, shp) -> overlaps msk shp s) v'.writes 
                             then 
-                                let _ = contr.onlog ("connected", Warn) in
+                                (*let _ = contr.onlog ("connected", Warn) in*)
                                 (* we call this when our input region has been affected *)
                                 controller.frmgrph := FormGraph.add_weight (v'.stamp) prog' prog !(controller.frmgrph)
                             else ()
                         ) !(controller.frmlst)
                     | _ -> ()
                 ) ast.inputs in
-                contr.onlog ("Updating with new formulae", Warn);
+                (*contr.onlog ("Updating with new formulae", Warn);*)
                 controller.frmlst := (prog :: !(controller.frmlst))
         )
 ;;
@@ -399,7 +399,9 @@ let formulaes controller sheet =
                         r.inputs
                         |> List.map (function 
                             |  (Range (r, e)) -> 
-                                ((key_of_ref r), (key_of_ref e))
+                                let (sr, sc) = key_of_ref r in
+                                let (er, ec) = key_of_ref e in
+                                ((sr, sc), (er+1, ec+1))
                             |  (Span  (s, r)) ->
                                 let (r', e') = key_of_ref s in
                                 let (cr, ce, _) = span_of_shape r in
@@ -437,6 +439,25 @@ let fetch_grid_label controller label =
 
 let fetch_active_grid controller = 
     GridTable.find controller.sheets !(controller.active)
+;;
+
+let fetch_as_string controller label (r, c) = 
+    match GridTable.find_opt controller.sheets label with 
+    | Some grid -> 
+        (match Grid.find_opt grid.grid (r,c) with
+        | Some (TNumber n) -> 
+            string_of_float n
+        | Some (TCover (_, s)) -> (* a way to keep both a string and numerical value for display purposes  *)
+            s
+        | Some (TNat n) ->
+            string_of_int n
+        | Some (TValue s) -> (* all other values *)
+            s
+        | None   -> 
+            "?"
+        )
+    | None -> 
+        "?"
 ;;
 
 let erase_grid controller row rowend col colend = 

@@ -8,13 +8,15 @@
  *
  *)
 
+let _DEBUG = ref false ;;
+
 let handle_eval grid (t) = 
    let fs = Parser.show_program t.Emitter.ast in
    (* build an execution graph *)
    let _ = Format.printf "\n%s\n" (fs) in
    let _ = 
        Emitter.convert t
-       |> Eval.mkvm grid 
+       |> Eval.mkvm grid !(_DEBUG) 
        |> Eval.eval
    in ()
 ;;

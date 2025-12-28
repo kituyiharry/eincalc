@@ -183,7 +183,6 @@ module Matrix: NDarray with type t = float array array wrap = struct
         _c.dims
     ;;
 
-
     let iteriaxis axis (onbeginslice: unit -> unit) (apply: int array -> float -> unit) (onendslice: unit -> unit) _cont =
         let shp   = shape _cont in 
         let axisid = axis in

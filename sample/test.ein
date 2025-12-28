@@ -1,4 +1,4 @@
 @B2..[22,14] | axis<row, sum>  | write<B24>;
 @B2..[22,14] | axis<row, mean> | write<B25>;
 @B2..[22,14] | axis<row, max>  | write<B26>;
-@B2..[22,14] | zscore          | write<B2>;
+@B2..[22,14] | zscore          | write<B28>;

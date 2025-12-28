@@ -8,7 +8,6 @@
  *
  *)
 
-(* in our case this encodes non-empty clls *)
 open Ndmodel;;
 
 type rowindx = { 
@@ -22,6 +21,7 @@ and csrstore = {
 } [@@deriving show];;
 
 (* assumes the sequence is already sorted *)
+(* in our case this encodes non-empty cells *)
 let encode (rowcount: int) (dstream: ((int * int) * spinmodel) Seq.t) = 
     let pointer = ref (-1) in
     let csr = Seq.fold_lefti (fun (state) i ((r, c), p) -> 

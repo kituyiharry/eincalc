@@ -351,7 +351,7 @@
   let funcBudgetWidth  = $state(0)
   let funcBlockHeight  = 100;
 
-  let funcText  = $state('=(ij -> ji | write<B2>, @rand<100,[10,10]>)')
+  let funcText  = $state("=(@b2..m23) | plot<'Output', [620,240], bar<[::, 5:1:],@a2..a23, {xl='Year',yl='Output',c='red',r=3,px=100,xt=-24}>>")
   let funcStyle = $derived ({
     position: 'fixed',
     bottom: `0px`,
@@ -1134,8 +1134,8 @@
                                     const x = getColumnX(i.startcol) - scrollX + ROW_HEADER_WIDTH;
                                     const y = getRowY(i.startrow) - scrollY + HEADER_HEIGHT;
                                     let w = 0;
-                                    const iendcolminus = i.startcol == i.endcol ? i.endcol : i.endcol - 1;
-                                    const iendrowminus = i.startrow == i.endrow ? i.endrow : i.endrow - 1;
+                                    const iendcolminus = i.startcol == i.endcol ? i.endcol : i.endcol -1;
+                                    const iendrowminus = i.startrow == i.endrow ? i.endrow : i.endrow -1;
                                     for (let col = i.startcol; col <= iendcolminus; ++col) {
                                         w += getColumnWidth(col);
                                     }

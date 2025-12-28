@@ -21,8 +21,8 @@ type shape =
     | Text of   { x: float; y: float; text:   string; color:  color; size: int }
     | Line of   { x: float; y: float; fx: float; fy: float; linewidth: float; color: color }
     | Spline of { cp1x: float; cp1y: float; cp2x: float; cp2y: float; x: float; y: float; linewidth: float; color: color; }
-    | Clear (* clears the canvas *)
-    | Reset (* clears the shape buffer - not the canvas - useful to prevent growth *)
+    | Clear     (* clears the canvas *)
+    | Reset     (* clears the shape buffer - not the canvas - useful to prevent growth *)
 [@@deriving show];;
 
 type plotctx = {
@@ -31,6 +31,10 @@ type plotctx = {
     ;   handle:   string
     ;   paddingx: int
     ;   paddingy: int
+    ;   xtextoff: float  (*  x offset for y axis *)
+    ;   ytextoff: float  (*  y offset for x axis text *)
+    ;   xytextoff: float (*  y offset for x axis *)
+    ;   yxtextoff: float (*  x offset for y axis text *)
     ;   gridstep: float
     ;   plotcb:  ((string * int list * shape list) -> unit)
 }
@@ -38,6 +42,14 @@ type plotctx = {
 type scatterctx = { 
         plot  : plotctx
     ;   radius: float 
+    ;   border: string 
+    ;   color:  string 
+    ;   xlabel: string 
+    ;   ylabel: string
+}
+
+type barctx = { 
+        plot  : plotctx
     ;   border: string 
     ;   color:  string 
     ;   xlabel: string 
@@ -72,16 +84,14 @@ let make_scaler minval maxval minbound maxbound =
     (* avoid div by 0 *)
     let mdiff  = if mdiff = 0. then 1. else mdiff in
     let rdiff  = maxbound -. minbound in
-    fun v -> 
-        (minbound +. (((v -. minval) *. rdiff) /. mdiff))
+    fun v -> (minbound +. (((v -. minval) *. rdiff) /. mdiff))
 ;;
 
 let inverse_transform_scaler minval maxval minbound maxbound = 
     let rdiff  = maxbound -. minbound in
     let mdiff  = maxval   -. minval in 
     let mdiff  = if mdiff = 0. then 1. else mdiff in
-    fun v -> 
-        ((v -. minbound) /. (rdiff)) *. (mdiff) +. minval 
+    fun v -> ((v -. minbound) /. (rdiff)) *. (mdiff) +. minval 
 ;;
 
 (* lines running from top to bottom along the x axis *)
@@ -116,6 +126,18 @@ let grid_vtext width incr y_mn x_min_scl inv =
     in addvlns xst []
 ;;
 
+(* labelled along x axis *)
+let grid_vtext_labels breadth y_mn x_min lbls = 
+    Array.to_seq lbls 
+    |> Seq.mapi (fun indx text -> 
+        Text { 
+            x=(x_min +. ((float_of_int indx) *. breadth) +. 4.); y =y_mn+.10.;
+            color="black"; size=8; text
+        }
+    )
+    |> List.of_seq
+;;
+
 (* lines running from left to right along the y axis *)
 let grid_hlines _height incr x_mn x_mx y_max_scl = 
     let yst = Float.ceil y_max_scl in
@@ -133,7 +155,7 @@ let grid_hlines _height incr x_mn x_mx y_max_scl =
 
 (* text along y axis *)
 let grid_htext height incr x_mn y_max_scl inv = 
-    let yst = Float.ceil y_max_scl in
+    let yst = y_max_scl in
     let rec addvlns vlc state = 
         if vlc < incr then 
             state
@@ -178,8 +200,6 @@ let scatter (type data) (ctx: scatterctx) (module SliceView: NDView with type t 
     let yscaler  = make_scaler _y_mn _y_mx (pfloaty) ((float_of_int ctx.plot.ybound) +. pfloaty) in
     let yinverse = inverse_transform_scaler _y_mn _y_mx (pfloaty) ((float_of_int ctx.plot.ybound) +. pfloaty) in
 
-    (* FIXME: switch to origin based demarkation and tickers *)
-
     (* because the y axis is inverted and we want the origin to be at the bottom! *)
     let transformy yv = hfloat -. (yv) in
 
@@ -215,7 +235,7 @@ let scatter (type data) (ctx: scatterctx) (module SliceView: NDView with type t 
 
     (* text on the x axis *)
     let vtext = 
-        grid_vtext (wfloat) ctx.plot.gridstep (pfloaty+.(float_of_int ctx.plot.ybound)) (pfloatx) xinverse in
+        grid_vtext (wfloat) ctx.plot.gridstep (pfloaty+.(float_of_int ctx.plot.ybound)+.ctx.plot.xytextoff) (pfloatx+.ctx.plot.xtextoff) xinverse in
 
     (* from left to right *)
     let hlines = 
@@ -223,16 +243,115 @@ let scatter (type data) (ctx: scatterctx) (module SliceView: NDView with type t 
 
     (* text on the y axis *)
     let htext = 
-        grid_htext (hfloat) ctx.plot.gridstep (pfloatx) (pfloaty+.(float_of_int ctx.plot.ybound)) yinverse  in
+        grid_htext (hfloat) ctx.plot.gridstep (pfloatx+.ctx.plot.yxtextoff) (pfloaty+.(float_of_int ctx.plot.ybound)+.ctx.plot.ytextoff) yinverse  in
 
     ctx.plot.plotcb (
         ctx.plot.handle, 
         [width; height],  
         Reset ::
             origin_x_ :: origin_y_ ::
-            ttl :: xt :: yt :: (List.of_seq _vals) @
-            vlines @ vtext @ hlines @ htext
+            ttl :: xt :: yt :: 
+            vlines @ vtext @ hlines @ htext @ (List.of_seq _vals)
     ) 
 ;;
 
+(*TODO: Cache scaling functions as closures to prevent recalc when called multiple times *)
+(* 
+   =(@b2..c23) | plot<'Heat', [620,240], bar<[::, 0:1:],@a2..a23, {xl='Temp',yl='Ice Cream',c='red',r=3,px=100}>> 
+*)
+let bar (type data) (ctx: barctx) (module SliceView: NDView with type t = data) (_hview: data) lbls = 
+
+    (* check if negative values included *)
+    let (_h_mn, _x_mx) = Masks.minmaxvalue (module SliceView) _hview in
+
+    (* start from 0 or lower *)
+    let _h_mn   = if _h_mn > 0. then 0. else _h_mn in
+    (* start from 0 or higher *)
+    let _x_mx   = if _x_mx < 0. then 0. else _x_mx in
+
+    let _cnt    = Array.length lbls in
+    let _hseq   = SliceView.to_seq _hview in
+
+    let width  = ctx.plot.xbound+(ctx.plot.paddingx*2) in
+    let height = ctx.plot.ybound+(ctx.plot.paddingy*2)in
+
+    let hfloat  = float_of_int height in
+    let wfloat  = float_of_int width in
+
+    (* how each bar scales along the width *)
+    let breadth =  float_of_int ((ctx.plot.xbound + ctx.plot.paddingx) / _cnt) in
+
+    let pfloatx  = float_of_int ctx.plot.paddingx in
+    let pfloaty  = float_of_int ctx.plot.paddingy in
+
+    let heightscaler = make_scaler _h_mn _x_mx (pfloaty) ((float_of_int ctx.plot.ybound) +. pfloaty) in
+    let heighinverse = inverse_transform_scaler _h_mn _x_mx (pfloaty) ((float_of_int ctx.plot.ybound) +. pfloaty) in
+    (* because the y axis is inverted and we want the origin to be at the bottom! *)
+    let transformy yv = hfloat -. (yv) in
+
+    (* because the y axis is inverted and we want the origin to be at the bottom! *)
+    (*let transformy yv = hfloat -. (yv) in*)
+
+    (* TODO: convert data to scaled rects *)
+
+    let ttl = make_plot_title   width ctx.plot.handle in
+    let xt  = make_plot_x_label width height ctx.xlabel in
+    let yt  = make_plot_y_label width height ctx.ylabel in
+
+    (* draw origin lines for x and y axes and displaying tickers *)
+    let origin_x_ = Line {
+        x= (0.); y=((hfloat -. pfloaty));
+        fx=(heightscaler (wfloat)); fy=(hfloat -. pfloaty);
+        linewidth=2.; color="black"
+    } in
+
+    let origin_y_ = Line {
+        x= (pfloatx); y=(0.);
+        fx=(pfloatx); fy=(hfloat);
+        linewidth=2.; color="black"
+    } in
+
+    (* from top to bottom *)
+    let vlines = 
+        grid_vlines (wfloat) ctx.plot.gridstep (pfloaty) (hfloat-.pfloaty) (pfloatx) in
+
+    (* text on the x axis *)
+    let vtext = 
+        grid_vtext_labels breadth (pfloaty+.(float_of_int ctx.plot.ybound)+.ctx.plot.xytextoff) (pfloatx+.ctx.plot.xtextoff) lbls in
+
+    (* from left to right *)
+    let hlines = 
+        grid_hlines (hfloat) ctx.plot.gridstep (pfloatx) (wfloat+.pfloatx) (pfloaty+.(float_of_int ctx.plot.ybound)) in
+
+    (* text on the y axis *)
+    let htext = 
+        (*NOTE: xinverse is actually yinverse *)
+        grid_htext (hfloat) ctx.plot.gridstep (pfloatx+.ctx.plot.yxtextoff) (pfloaty+.(float_of_int ctx.plot.ybound)+.ctx.plot.ytextoff) heighinverse  in
+
+    (* TODO: build actual bars *)
+    (* convert data to scaled points *)
+    let _vals   = 
+        (*Seq.empty*)
+         _hseq |> Seq.mapi (fun indx x -> 
+            let height = (transformy (heightscaler x)) -. transformy (heightscaler 0.) in
+            let _ = Format.printf "(%f %f) %.2f height is %.2f\n" _h_mn _x_mx x height  in
+             Box {
+                x=(pfloatx +. ((float_of_int indx) *. breadth) +. 4.); 
+                y=(transformy pfloaty); 
+                width=(breadth-.8.);height;
+                color=ctx.color; linewidth=0.; border=ctx.border 
+             }
+         ) 
+    in
+
+    ctx.plot.plotcb (
+        ctx.plot.handle, 
+        [width; height],  
+        Reset ::
+            ttl :: xt :: yt :: 
+            origin_x_ :: origin_y_ ::
+            vlines @ vtext @ hlines @ htext @ (List.of_seq _vals) 
+            (*vtext @ htext*)
+    ) 
+;;
 
