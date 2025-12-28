@@ -328,13 +328,11 @@ let bar (type data) (ctx: barctx) (module SliceView: NDView with type t = data) 
         (*NOTE: xinverse is actually yinverse *)
         grid_htext (hfloat) ctx.plot.gridstep (pfloatx+.ctx.plot.yxtextoff) (pfloaty+.(float_of_int ctx.plot.ybound)+.ctx.plot.ytextoff) heighinverse  in
 
-    (* TODO: build actual bars *)
-    (* convert data to scaled points *)
+    let theightmin = transformy (heightscaler 0.) in 
     let _vals   = 
         (*Seq.empty*)
          _hseq |> Seq.mapi (fun indx x -> 
-            let height = (transformy (heightscaler x)) -. transformy (heightscaler 0.) in
-            let _ = Format.printf "(%f %f) %.2f height is %.2f\n" _h_mn _x_mx x height  in
+            let height = (transformy (heightscaler x)) -. theightmin in
              Box {
                 x=(pfloatx +. ((float_of_int indx) *. breadth) +. 4.); 
                 y=(transformy pfloaty); 
