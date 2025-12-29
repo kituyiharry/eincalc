@@ -512,8 +512,11 @@ let parammatch (({ inp; _ } as e), par) =
             )
         ) in 
         if List.exists (Result.is_error) ins then
-            List.filter (Result.is_error) ins 
-            |> List.map (Result.get_error)
+            List.filter_map (function 
+                | Ok _ -> None
+                | Error e -> Some e
+            ) ins 
+            (*|> List.map (Result.get_error)*)
             |> String.concat ", and " 
             |> Result.error
         else

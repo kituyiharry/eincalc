@@ -126,21 +126,19 @@ let apply_masks_list pr ml =
 ;;
 
 let load_kernel_addr vm count = 
-    let rec collect add indx = 
-        if indx == count then 
-            let add' = List.rev add in
-            push vm (SAddr (Array.of_list add'))
-        else
-            (match pop vm with 
+    let arr = Array.make count 0 in
+    for indx = 0 to (count-1) do
+        (match pop vm with 
             | SIndex idx -> 
-                collect (idx :: add) (indx + 1)
+                arr.(indx) <- idx;
             | sp -> 
                 let _ = debug_stack vm in 
                 failwith (Format.sprintf "Expected index, found %s" (show_spinval sp))
-            )
-    in 
-    collect [] 0
+        )
+    done;
+    push vm (SAddr arr)
 ;;
+
 (* TODO: standardize order *)
 let print_kernel vm = 
     let indx = peek vm in
@@ -224,12 +222,10 @@ let reset_vm v =
 ;;
 
 (* consume instructions and return the number of places to jump *)
-let rec consume ({ Types.oprtns; cursor; _ } as s) apply = 
-    if cursor >= Array.length oprtns then 
-        ()
-    else
-        let _ = s.cursor <- s.cursor + apply oprtns.(cursor) in
-        consume s apply
+let consume ({ Types.oprtns; _ } as s) apply = 
+    while not (s.cursor >= Array.length oprtns) do
+        s.cursor <- s.cursor + apply oprtns.(s.cursor)
+    done;
 ;;
 
 let handle_op vm op = 

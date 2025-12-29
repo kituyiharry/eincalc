@@ -3,6 +3,7 @@ type startctx = {
     ;   run : string option 
     ;   format: string option
     ;   interactive: bool
+    ;   debug: bool
 } [@@deriving show];;
 
 let parse_args len = 
@@ -34,11 +35,13 @@ let parse_args len =
                     args (rem) (idx+1) { ctx with interactive=true; }  
                 | "-ni" | "-noint" | "--no-interactive" | "-no-interactive"  -> 
                     args (rem) (idx+1) { ctx with interactive=false; }  
+                | "-nodebug" | "--nodebug" -> 
+                    args (rem) (idx+1) { ctx with debug=false; }  
                 | n -> 
                     failwith ("unrecognized cli option: " ^ n)
             )
     in
-    args len 1 { load=None; run=None; interactive=false;format=None;  }
+    args len 1 { load=None; run=None; interactive=false;format=None; debug=true  }
 ;;
 
 let load_file controller is_csv _is_tsv file = 
@@ -104,8 +107,8 @@ let () =
     let grid = Eincalc.Ndcontroller.new_sheet contr "Default" in
     let _ = Format.printf "%d args\n" ln in
     if ln > 1 then 
-        let _ = Eincalc.Repl._DEBUG := true in
         let ctx = parse_args ln in
+        let _ = Eincalc.Repl._DEBUG := ctx.debug in
         let _ = Format.printf "%s\n" (show_startctx ctx) in
         let _ = interp_args grid ctx in
         if ctx.interactive then 

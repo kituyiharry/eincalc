@@ -262,15 +262,6 @@ let prattempty = {
     }
 };;
 
-type parseres = (program, string) result
-type parsefn  = (prattstate -> parseres)
-
-(*
- *let getrule tok = 
- *    rules.(ruleidx tok)
- *;;
-*)
-
 (* check current token without advancing state *)
 let past tokn ({prev; _}) = 
     match prev with
