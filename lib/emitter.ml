@@ -35,9 +35,11 @@ type presource = {
     ;   name:   string
     ;   args:   Parser.crange list
     ;   pmasks: Parser.mask list (* masks executed after *)
+    ;   mutable opts:   bool (* Apply optimizations *)
+    ;   mutable optcount: int (* track number of applied optimizations *)
 } [@@deriving show];;
 
-let presempty name = {
+let presempty name opts = {
         consts=[] 
     ;   kernels=[]
     ;   kcount=0
@@ -46,8 +48,7 @@ let presempty name = {
                 prog=(Literal (Number 0.))
             ;   inputs=[]; writes=[]; source=""
             ;   stamp=(Unix.gettimeofday ())
-            }
-        ) (* we havent formed the program yet *)
+        }) (* we havent formed the program yet *)
     ;   oprtns=[]
     ;   cnsidx=0
     ;   nmdvar=(Hashtbl.create 8) 
@@ -55,6 +56,8 @@ let presempty name = {
     ;   args=[]
     ;   pmasks=[]
     ;   name
+    ;   opts=opts (* Apply Optimizations *)
+    ;   optcount=0(* Apply Optimizations *)
 } [@@deriving show];;
 
 (* todo: interning! *)
@@ -757,7 +760,13 @@ let genloop sidx controller ps (parms: (int list * Parser.crange * Parser.mask l
         let rec genl vnum ({ label=vrn; dimen=bound; _ } as ein) ps lidx decl rem =
             let (vidx, ps) = add_named_var vrn ps in         (* capture as var once loaded *)
             let decl'      = ((vrn, vidx) :: decl) in
-            let (jmp, hdblk) =  Funcs.loopblock lidx vidx bound in
+            let (jmp, hdblk) = 
+                if ps.opts then 
+                    let _ =  ps.optcount <- ps.optcount + 1 in
+                    Funcs.optloopblock lidx vidx bound 
+                else
+                    Funcs.loopblock lidx vidx bound 
+            in
             (* get offset from start of the loop for the inner *)
             let offset = List.length hdblk in
             let ps' = (
@@ -776,7 +785,13 @@ let genloop sidx controller ps (parms: (int list * Parser.crange * Parser.mask l
                 post vnum decl' body ein 
             ) in
             (* attach former oprtns - we passed an empty earlier!! *)
-            { ps' with oprtns= Funcs.loop jmp lidx hdblk ps'.oprtns }
+            { ps' with oprtns=(
+                if ps.opts then
+                    let _ =  ps.optcount <- ps.optcount + 1 in
+                    Funcs.optloop jmp lidx hdblk ps'.oprtns
+                else
+                    Funcs.loop jmp lidx hdblk ps'.oprtns
+            ) }
         in 
         match vlist with 
         | [] -> ps

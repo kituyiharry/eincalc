@@ -248,7 +248,7 @@ let _ =
             | Ok cell ->
                 (* transform the ast to capture any reads and writes so we can
                    form dependencies *)
-                (match Eincalc.Eval.tosource !sheet cell with
+                (match Eincalc.Eval.tosource !sheet cell (!Eincalc.Repl._OPTS) with
                     | Ok ({ ast=(Eincalc.Parser.Stmt s); _ } as cell) ->
                         let _ = Eincalc.Ndcontroller.dependants !sheet cell.ast in
                         let _ = Eincalc.Repl.handle_eval !sheet cell in

@@ -89,14 +89,26 @@ let prepare_eintree sidx ps controller x =
                         (* first index - we wait for 2nd variable *)
                         if _idx = 0 then        
                             (
-                                Funcs.load_arr_addr _vars ps.nmdvar
-                                |> Funcs.fetch_arr_var m
+                                (*Funcs.load_arr_addr _vars ps.nmdvar*)
+                                if ps.opts then  
+                                    let _ =  ps.optcount <- ps.optcount + 1 in
+                                    Funcs.opt_load_arr_addr _vars ps.nmdvar
+                                    |> Funcs.fetch_arr_var m
+                                else
+                                    Funcs.opt_load_arr_addr _vars ps.nmdvar
+                                    |> Funcs.fetch_arr_var m
                             )
                         else 
                             (
                                 (
-                                    Funcs.load_arr_addr _vars ps.nmdvar
-                                    |> Funcs.fetch_arr_var m
+                                    (*Funcs.load_arr_addr _vars ps.nmdvar*)
+                                    if ps.opts then  
+                                        let _ =  ps.optcount <- ps.optcount + 1 in
+                                        Funcs.opt_load_arr_addr _vars ps.nmdvar
+                                        |> Funcs.fetch_arr_var m
+                                    else
+                                        Funcs.load_arr_addr _vars ps.nmdvar
+                                        |> Funcs.fetch_arr_var m
                                 ) @  [ IMul ]
                             )
                     ) _mapidx |> List.concat in 
@@ -114,7 +126,13 @@ let prepare_eintree sidx ps controller x =
                     | Some e ->
                         let _vars = (List.map (fun v -> v.label) e) in
                         (* load the variables addressing the output kernel *)
-                        let addr = Funcs.load_arr_addr _vars ps.nmdvar in
+                        let addr = (
+                            if ps.opts then
+                                let _ =  ps.optcount <- ps.optcount + 1 in
+                                Funcs.opt_load_arr_addr _vars ps.nmdvar
+                            else
+                                Funcs.load_arr_addr _vars ps.nmdvar
+                        ) in
                         (* get the current value and add it to what was
                                already there on the stack and write it back onto
                                the kernel *)
@@ -197,6 +215,4 @@ let prepare_expression ps controller ex =
     | Stmt {prog=stm; _} -> 
         _prepare 0 { ps with ast=ex; } controller stm
 ;;
-
-
 

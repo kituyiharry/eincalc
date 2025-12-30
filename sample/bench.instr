@@ -1,0 +1,80 @@
+;; These are instructions generated from bench.ein which are unoptimized ;;
+1.  | Types.ISaveFrame
+2.  | (Types.IPush idx: 0)  <-------------------------------------------------+
+3.  | (Types.IGetVar 0)                                                       |
+4.  | (Types.IPush idx: 250)                                                  |
+5.  | Types.ILess                                                             |
+6.  + (Types.IJumpFalse ref (56))                                             |
+    |                                                                         |
+7.  |     (Types.IJump 6) <---------------------------------------------------=-------+
+    |     ;; apply VaddSetVarConst 
+8.  |     (Types.IGetVar 0)                                                   |       |
+9.  |     (Types.IPush idx: 1)                                                |       |
+10. |     Types.IAdd                                                          |       |
+11. |     (Types.ISetVar 0)                                                   |       |
+12. |     (Types.ILoop 2)  ---------------------------------------------------+       |
+    |                                                                                 |
+13. |     (Types.IPush idx: 0)  <---------------------------------------------+       |
+14. |     (Types.IGetVar 1)                                                   |       |
+15. |     (Types.IPush idx: 250)                                              |       |
+16. |     Types.ILess                                                         |       |
+17. |     + (Types.IJumpFalse ref (43))                                       |       |
+    |     |                                                                   |       |
+18. |     |     (Types.IJump 6)  <--------------------------------------------=-----+ |
+19. |     |     (Types.IGetVar 1)                                             |     | |
+20. |     |     (Types.IPush idx: 1)                                          |     | |
+21. |     |     Types.IAdd                                                    |     | |
+22. |     |     (Types.ISetVar 1)                                             |     | |
+23. |     |     (Types.ILoop 13) ---------------------------------------------+     | |
+    |     |                                                                         | |
+24. |     |     (Types.IPush idx: 0) <----------------------------------------+     | |
+25. |     |     (Types.IGetVar 2)                                             |     | |
+26. |     |     (Types.IPush idx: 200)                                        |     | |
+27. |     |     Types.ILess                                                   |     | |
+28. |     |     + (Types.IJumpFalse ref (30))                                 |     | |
+    |     |     |                                                             |     | |
+29. |     |     |     (Types.IJump 6)   <-------------------------------------=--+  | |
+    |     |     |     ;; apply VaddSetVarConst 
+30. |     |     |     (Types.IGetVar 2)                                       |  |  | |
+31. |     |     |     (Types.IPush idx: 1)                                    |  |  | |
+32. |     |     |     Types.IAdd                                              |  |  | |
+33. |     |     |     (Types.ISetVar 2)                                       |  |  | |
+34. |     |     |     (Types.ILoop 24)  --------------------------------------+  |  | |
+    |     |     |                                                                |  | |
+    |     |     |         ;; apply VGetLoadAddr optimization                  +--+  | |
+35. |     |     |         (Types.IGetVar 2)                                   |  +--+ |
+36. |     |     |         (Types.IGetVar 0)                                   |  | +--+
+37. |     |     |         (Types.ILoadAddr 2)                                 |  | |
+38. |     |     |     (Types.IPush kern: 1)                                   |  | |
+39. |     |     |     Types.IGetKern                                          |  | |
+    |     |     |         ;; apply VGetLoadAddr optimization                  |  | |
+40. |     |     |         (Types.IGetVar 1)                                   |  | |
+41. |     |     |         (Types.IGetVar 2)                                   |  | |
+42. |     |     |         (Types.ILoadAddr 2)                                 |  | |
+43. |     |     |     (Types.IPush kern: 2)                                   |  | |
+44. |     |     |     Types.IGetKern                                          |  | |
+45. |     |     |     Types.IMul                                              |  | |
+    |     |     |         ;; apply VGetLoadAddr optimization                  |  | |
+46. |     |     |         (Types.IGetVar 1)                                   |  | |
+47. |     |     |         (Types.IGetVar 0)                                   |  | |
+48. |     |     |         (Types.ILoadAddr 2)                                 |  | |
+49. |     |     |     (Types.IPush kern: 0)                                   |  | |
+50. |     |     |     Types.IGetKern                                          |  | |
+51. |     |     |     Types.IAdd                                              |  | |
+    |     |     |         ;; apply VGetLoadAddr optimization                  |  | |
+52. |     |     |         (Types.IGetVar 1)                                   |  | |
+53. |     |     |         (Types.IGetVar 0)                                   |  | |
+54. |     |     |         (Types.ILoadAddr 2)                                 |  | |
+55. |     |     |     (Types.IPush kern: 0)                                   |  | |
+56. |     |     |     Types.ISetKern                                          |  | |
+57. |     |     |     (Types.ILoop 29) ---------------------------------------+  | |
+58. |     |     + Types.IPop                                                     | |
+    |     |     |                                                             +--+ |
+59. |     |     (Types.ILoop 18) ---------------------------------------------+    |
+60. |     + Types.IPop                                                        +----+
+61. |     (Types.ILoop 7) ----------------------------------------------------+
+    |
+62. + Types.IPop
+63. | Types.IApplyMasks
+64. | (Types.IPush kern: 0)
+65. | Types.ILoadFrame

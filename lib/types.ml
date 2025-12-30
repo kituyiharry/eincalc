@@ -533,11 +533,19 @@ type instr =
     | IGetKern           (* load value from a kernel *)
     | ISetKern           (* write value to a kernel *)
     | IEchoKern          (* dereference and print out kernel values *)
-    | ILoadAddr  of int  (* create an address from the next n values on the stack *)
+    | ILoadAddr    of int (* create an address from the next n values on the stack *)
     | IApplyMasks
     | IApplyMaskList of Parser.mask list
     | ILoadFrame
     | ISaveFrame         (* simulates a function call by saving the base pointer allowing the return of a function call to remain on the stack *)
+
+    (* optimization of IGetVar and ILoadAddr sequence *)
+    | VGetLoadAddr    of (int array * int array) (* get an address from variables *)
+    (* optimization of jumping when compared to a constant value *)
+    | VJumpFalseConst of (int (*const*) * int (* var to comp*) * int ref (* steps *))
+    (* optimization of adding to a constant value *)
+    | VAddSetVarConst of (int (*const*) * int (* var to increment *)) 
+
 [@@deriving show];;
 
 

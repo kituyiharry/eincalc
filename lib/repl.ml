@@ -9,6 +9,7 @@
  *)
 
 let _DEBUG = ref false ;;
+let _OPTS  = ref true ;;
 
 let handle_eval grid (t) = 
    let fs = Parser.show_program t.Emitter.ast in
@@ -22,7 +23,7 @@ let handle_eval grid (t) =
 ;;
 
 let handle_transform_formulae grid form = 
-    (match Eval.tosource grid form with 
+    (match Eval.tosource grid form !_OPTS with 
     | Ok    t -> handle_eval grid t
     | Error e -> grid.onlog (Format.sprintf "Error: %s\n" e, Ndcontroller.Err)
     )
@@ -85,7 +86,7 @@ let scan_and_notify sheet vstr =
    | Ok cell ->
        (* transform the ast to capture any reads and writes so we can
           form dependencies *)
-        (match Eval.tosource sheet cell with
+        (match Eval.tosource sheet cell !_OPTS with
             | Ok ({ ast=(Parser.Stmt s); _ } as cell) ->
                 let _ = Ndcontroller.dependants sheet cell.ast in
                 let _ = handle_eval sheet cell in
@@ -95,9 +96,7 @@ let scan_and_notify sheet vstr =
                         Ndcontroller.notify sheet msk shp
                         |> List.map (Ndcontroller.affected sheet (Ndcontroller.plaindctx ()))
                         |> List.concat
-                        |> List.sort_uniq (fun (Parser.Stmt x) (Parser.Stmt y) ->
-                            Float.compare x.stamp y.stamp
-                        )
+                        |> List.sort_uniq (fun (Parser.Stmt x) (Parser.Stmt y) -> Float.compare x.stamp y.stamp)
                         |> List.iter (handle_transform_formulae sheet)
                     ) s.writes
                 ) in ()

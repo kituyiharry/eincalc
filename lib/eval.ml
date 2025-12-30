@@ -54,6 +54,12 @@ let get_stack idx ({ frmptr; spine; _ }) =
     Array.unsafe_get spine (off)
 ;;
 
+let get_stack_unwrap idx f ({ frmptr; spine; _ }) = 
+    let off = frmptr + idx in
+    let _   = assert (off < _stack_size) in
+    f (Array.unsafe_get spine (off))
+;;
+
 let set_stack idx sval { frmptr; spine; _ } = 
     let off = frmptr + idx in
     let _   = assert (off < _stack_size) in
@@ -76,6 +82,25 @@ let pop s =
     let _ = s.stkidx <- (s.stkidx - 1) in 
     v
 ;;
+
+(* pop but doesnt decrement the stack index *)
+let halfpop s off = 
+    Array.unsafe_get s.spine (s.stkidx - off)
+;;
+
+(* pop count number from the stack into the array *)
+let popn count vm arr = 
+    for indx = 1 to (count) do
+        (match (Array.unsafe_get vm.spine (vm.stkidx - indx)) with 
+            | SIndex idx -> 
+                arr.(indx-1) <- idx;
+            | sp -> 
+                failwith (Format.sprintf "Expected index, found %s" (show_spinval sp))
+        )
+    done;
+    vm.stkidx <- (vm.stkidx - count)
+;;
+
 
 (* Auto resolves pointers to kernels *)
 let popresolve s = 
@@ -127,15 +152,19 @@ let apply_masks_list pr ml =
 
 let load_kernel_addr vm count = 
     let arr = Array.make count 0 in
-    for indx = 0 to (count-1) do
-        (match pop vm with 
-            | SIndex idx -> 
-                arr.(indx) <- idx;
-            | sp -> 
-                let _ = debug_stack vm in 
-                failwith (Format.sprintf "Expected index, found %s" (show_spinval sp))
-        )
-    done;
+    let _ = popn count vm arr in
+    push vm (SAddr arr)
+;;
+
+let opt_load_kernel_addr vm idxs arr = 
+    let _ = Array.iteri (fun idx stckval -> 
+        Array.unsafe_set arr idx (get_stack_unwrap stckval (function 
+            | SIndex n -> n 
+            | b  -> 
+                let _ = debug_stack vm in
+                failwith (Format.sprintf "stack_unwrap_error: %s" (show_spinval b)) 
+        ) vm)
+    ) idxs in
     push vm (SAddr arr)
 ;;
 
@@ -152,22 +181,22 @@ let print_kernel vm =
 
 (* TODO: standardize order *)
 let write_kernel_val vm = 
-    let addr = pop vm in
-    let indx = pop vm in
-    let data = pop vm in
+    let addr = halfpop vm 1 in
+    let indx = halfpop vm 2 in
+    let data = halfpop vm 3 in
     match (indx, addr, data) with 
     | (SKern _i, SAddr _a, SNumber _f) -> 
         (match (vm.source.kernels.(_i)) with 
             | SNdim ((module M), _modl) as _g -> 
                 let _ = M.set _modl _a _f in
-                ()
+                vm.stkidx <- (vm.stkidx - 3)
             | _ -> failwith "invalid kernel!"
         )
     | (SAddr _a, SKern _i, SNumber _f) -> 
         (match (vm.source.kernels.(_i)) with 
             | SNdim ((module M), _modl) as _g -> 
                 let _ = M.set _modl _a _f in
-                ()
+                vm.stkidx <- (vm.stkidx - 3)
             | _ -> failwith "invalid kernel!"
         )
     | _  -> 
@@ -191,6 +220,8 @@ let load_kernel_val vm =
     | (SAddr _a, SKern _i) -> 
         (match (vm.source.kernels.(_i)) with 
             | SNdim ((module M), _modl) as _g -> 
+                (*let _ = Format.printf "get_kernel_val %s and %s \n" (show_spinval addr) (show_spinval indx) in*)
+                (*let _ = Format.print_flush () in*)
                 let _fv = M.get _modl _a in
                 let _ = push vm (SNumber _fv) in 
                 ()
@@ -223,7 +254,8 @@ let reset_vm v =
 
 (* consume instructions and return the number of places to jump *)
 let consume ({ Types.oprtns; _ } as s) apply = 
-    while not (s.cursor >= Array.length oprtns) do
+    let oplen = Array.length oprtns in
+    while not (s.cursor >= oplen) do
         s.cursor <- s.cursor + apply oprtns.(s.cursor)
     done;
 ;;
@@ -239,7 +271,12 @@ let handle_op vm op =
     | IPush v       -> let _ = push vm v in 1
     | ILoop x       -> let _ = vm.source.cursor <- x in 0 
     | IJump y       -> y 
-    | IJumpFalse z  -> if (Types.strue @@ Types.seql (pop vm) (SBool false)) then !z else 1
+    | IJumpFalse z  -> 
+        if (Types.strue @@ Types.seql (pop vm) (SBool false)) then !z else 1
+    | VJumpFalseConst (bound, loopcounteridx, jmp) -> 
+        (*let _ = Format.printf "idx is %s\n" (show_spinval @@ get_stack loopcounteridx vm) in*)
+        let l = Types.sless (get_stack loopcounteridx vm) (SIndex bound) in 
+        if (Types.strue @@ Types.seql l (SBool false)) then !jmp else 1 
     | IAdd          -> let _ = binop vm (IAdd) in 1 
     | IMul          -> let _ = binop vm (IMul) in 1 
     | ISub          -> let _ = binop vm (ISub) in 1 
@@ -251,12 +288,14 @@ let handle_op vm op =
     | IConst  _c    -> let _ = push  vm (get_const _c vm.source) in 1 
     | IGetVar _g    -> let _ = push  vm (get_stack _g vm) in 1 
     | ISetVar _g    -> let _ = set_stack _g (pop vm) vm in 1 
+    | VAddSetVarConst (_c,_v) -> let _ = set_stack _v (Types.sadd (SIndex _c) (get_stack _v vm)) vm in 1 
     | IEchoNl       -> let _ = (Format.printf " %s\n" (Types.show_spinval (peek vm))) in 1
     | IEcho         -> let _ = (Format.printf " %s"   (Types.show_spinval (peek vm))) in 1
     | IGetKern      -> let _ = load_kernel_val  vm in 1
     | ISetKern      -> let _ = write_kernel_val vm in 1
     | IEchoKern     -> let _ = print_kernel vm in 1
     | ILoadAddr _a  -> let _ = load_kernel_addr vm _a in 1 
+    | VGetLoadAddr (_idx, _arr) -> let _ = opt_load_kernel_addr vm _idx _arr in 1
     | IApplyMasks   -> let _ = apply_masks vm in 1
     | IApplyMaskList ml -> let _ = apply_masks_list vm ml in 1
     | ISaveFrame ->  let _ = 
@@ -266,8 +305,7 @@ let handle_op vm op =
     | ILoadFrame    -> let _ = (
         match vm.oldframe with
         | [] -> vm.frmptr <- 0 
-        | hd :: rem -> 
-            (vm.frmptr <- hd); vm.oldframe <- rem
+        | hd :: rem -> (vm.frmptr <- hd); vm.oldframe <- rem
     ) in 1
 ;;
 
@@ -292,8 +330,8 @@ let eval (pr: vm) =
     pr.sheet.onlog ((Format.sprintf "\nexec %f secs\n" tval), Ndcontroller.Debug)
 ;;
 
-let tosource (controller) (vw: program) = 
-    (>>==) (Genfunc.transform vw) (prepare_expression (presempty "") controller)
+let tosource (controller) (vw: program) opts = 
+    (>>==) (Genfunc.transform vw) (prepare_expression (presempty "" opts) controller)
 ;;
 
 let stck = Array.make _stack_size SNil;;

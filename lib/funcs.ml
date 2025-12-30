@@ -13,12 +13,55 @@ open Types;;
 let compose _lft _op _rgt = 
     _lft @ [ _op ] @ _rgt 
 ;;
+ 
+(* for loop behaviour  *)
+let optloopblock startloc loopcounteridx bound = 
+    (* WARNING: MODIFYING THIS LIST AFFECTS VM OUTPUT SINCE JUMPS ARE HARD CODED!!!! *)
+    (* 8 is if the body that appears if the loop is empty - modify it via the
+       returned ref if the body has extra instructions. 
+       it starts counting AFTER the IJumpFalse || VJumpFalseConst.
+       there are 2 extra instructions not shown here which are considered in
+       this accounting. (see loop) so here there are 3 instructions after the
+       jumpfalseconst and 2 to end the loop   
+    *)
+    let jmp  = ref 5 in
+    let  blck = [
+
+        (* load the loop indexes - loop initializer *)
+        IPush  (SIndex 0); 
+        VJumpFalseConst (bound, loopcounteridx, jmp);
+        (* jump over the increment, jump back here at the end of the loop! in loop function *)
+        IJump       3; 
+        (* increment -> loop back here after executing loop body *)
+        VAddSetVarConst (1, loopcounteridx);
+        ILoop      (startloc + 1); 
+        (* end increment *)
+
+    ] in (jmp, blck)
+;;
+
+let optloop jmp startloc hdblck slot = 
+    (* WARNING -> MODIFYING THIS LIST AFFECTS VM OUTPUT SINCE JUMPS ARE HARD CODED!!!! *)
+    let _ = jmp := (!jmp + (List.length slot)) in
+    hdblck @ slot @ 
+    [  
+        (* Go to the increment *)
+        ILoop  (startloc + 3);
+        (* pop the named variable *)
+        IPop; 
+    ]
+;;
 
 (* for loop behaviour  *)
 let loopblock startloc loopcounteridx bound = 
-    (* WARNING -> MODIFYING THIS LIST AFFECTS VM OUTPUT SINCE JUMPS ARE HARD CODED!!!! *)
+    (* WARNING: MODIFYING THIS LIST AFFECTS VM OUTPUT SINCE JUMPS ARE HARD CODED!!!! *)
     (* 8 is if the body that appears if the loop is empty - modify it via the
-       returned ref if the body has extra instructions *)
+       returned ref if the body has extra instructions.
+       it starts counting AFTER the IJumpFalse || VJumpFalseConst.
+       there are 2 extra instructions not shown here which are considered in
+       this accounting. (see loop) so here there are 6 instructions after the
+       jump and 2 to end the loop
+       *)
     let jmp  = ref 8 in
     let  blck = [
         (* load the indexes - loop initializer *)
@@ -81,8 +124,19 @@ let print_kern _idx =
     ]
 ;;
 
+(* (Optimized!) load some dimension for use as an array index of sorts *)
+let opt_load_arr_addr _vars _vblk = 
+    (* TODO: can we avoid this List.rev ?? *)
+    let len  = List.length _vars in
+    let arr  = Array.make len 0 in
+    (*let dims = List.rev @@ List.map (fun e -> (IGetVar (Hashtbl.find _vblk e))) _vars in*)
+    let _ = List.iteri (fun i e -> (arr.(i) <- (Hashtbl.find _vblk e))) _vars in
+    [ VGetLoadAddr (arr, Array.make len 0); ]
+;;
+
 (* load some dimension for use as an array index of sorts *)
 let load_arr_addr _vars _vblk = 
+    (* TODO: can we avoid this List.rev ?? *)
     let dims = List.rev @@ List.map (fun e -> (IGetVar (Hashtbl.find _vblk e))) _vars in
     dims @ [ ILoadAddr (List.length dims); ]
 ;;

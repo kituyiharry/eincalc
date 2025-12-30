@@ -3,11 +3,13 @@ open Eincalc;;
 open Eincalc.Eval;;
 open Eincalc.Types;;
 
+let _OPTS = false;;
+
 let execute grid src = 
     match (Lexer.runall src) with
     |  Ok tokens -> 
         (>>==) (Parser.parse tokens "") (fun tree -> 
-            (>>==) (Eval.tosource grid (fst tree).prog) (fun comp -> 
+            (>>==) (Eval.tosource grid (fst tree).prog _OPTS) (fun comp -> 
                 let vm = Eval.mkvm grid true (Emitter.convert comp) in 
                 let () = Eval.eval vm in
                 Ok (vm)
