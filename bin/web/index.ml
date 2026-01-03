@@ -283,7 +283,7 @@ let _ =
                         Js._false
                 )
             | Error s -> 
-                !(sheet).onlog (s, Eincalc.Ndcontroller.Err);
+                !(sheet).onlog (s.errt, Eincalc.Ndcontroller.Err);
                 Js._false
         )
 

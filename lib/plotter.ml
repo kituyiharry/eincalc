@@ -312,8 +312,8 @@ let bar (type data) (ctx: barctx) (module SliceView: NDView with type t = data) 
     } in
 
     (* from top to bottom *)
-    let vlines = 
-        grid_vlines (wfloat) ctx.plot.gridstep (pfloaty) (hfloat-.pfloaty) (pfloatx) in
+    (*let vlines = *)
+        (*grid_vlines (wfloat) ctx.plot.gridstep (pfloaty) (hfloat-.pfloaty) (pfloatx) in*)
 
     (* text on the x axis *)
     let vtext = 
@@ -349,7 +349,8 @@ let bar (type data) (ctx: barctx) (module SliceView: NDView with type t = data) 
         Reset ::
             ttl :: xt :: yt :: 
             origin_x_ :: origin_y_ ::
-            vlines @ vtext @ hlines @ htext @ (List.of_seq _vals) 
+            (*vlines @ vtext @ hlines @ htext @ (List.of_seq _vals) *)
+            vtext @ hlines @ htext @ (List.of_seq _vals) 
             (*vtext @ htext*)
     ) 
 ;;

@@ -289,17 +289,36 @@ let advance (state, rem) =
 
 let consume state tt  =
     (match (fst state).curr with
-        | Some { tokn; _ } ->
+        | Some { tokn; line; colm } ->
             (if equal_ttype tokn tt then 
                 (Ok (advance state)) 
              else
-                (Error (Format.sprintf "Expected consume %s found %s" (show_ttype tt) (show_ttype tokn)))
+                (Error (
+                    Errctx.{ 
+                        line=line;colm=colm;sugg="parser.expect_token";
+                        errt=(
+                            Format.sprintf "Expected consume %s found %s" (show_ttype tt) (show_ttype tokn)
+                        )
+                    }
+                ))
             )
-        | _ -> Error ("failed consumption check with bad termination expecting " ^ (show_ttype tt))
+        | _ -> Error (
+            Errctx.{ 
+                (* -1 should mean the end of the current line parsed *)
+                line=(-1);colm=(-1);sugg="parser.expect_token";
+                errt=("failed consumption check with bad termination expecting " ^ (show_ttype tt))
+            }
+        )
     )
 ;;
 
-(* consume if it exists *)
+let curspot state = 
+    (match (fst state).curr with 
+        | Some { line; colm; _ } -> (line, colm)
+        | None -> (-1, -1)
+    )
+
+(* consume if it exists  e.g semicolons *)
 let consume_optional tt state = 
     match (consume state tt) with 
     | Ok s -> Ok s
@@ -315,8 +334,14 @@ let enclosed opentok closetok apply state =
                 Ok (final, outcome)
             )
         )
-        else Error (Format.sprintf "missing opening enclose token (%s) found %s" (show_ttype opentok) 
-        (show_prattstate (fst state)))
+        else 
+            let  line, colm = curspot state in
+            Error (
+                Errctx.{
+                    line; colm; sugg="parser.enclosed_expect_open_token";
+                    errt=(Format.sprintf "missing opening enclose token (%s) found %s" (show_ttype opentok) (show_prattstate (fst state)))
+                }
+        )
     )
 ;;
 
@@ -338,11 +363,23 @@ let rec takenum state =
             | TNumeral n -> 
                 Ok ((TNumeral (-1 * n)), state')
             | _ -> 
-                Error "invalid value in takenum"
+                let (line, colm) = curspot state' in
+                Error (
+                    Errctx.{
+                        line; colm; sugg="parser.takenum_expected_number"
+                        ;errt="invalid value in takenum"
+                    }
+                )
             )
         )
     | _ -> 
-        Error "invalid token when extracting number"
+        let (line, colm) = curspot state in
+        Error (
+            Errctx.{
+                line; colm; sugg="parser.takenum_expected_number"
+                ;errt="invalid token value in takenum"
+            }
+        )
     )
 ;;
 
@@ -358,11 +395,16 @@ let parse_key_value state =
     enclosed TOpenCurly TCloseCurly (fun state' -> 
         let rec collect cstate =
             (match current cstate with 
-            | Some ({ tokn=(TAlphaNum key); _ }) -> 
+            | Some ({ tokn=(TAlphaNum key); line; colm; }) -> 
                 (>>==) (consume (advance cstate) TEq) (fun cstate' -> 
                     (match (current cstate') with 
-                    | Some ({ tokn=(TCloseCurly); _ }) -> 
-                        Error "missing key value"
+                    | Some ({ tokn=(TCloseCurly); line; colm; }) -> 
+                        Error (
+                            Errctx.{
+                                line;colm;sugg="parser.key_value_early_termination";
+                                errt="missing key value"
+                            }
+                        )
                     | Some ({ tokn=KMinus; _}) ->
                         let* (num, after) = takenum cstate' in 
                         let _ = Hashtbl.add prptbl key num in 
@@ -371,7 +413,12 @@ let parse_key_value state =
                         let _ = Hashtbl.add prptbl key tokn in 
                         collect (advance cstate')
                     | _ -> 
-                        Error "terminated when parsing value for key"
+                        Error (
+                            Errctx.{
+                                line;colm;sugg="parser.key_value_unexpected_token";
+                                errt="terminated when parsing value for key"
+                            }
+                        )
                     )
                 )
             | Some ({ tokn=(TComma);_ }) -> 
@@ -379,7 +426,13 @@ let parse_key_value state =
             | Some ({ tokn=(TCloseCurly);_ }) -> 
                 Ok ((cstate), prptbl)
             | _ -> 
-                Error "bad termination when parsing key value, expected string key"
+                let (line, colm) = curspot cstate in
+                Error (
+                    Errctx.{
+                       line;colm;sugg="parser.key_value_unexpected_token";
+                       errt="bad termination when parsing key value, expected string key"
+                    }
+                )
             )
         in 
         collect state'
@@ -410,17 +463,25 @@ let parse_ein_out ein word ml =
 let reorder ein = 
     { ein with inp=List.rev ein.inp; } 
 ;;
-let as_cell w = 
+let as_cell w (line,colm) = 
     match Seq.find_index (fun c ->  Lexer.isDigit c) @@ String.to_seq w  with 
     | Some idx -> 
         let row = String.sub w 0 idx in
         let col = String.sub w idx (String.length w - idx) in
         ( match int_of_string_opt col with 
             | Some col'->  Ok (row, col')
-            | None     ->  Error (Format.sprintf "Invalid row value - should be a number: %s" col)
+            | None     ->  Error (
+                Errctx.{
+                    line;colm; sugg="parser.as_cell_column_value";
+                    errt=Format.sprintf "Invalid row value - should be a number: %s" col;
+                }
+            )
         ) 
     | None -> 
-        Error "Row index not found??"
+        Error Errctx.{
+            line;colm; sugg="parser.as_cell_column_value";
+            errt="Row index not found??"
+        }
 ;;
 
 (* return consumed state + extracted numerals forming the array *)
@@ -441,7 +502,16 @@ let parse_static_array state =
                             Ok (advance next, (toadd :: rows))
                         (* weird state  *)
                         else 
-                            Error (Format.sprintf "Unexpected token in stack: %s!" (show_prattstate (fst next)))
+                            let (line, colm) = curspot next in
+                            Error (
+                                Errctx.{
+                                    line; colm; 
+                                    sugg="parser.static_array_bad_termination";
+                                    errt=(
+                                        Format.sprintf "Unexpected token in stack: %s!" (show_prattstate (fst next))
+                                    )
+                                }
+                            )
                     )
                 else if check TRightBracket (fst after) then 
                     Ok (advance after, ((toadd :: rows)))
@@ -451,18 +521,23 @@ let parse_static_array state =
         )
     and collect state' numerals =  
         match (fst state').curr with
-        | Some { tokn; _ } -> 
+        | Some { tokn; line; colm; _ } -> 
             (match tokn with
                 | KMinus -> 
                     let* (num, after) = takenum state' in 
-                    let _ = Format.printf "found num %s!\n" (show_ttype num) in
+                    (*let _ = Format.printf "found num %s!\n" (show_ttype num) in*)
                     (match num with
                     | TFloat v   ->  
                         collect (after) (v :: numerals)
                     | TNumeral n ->
                         collect (after) ((float_of_int n) :: numerals)
                     | _ ->
-                        Error "expected number in static array decl"
+                        Error (
+                            Errctx.{
+                                line; colm; sugg="parser.static_array_num_only";
+                                errt="expected number in static array decl"
+                            }
+                        )
                     )
                 | TFloat value ->  
                     collect (advance state') (value :: numerals)
@@ -470,7 +545,13 @@ let parse_static_array state =
                     collect (advance state') ((float_of_int value) :: numerals)
                 | TComma -> 
                     (if past TComma (fst state') then
-                        Error "Missing value between commas!"
+                        Error (
+                            Errctx.{
+                                line; colm;
+                                sugg="parser.static_array_missing_val";
+                                errt="Missing value between commas!"
+                            }
+                        ) 
                     else
                         collect (advance state') (numerals))
                 | TLeftBracket -> 
@@ -481,9 +562,27 @@ let parse_static_array state =
                 | TRightBracket -> 
                     Ok ((advance state'), (Itemize (List.rev numerals)))
                 | n ->
-                    Error (Format.sprintf "Unexpected token %s in static array - only floats supported" (show_ttype n))
+                    Error (
+                        Errctx.{
+                            line; colm;
+                            sugg="parser.static_array_only_num_vals";
+                            errt=(
+                                Format.sprintf "Unexpected token %s in static array - only floats supported" (show_ttype n)
+                            )
+                                (*"Missing value between commas!" *)
+                        }
+                    )
             ) 
-        | _ -> Error "Unexpected close - need static array"
+        | _ -> 
+            let  (line, colm) = curspot state' in
+            Error (
+                Errctx.{
+                    line; colm;
+                    sugg="parser.static_array_unhandled_token";
+                    errt="Unexpected close - need static array"
+                    (*"Missing value between commas!"*)
+                }
+            )
     in (collect state [])
 ;;
 
@@ -504,7 +603,7 @@ let compass tokn motn =
 let parse_extract_slice_indices state = 
     let rec collect_rem next p = 
         (match (fst next).curr with 
-            | Some { tokn; _ } -> 
+            | Some { tokn; line; colm; _ } -> 
                 (match tokn with
                     | TComma -> 
                         collect_rem (advance next) p
@@ -552,7 +651,7 @@ let parse_extract_slice_indices state =
                                             skip=None;
                                         }
                                     ) :: p)
-                                | Some ({ tokn=TColon; _ }) -> 
+                                | Some ({ tokn=TColon; line; colm; _ }) -> 
                                     let next = advance next in 
                                     (match (fst next).curr with 
                                         | Some ({ tokn=(TNumeral skip); _ }) -> 
@@ -580,7 +679,11 @@ let parse_extract_slice_indices state =
                                                 }
                                             ) :: p)
                                         | None -> 
-                                            Error "bad slice structure termination"
+                                            Error Errctx.{
+                                                line; colm;
+                                                sugg="parser.parse_slice_indices_bad_termination";
+                                                errt="bad slice structure termination"
+                                            }
                                     )
                                 | _ -> 
                                     collect_rem next ((
@@ -665,15 +768,28 @@ let parse_extract_slice_indices state =
                                         ) :: p)
                                 )
                             | _ -> 
-                                Error "bad slice arg"
+                                Error Errctx.{
+                                    line; colm;
+                                    sugg="parser.parse_slice_indices_bad_arg";
+                                    errt="unexpected value in slice specification"
+                                }
                         )
                     | TRightBracket -> 
                         (* exit condition - leave as is to match it in enclose calls *)
                         Ok (next, (List.rev p))
-                    |  _ -> Error ("bad slice value: negative slices not currently supported ")
+                    |  _ -> 
+                        Error Errctx.{
+                            line; colm;
+                            sugg="parser.parse_slice_indices_bad_termination";
+                            errt="bad slice value: negative slices not currently supported"
+                        }
                 )
             | None -> 
-                (Error "malformed slice specification?")
+                Error Errctx.{
+                    line=(-1); colm=(-1);
+                    sugg="parser.parse_slice_indices_bad_termination";
+                    errt="bad slice structure"
+                }
         )
     in collect_rem state [ ]
 ;;
@@ -685,7 +801,7 @@ let parse_extract_range state =
         let rec collect_rem state' p  = 
             (*let next = advance state' in*)
             (match (fst state').curr with 
-                | Some { tokn; _ } -> 
+                | Some { tokn; line; colm; _ } -> 
                     (match tokn with
                         | TComma -> 
                             collect_rem (advance state') p
@@ -704,19 +820,36 @@ let parse_extract_range state =
                             | TNumeral v -> 
                                 collect_rem (after) ((float_of_int v) :: p)
                             | _ -> 
-                                Error ("bad value!")
+                                Error (
+                                    Errctx.{
+                                        line; colm; 
+                                        sugg="parser.range_bad_num_sequence" ;errt="bad value"
+                                    }
+                                )
                             )
-                        |  _ -> Error ("bad termination")
+                        |  _ -> Error (
+                                    Errctx.{
+                                        line; colm; 
+                                        sugg="parser.range_bad_num_sequence";
+                                        errt="bad termination"
+                                    }
+                            )
                     )
                 | None -> 
-                    Error ("Unterminated")
+                    Error (
+                        Errctx.{
+                            line=(-1); colm=(-1); 
+                            sugg="parser.range_bad_num_sequence";
+                            errt="bad termination"
+                        }
+                    )
             )
         in collect_rem after [ (float_of_int v) ]
     | TFloat v   ->  
         let rec collect_rem state' p  = 
             (*let next = advance state' in*)
             (match (fst state').curr with 
-                | Some { tokn; _ } -> 
+                | Some { tokn; line; colm;_ } -> 
                     (match tokn with
                         | TComma -> 
                             collect_rem (advance state') p
@@ -735,17 +868,42 @@ let parse_extract_range state =
                             | TNumeral v -> 
                                 collect_rem (after) ((float_of_int v) :: p)
                             | _ -> 
-                                Error ("bad value!")
+                                Error (
+                                    Errctx.{
+                                        line; colm; 
+                                        sugg="parser.range_bad_num_sequence";
+                                        errt="bad value"
+                                    }
+                                )
                             )
-                            (*Error ("negative shapes not feasible!")*)
-                        |  _ -> Error ("bad termination")
+                        |  _ -> 
+                            Error (
+                                    Errctx.{
+                                        line; colm; 
+                                        sugg="parser.range_bad_termination";
+                                        errt="bad termination"
+                                    }
+                                )
                     )
                 | None -> 
-                    Error ("Unterminated")
+                    Error (
+                        Errctx.{
+                            line=(-1); colm=(-1); 
+                            sugg="parser.range_bad_termination";
+                            errt="bad termination"
+                        }
+                    )
             )
         in collect_rem after [ v ]
     | _ -> 
-        (Error "expected number in extraction")
+        (Error 
+             Errctx.{
+                 line=(-1); colm=(-1); 
+                 sugg="parser.range_bad_structure";
+                 errt="expected number in extraction"
+             }
+            (*"expected number in extraction"*)
+        )
 ;;
 
 (* FIXME: replace parse_extract_shape with this one - requires handling the exit
@@ -759,21 +917,39 @@ let parse_extract_shape_override state =
                 let rec collect_rem state' p  = 
                     let next = advance state' in
                     (match (fst next).curr with 
-                        | Some { tokn; _ } -> 
+                        | Some { tokn; line; colm; _ } -> 
                             (match tokn with
                                 | TComma -> 
                                     collect_rem next p
                                 | TNumeral n -> 
                                     collect_rem (next) (n :: p)
                                 | TFloat _f -> 
-                                    Error ("only numerals allowed in shape")
+                                    Error (
+                                        Errctx.{
+                                            line;colm;errt="only integer numerals allowed in shape";
+                                            sugg="parser.extract_shape_ovrr"
+                                        }
+                                    )
                                 | TRightBracket -> 
                                     (* exit condition *)
                                     Ok (next, (List.rev p))
-                                |  _ -> Error ("bad termination")
+                                |  _ -> 
+                                    Error (
+                                        Errctx.{
+                                            line=(-1);colm=(-1);
+                                            errt="bad termination";
+                                            sugg="parser.extract_shape_bad_termination"
+                                        }
+                                    )
                             )
                         | None -> 
-                            Error ("Unterminated")
+                            Error (
+                                Errctx.{
+                                    line=(-1);colm=(-1);
+                                    errt="bad termination";
+                                    sugg="parser.extract_shape_bad_termination"
+                                }
+                            )
                     )
                 in collect_rem state [ v ]
             | TFloat f ->  
@@ -792,20 +968,45 @@ let parse_extract_shape_override state =
                                 | TRightBracket -> 
                                     (* exit condition *)
                                     Ok (next, (List.rev p))
-                                |  _ -> Error ("bad termination")
+                                |  _ -> Error (
+                                    (Errctx.{
+                                        line=(-1);colm=(-1);
+                                        errt="bad termination";
+                                        sugg="parser.extract_shape_bad_termination"
+                                    }
+                                ))
                             )
                         | None -> 
-                            Error ("Unterminated")
+                            Error (Errctx.{
+                                line=(-1);colm=(-1);
+                                errt="bad termination";
+                                sugg="parser.extract_shape_bad_termination"
+                            } (*("Unterminated")*)
+                        )
                     )
                 in collect_rem state [ v ]
             | t -> 
-                Error (Format.sprintf "the shapes|bounds can only be natural number (>= 0): found %s" (show_ttype t))
+                Error 
+                    (Errctx.{
+                        line=(-1);colm=(-1);
+                        errt= (Format.sprintf "expected a natural number (>= 0): found %s" (show_ttype t));
+                        sugg="parser.extract_shape_bad_termination"
+                    }
+                )
+
         )
     | _ -> 
-        (Error "expected number in extraction")
+        (Error
+            (Errctx.{
+                line=(-1);colm=(-1);
+                errt="expected number in extraction";
+                sugg="parser.extract_shape_bad_termination"
+                }
+            )
+        )
 ;;
 
-(** DEPRECATED **)
+(** DEPRECATED *)
 let parse_extract_shape state = 
     match (fst state).curr with
     | Some { tokn;_ } -> 
@@ -815,22 +1016,47 @@ let parse_extract_shape state =
                 let rec collect_rem state' p  = 
                     let next = advance state' in
                     (match (fst next).curr with 
-                        | Some { tokn; _ } -> 
+                        | Some { tokn; line; colm; _ } -> 
                             (match tokn with
                                 | TComma -> 
                                     collect_rem next p
                                 | TNumeral n -> 
                                     collect_rem (next) (n :: p)
                                 | TFloat _f -> 
-                                    Error ("only numerals allowed in shape")
+                                    Error (
+                                        Errctx.{
+                                            line; colm;
+                                            sugg="parser.extract_shape_expect_integer";
+                                            errt="only numerals allowed in shape"
+                                        }
+                                    )
                                 | TRightBracket -> 
                                     (* exit condition *)
                                     Ok (advance next, (List.rev p))
-                                |  KMinus -> Error ("negative size shapes not feasible!")
-                                |  _ -> Error ("bad termination")
+                                |  KMinus -> 
+                                    Error (
+                                        Errctx.{
+                                            line; colm;
+                                            sugg="parser.extract_shape_expect_integer";
+                                            errt="only numerals allowed in shape"
+                                        }
+                                    )
+                                        (*("negative size shapes not feasible!")*)
+                                |  _ -> Error (
+                                        Errctx.{
+                                            line; colm;
+                                            sugg="parser.extract_shape_termination";
+                                            errt="bad shape termination"
+                                        }
+                                    ) 
                             )
                         | None -> 
-                            Error ("Unterminated")
+                            Error 
+                                Errctx.{
+                                    line=(-1); colm=(-1);
+                                    sugg="parser.extract_shape_termination";
+                                    errt="bad shape termination"
+                                }
                     )
                 in collect_rem state [ v ]
             | TFloat f ->  
@@ -838,7 +1064,7 @@ let parse_extract_shape state =
                 let rec collect_rem state' p  = 
                     let next = advance state' in
                     (match (fst next).curr with 
-                        | Some { tokn; _ } -> 
+                        | Some { tokn; line; colm;_ } -> 
                             (match tokn with
                                 | TComma -> 
                                     collect_rem next p
@@ -849,30 +1075,57 @@ let parse_extract_shape state =
                                 | TRightBracket -> 
                                     (* exit condition *)
                                     Ok (advance next, (List.rev p))
-                                |  KMinus -> Error ("negative size shapes not feasible!")
-                                |  _ -> Error ("bad termination")
+                                |  KMinus -> Error (
+                                    Errctx.{
+                                        line; colm;
+                                        sugg="parser.extract_shape_expect_integer";
+                                        errt="negative size shapes not feasible!"
+                                    }
+                                )
+                                |  _ -> 
+                                    Error Errctx.{
+                                        line; colm;
+                                        sugg="parser.extract_shape_bad_termination";
+                                        errt="bad shape termination!"
+                                    }
                             )
                         | None -> 
-                            Error ("Unterminated")
+                            Error (Errctx.{
+                                line=(-1); colm=(-1);
+                                sugg="parser.extract_shape_bad_termination";
+                                errt="expected number in extraction"
+                            })
                     )
                 in collect_rem state [ v ]
             | _ -> 
-                (Error "the shapes can only be natural number (>= 0)")
+                (Error Errctx.{
+                        line=(-1); colm=(-1);
+                        sugg="parser.extract_shape_expect_integer";
+                        errt="the shapes can only be natural number (>= 0)"
+                        (*"only numerals allowed in shape"*)
+                    }
+                )
         )
     | _ -> 
-        (Error "expected number in extraction")
+        (Error 
+            Errctx.{
+                line=(-1); colm=(-1);
+                sugg="parser.extract_shape_bad_termination";
+                errt="expected number in extraction"
+            }
+        )
 ;;
 
 let parse_param_data _start next = 
     (if check TRange (fst next) then (
         let next' = advance next in 
         match current next' with 
-        | Some { tokn; _ } ->  
+        | Some { tokn; line; colm } ->  
             (match tokn with
                 (* A1..B2 *)
                 | TAlphaNum _end ->  
-                    (>>==) (as_cell _start) (fun scell -> 
-                        (>>==) (as_cell _end) (fun ecell -> 
+                    (>>==) (as_cell _start (line, colm)) (fun scell -> 
+                        (>>==) (as_cell _end (line, colm)) (fun ecell -> 
                             Ok (advance next', Range (scell, ecell))
                         )
                     )
@@ -880,7 +1133,7 @@ let parse_param_data _start next =
                 | TLeftBracket -> 
                     (>>==) (enclosed TLeftBracket TRightBracket (parse_extract_shape_override) next') 
                         (fun (final, shp) -> 
-                            (>>==) (as_cell _start) (fun scell -> 
+                            (>>==) (as_cell _start (line, colm)) (fun scell -> 
                                 match shp with 
                                 | [] -> 
                                     Ok (final, Span (scell, shp))
@@ -894,19 +1147,34 @@ let parse_param_data _start next =
                         )
                 (* A1..100 along a row *) 
                 | TNumeral row -> 
-                    if row < 0 then Error "Must be positive sized number in range"
+                    if row < 0 then Error 
+                        Errctx.{
+                            line;colm;
+                            sugg="parser.parse_param_data_expect_integer_in_range";
+                            errt="Must be positive sized number in range"
+                        }
                     else
-                    (>>==) (as_cell _start) (fun scell -> 
+                    (>>==) (as_cell _start (line, colm)) (fun scell -> 
                         Ok ((advance next'), Span (scell, [1; row]))
                     )
                 | _ -> 
-                    Error "Expected range end"
+                    Error 
+                        Errctx.{
+                            line;colm;
+                            sugg="parser.parse_param_data_bad_termination";
+                            errt="Bad termination"
+                        }
             )
         | _            -> 
-            Error "Unclosed range"
+            Error Errctx.{
+                    line=(-1);colm=(-1);
+                    sugg="parser.parse_param_data_bad_termination";
+                    errt="Bad termination"
+                }
     ) else (
             (* no range token  - maybe single cell*)
-            (>>==) (as_cell _start) (fun y -> 
+            let (line,colm) = curspot next in 
+            (>>==) (as_cell _start (line, colm)) (fun y -> 
                 Ok (next,  Scalar y)
             )
         )
@@ -916,12 +1184,12 @@ let parse_param_data _start next =
 let parse_ones_reference state = 
     let next = advance state in 
     (match (fst next).curr with 
-        | Some { tokn; _ } -> 
+        | Some { tokn; line; colm; _ } -> 
             (match tokn with
                 | TLeftAngle -> 
                     let after = advance next in 
                     (match (fst after).curr with
-                        | Some { tokn; _ } -> 
+                        | Some { tokn; line; colm; _ } -> 
                             (match tokn with 
                                 | TLeftBracket -> 
                                     (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
@@ -930,16 +1198,32 @@ let parse_ones_reference state =
                                         )
                                     )
                                 | _ -> 
-                                    Error "Expected shape spec"
+                                    Error Errctx.{
+                                        line; colm;
+                                        sugg="parser.ones_need_shape_spec";
+                                        errt="Expected shape spec"
+                                    }
                             )
                         | _ ->
-                            Error "Missing shape spec"
+                            Error Errctx.{
+                                line; colm;
+                                sugg="parser.ones_need_shape_spec";
+                                errt="Expected shape spec"
+                            }
                     )
                 | _ -> 
-                    Error ("Expected shape spec in angle brackets")
+                    Error Errctx.{
+                        line; colm;
+                        sugg="parser.ones_need_shape_spec";
+                        errt="Expected shape spec"
+                    }
             )
         | None -> 
-            Error ("Expected shape spec")
+            Error Errctx.{
+                line=(-1); colm=(-1);
+                sugg="parser.ones_need_shape_spec";
+                errt="Expected shape spec"
+            }
     )
 ;;
 
@@ -951,7 +1235,7 @@ let parse_zeros_reference state =
                 | TLeftAngle -> 
                     let after = advance next in 
                     (match (fst after).curr with
-                        | Some { tokn; _ } -> 
+                        | Some { tokn; line; colm; _ } -> 
                             (match tokn with 
                                 | TLeftBracket -> 
                                     (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
@@ -960,23 +1244,41 @@ let parse_zeros_reference state =
                                         )
                                     )
                                 | _ -> 
-                                    Error "Expected shape spec"
+                                    Error (Errctx.{
+                                        line;colm;
+                                        sugg="parser.zeros_missing_shape";
+                                        errt="Expected shape spec"
+                                    })
                             )
                         | _ ->
-                            Error "Missing shape spec"
+                            Error (Errctx.{
+                                    line=(-1);colm=(-1);
+                                    sugg="parser.zeros_missing_shape";
+                                    errt="Expected shape spec"
+                            })
                     )
                 | _ -> 
-                    Error ("Expected shape spec in angle brackets")
+                    Error (Errctx.{
+                                    line=(-1);colm=(-1);
+                                    sugg="parser.zeros_missing_shape";
+                                    errt=("Expected shape spec in angle brackets")
+                        })
             )
         | None -> 
-            Error ("Expected shape spec")
+            Error (
+                Errctx.{
+                    line=(-1);colm=(-1);
+                    sugg="parser.zeros_missing_shape";
+                    errt=("missing shape spec in angle brackets")
+                }
+            ) 
     )
 ;;
 
 let parse_alt_reference state = 
     let next = advance state in 
     (match (fst next).curr with 
-        | Some { tokn; _ } -> 
+        | Some { tokn; line; colm; _ } -> 
             (match tokn with
                 | TLeftAngle -> 
                     let after = advance next in 
@@ -994,16 +1296,32 @@ let parse_alt_reference state =
                                         )
                                     )
                                 | _ -> 
-                                    Error "Expected shape spec"
+                                    Error (Errctx.{
+                                        line; colm;
+                                        sugg="parser.alt_shape_spec";
+                                        errt="Expected shape spec";
+                                    })
                             )
                         | _ ->
-                            Error "Missing shape spec"
+                            Error (Errctx.{
+                                line; colm;
+                                sugg="parser.alt_shape_spec";
+                                errt="Expected shape spec";
+                            })
                     )
                 | _ -> 
-                    Error ("Expected shape spec in angle brackets")
+                    Error (Errctx.{
+                            line; colm;
+                            sugg="parser.alt_shape_spec";
+                            errt="Expected shape spec in angle brackets";
+                    }) 
             )
         | None -> 
-            Error ("Expected shape spec")
+            Error (Errctx.{
+                line=(-1); colm=(-1);
+                sugg="parser.alt_shape_spec";
+                errt="Expected shape spec in angle brackets";
+            })
     )
 ;;
 
@@ -1017,8 +1335,8 @@ let parse_fill_reference state =
                         match tok with 
                         | TFloat fval -> 
                             (>>==) (consume next' TComma) (fun after -> 
-                                (match (fst after).curr with
-                                    | Some { tokn; _ } -> 
+                                (match (current after) with
+                                    | Some { tokn; line; colm; _ } -> 
                                         (match tokn with 
                                             | TLeftBracket -> 
                                                 (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
@@ -1027,16 +1345,25 @@ let parse_fill_reference state =
                                                     )
                                                 )
                                             | _ -> 
-                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                                Error (Errctx.{
+                                                    line; colm;
+                                                    sugg="parser.fill_expect_shape";
+                                                    errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn))
+                                                })
+                                            )
                                     | _ ->
-                                        Error "Expected shape filling spec"
+                                        Error (Errctx.{
+                                            line=(-1); colm=(-1);
+                                            sugg="parser.fill_expect_shape";
+                                            errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn))
+                                        })
                                 )
                             )
                         | TNumeral ival -> 
                             let fval = float_of_int ival in
                             (>>==) (consume next' TComma) (fun after -> 
-                                (match (fst after).curr with
-                                    | Some { tokn; _ } -> 
+                                (match (current after) with
+                                    | Some { tokn; line; colm; _ } -> 
                                         (match tokn with 
                                             | TLeftBracket -> 
                                                 (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
@@ -1045,20 +1372,40 @@ let parse_fill_reference state =
                                                     )
                                                 )
                                             | _ -> 
-                                                Error "Expected shape spec"
+                                                Error (Errctx.{
+                                                    line; colm;
+                                                    sugg="parser.fill_expect_shape";
+                                                    errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn))
+                                                })
                                         )
                                     | _ ->
-                                        Error "Expected shape fill spec"
+                                        Error (Errctx.{
+                                          line=(-1); colm=(-1);
+                                          sugg="parser.fill_expect_shape";
+                                          errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn))
+                                        })
                                 )
                             )
                         | _ -> 
-                            Error "Expected fill value as float"
+                            Error (Errctx.{
+                                line=(-1); colm=(-1);
+                                sugg="parser.fill_expect_number";
+                                errt= "Expected fill value to be a given number"
+                            })
                     )
                 | _ -> 
-                    Error ("Expected shape spec in angle brackets")
+                    Error (Errctx.{
+                            line=(-1); colm=(-1);
+                            sugg="parser.fill_expect_shape";
+                            errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn))
+                    })
             )
         | None -> 
-            Error ("Expected shape spec")
+            Error (Errctx.{
+                line=(-1); colm=(-1);
+                sugg="parser.fill_expect_shape";
+                errt=("Missing shape spec ")
+            })
     )
 ;;
 
@@ -1074,11 +1421,12 @@ let parse_enum_reference state =
                         | TFloat fval -> 
                             (>>==) (consume next' TComma) (fun after -> 
                                 (>>==) (takenum (after)) (fun (tok, next')-> 
+                                    let line, colm = curspot next' in
                                     (match tok with
                                         |TFloat incv ->  
                                             (>>==) (consume next' TComma) (fun after -> 
-                                                (match (fst after).curr with
-                                                    | Some { tokn; _ } -> 
+                                                (match (current after) with
+                                                    | Some { tokn; line; colm; _ } -> 
                                                         (match tokn with 
                                                             | TLeftBracket -> 
                                                                 (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
@@ -1087,15 +1435,24 @@ let parse_enum_reference state =
                                                                     )
                                                                 )
                                                             | _ -> 
-                                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                                                Error (
+                                                                    Errctx.{
+                                                                        line; colm; sugg="parser.enum_ref_expect_shape";
+                                                                        errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn))
+                                                                    }
+                                                                )
+                                                        )
                                                     | _ ->
-                                                        Error "Expected shape filling spec"
+                                                        Error (Errctx.{
+                                                            line=(-1); colm=(-1); sugg="parser.enum_ref_expect_shape";
+                                                            errt="Expected shape filling spec"
+                                                        })
                                                 )
                                             ) 
                                         |TNumeral incn -> 
                                             (>>==) (consume next' TComma) (fun after -> 
                                                 (match (fst after).curr with
-                                                    | Some { tokn; _ } -> 
+                                                    | Some { tokn; line; colm; _ } -> 
                                                         (match tokn with 
                                                             | TLeftBracket -> 
                                                                 (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
@@ -1104,13 +1461,32 @@ let parse_enum_reference state =
                                                                     )
                                                                 )
                                                             | _ -> 
-                                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                                                Error (
+                                                                    Errctx.{
+                                                                        line; colm; 
+                                                                        sugg="parser.enum_ref_expect_shape";
+                                                                        errt=Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)
+                                                                    }
+                                                                )
+                                                        )
                                                     | _ ->
-                                                        Error "Expected shape filling spec"
+                                                        Error (
+                                                            Errctx.{
+                                                                line=(-1); colm=(-1); 
+                                                                sugg="parser.enum_ref_expect_shape";
+                                                                errt="Expected shape filling spec"
+                                                            }
+                                                        )
                                                 )
                                             ) 
                                         | s ->
-                                            Error (Format.sprintf "Expected numeral value, found %s" (show_ttype s))
+                                            Error (
+                                                Errctx.{
+                                                    line; colm;
+                                                    sugg="parser.enum_expect_number";
+                                                    errt=(Format.sprintf "Expected numeral value, found %s" (show_ttype s))
+                                                }
+                                            )
                                     )
                                 )
                             )
@@ -1130,9 +1506,22 @@ let parse_enum_reference state =
                                                                     )
                                                                 )
                                                             | _ -> 
-                                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                                                Error (
+                                                                    Errctx.{
+                                                                        line=(-1);
+                                                                        colm=(-1); 
+                                                                        sugg="parser.enum_ref_expected_shape";
+                                                                        errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn))
+                                                                    }
+                                                                )
+                                                        )
                                                     | _ ->
-                                                        Error "Expected shape filling spec"
+                                                        Error Errctx.{
+                                                            line=(-1); colm=(-1); 
+                                                            sugg="parser.enum_ref_expected_shape";
+                                                            errt=Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)
+                                                        }
+                                                        (*"Expected shape filling spec"*)
                                                 )
                                             ) 
                                         |TNumeral incn -> 
@@ -1147,25 +1536,66 @@ let parse_enum_reference state =
                                                                     )
                                                                 )
                                                             | _ -> 
-                                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                                                Error (
+                                                                    Errctx.{
+                                                                        line=(-1);
+                                                                        colm=(-1);
+                                                                        sugg="parser.enum_ref_state";
+                                                                        errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn))
+                                                                    }
+                                                                )
+                                                        )
                                                     | _ ->
-                                                        Error "Expected shape filling spec"
+                                                        Error (
+                                                            Errctx.{
+                                                                line=(-1);
+                                                                colm=(-1);
+                                                                sugg="parser.enum_ref_state";
+                                                                errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn))
+                                                            }
+                                                        )
                                                 )
                                             ) 
                                         | s ->
-                                            Error (Format.sprintf "Expected numeral value, found %s" (show_ttype s))
+                                            Error (
+                                                Errctx.{
+                                                    line=(-1);colm=(-1);
+                                                    sugg="parser.enum_ref_expect_number";
+                                                    errt=(Format.sprintf "Expected numeral value, found %s" (show_ttype s))
+                                                }
+                                            )
                                     )
                                 )
                             )
 
                                     | _ -> 
-                                        Error "Expected fill value as float"
-                                )
+                                        Error  (
+                                            Errctx.{
+                                                line=(-1);colm=(-1);
+                                                sugg="parser.enum_ref_expect_number";
+                                                errt="Expected fill value as float"
+                                            }
+                                        )
+                                    )
                         | _ -> 
-                            Error ("Expected shape spec in angle brackets")
+                            Error (
+                                Errctx.{
+                                    line=(-1);
+                                    colm=(-1);
+                                    sugg="parser.enum_ref_state";
+                                    errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn))
+                                }
+                            )
                         )
                     | None -> 
-                        Error ("Expected shape spec")
+                        Error (
+                            Errctx.{
+                                line=(-1);
+                                colm=(-1);
+                                sugg="parser.enum_ref_state";
+                                errt=("Expected shape spec")
+                            }
+                        )
                 )
 ;;
 
@@ -1180,7 +1610,7 @@ let parse_rand_reference state =
                         | TFloat fval -> 
                             (>>==) (consume next' TComma) (fun after -> 
                                 (match (fst after).curr with
-                                    | Some { tokn; _ } -> 
+                                    | Some { tokn; line; colm; _ } -> 
                                         (match tokn with 
                                             | TLeftBracket -> 
                                                 (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
@@ -1189,9 +1619,20 @@ let parse_rand_reference state =
                                                     )
                                                 )
                                             | _ -> 
-                                                Error (Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)))
+                                                Error (
+                                                    Errctx.{
+                                                        line; colm;
+                                                        sugg="";
+                                                        errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)) 
+                                                    }
+                                                )
+                                        )
                                     | _ ->
-                                        Error "Expected shape filling spec"
+                                        Error (Errctx.{
+                                            line=(-1); colm=(-1);
+                                            sugg="parser.rand_ref_expect_shape";
+                                            errt="Expected shape filling spec"
+                                        })
                                 )
                             )
                         | TNumeral ival -> 
@@ -1208,20 +1649,52 @@ let parse_rand_reference state =
                                                     )
                                                 )
                                             | _ -> 
-                                                Error "Expected shape spec"
+                                                Error (
+                                                    Errctx.{
+                                                        line=(-1); colm=(-1);
+                                                        sugg="parser.rand_ref_expect_shape";
+                                                        errt="Expected shape spec"
+                                                    }
+                                                )
                                         )
                                     | _ ->
-                                        Error "Expected shape fill spec"
+                                        Error (
+                                                    Errctx.{
+                                                        line=(-1); colm=(-1);
+                                                        sugg="parser.rand_ref_expect_shape";
+                                                        errt="Expected shape spec"
+                                                    }
+                                                )
                                 )
                             )
                         | _ -> 
-                            Error "Expected fill value as float"
+                            Error (
+                                    Errctx.{
+                                        line=(-1); colm=(-1);
+                                        sugg="parser.rand_ref_expect_number_value_bound";
+                                        errt="Expected fill value as float"
+                                    }
+                                )
+
                     )
                 | _ -> 
-                    Error ("Expected shape spec in angle brackets")
+                    Error (
+                        Errctx.{
+                            line=(-1); colm=(-1);
+                            sugg="parser.rand_ref_expect_shape";
+                            errt=("Expected shape spec in angle brackets")
+                        }
+                    )
+
             )
         | None -> 
-            Error ("Expected shape spec")
+            Error (
+                Errctx.{
+                    line=(-1); colm=(-1);
+                    sugg="parser.rand_ref_expect_shape";
+                    errt=("Expected shape spec in angle brackets")
+                }
+            )
     )
 ;;
 
@@ -1236,6 +1709,7 @@ let parse_diag_reference state =
                         | TFloat fval -> 
                             (>>==) (consume next' TComma) (fun after -> 
                                 let* num = takenum after in
+                                let  (line, colm) = curspot after in
                                 (match (num) with
                                     (*| Some { tokn; _ } -> *)
                                         (*(match tokn with *)
@@ -1248,7 +1722,11 @@ let parse_diag_reference state =
                                                     Ok (final, Create (Diag (fval, (int_of_float shp))))
                                                 )
                                             | _ -> 
-                                                Error (Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn))
+                                        Error (Errctx.{
+                                            line; colm;
+                                            sugg="parser.diag_ref_expect_square_size";
+                                            errt=(Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn))
+                                        }) 
                                     (*| _ ->*)
                                         (*Error "Expected shape filling spec"*)
                                 )
@@ -1257,6 +1735,7 @@ let parse_diag_reference state =
                             let fval = float_of_int ival in
                             (>>==) (consume next' TComma) (fun after -> 
                                 let* num = takenum after in
+                                let  (line, colm) = curspot after in
                                 (match (num) with
                                     | (TNumeral shp, after) -> 
                                         (>>==) (consume (after) TRightAngle) (fun final -> 
@@ -1267,23 +1746,38 @@ let parse_diag_reference state =
                                             Ok (final, Create (Diag (fval, (int_of_float shp))))
                                         )
                                     | _ -> 
-                                        Error (Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn))
+                                        Error (Errctx.{
+                                            line; colm;
+                                            sugg="parser.diag_expect_square_size";
+                                            errt=(Format.sprintf "Expected diagonal size spec, found: %s" (show_ttype tokn));
+                                        }) 
                                 )
                             )
                         | _ -> 
-                            Error "Expected fill value as float"
+                            Error (Errctx.{
+                                line=(-1);colm=(-1);sugg="parser.expect_number";
+                                errt="Expected fill value as float"
+                            })
                     )
                 | _ -> 
-                    Error ("Expected shape spec in angle brackets")
+                   Error (Errctx.{
+                       line=(-1); colm=(-1);
+                       sugg="parser.diag_expect_square_size";
+                       errt=(Format.sprintf "Expected diagonal size spec, found");
+                   }) 
             )
         | None -> 
-            Error ("Expected shape spec")
+            Error (Errctx.{
+                line=(-1); colm=(-1);
+                sugg="parser.diag_expect_square_size";
+                errt=("Expected diagonal size spec, found");
+            }) 
     )
 ;;
 
 let parse_reference state = 
     match (fst state).curr with
-    | Some { tokn;_ } -> 
+    | Some { tokn; line; colm; _ } -> 
         (match tokn with 
             | TAlphaNum "self" -> 
                 Ok (advance state, Refer Self)
@@ -1306,18 +1800,32 @@ let parse_reference state =
                 (if validate _start then
                     let next = advance state in
                     (parse_param_data _start next)
-                    else (Error "Invalid range value")
+                    else (Error 
+                        Errctx.{
+                            line; colm;
+                            sugg="parser.ref_unknown_reference";
+                            errt="Invalid range value";
+                        }
+                    )
                 )
             | tkn -> 
-                Error (Format.sprintf "Unhandled reference: %s" (show_ttype tkn))
+                Error Errctx.{
+                        line; colm;
+                        sugg="parser.ref_invalid_token";
+                        errt="unknown mask "  ^ (show_ttype tkn);
+                    }
         )
     | _ -> 
-        Error "Unfinished reference"
+        Error Errctx.{
+            line=(-1); colm=(-1);
+            sugg="parser.ref_bad_termination";
+            errt="badly terminated reference";
+        } 
 ;;
 
 let rec parse_relative dir state' = 
     (match (fst state').curr with
-        | Some { tokn; _ } -> 
+        | Some { tokn;  _ } -> 
             (match tokn with 
                 | TNumeral  _a -> 
                     let motn = _a in
@@ -1331,18 +1839,28 @@ let rec parse_relative dir state' =
                     )
             )
         | _ -> 
-            Error "Expected optional motion with cell spec but no tokens left"
+            Error (Errctx.{
+                line=(-1); colm=(-1);
+                sugg="parser.relative_malformed_motion";
+                errt="Expected optional motion with cell spec but no tokens left"
+            })
     )
 
 and parse_ein_params state = 
-    match (fst state).curr with
-    | Some { tokn; _ } -> 
+    match (current state) with
+    | Some { tokn; colm; line; _ } -> 
         (match tokn with
             | TAlphaNum _start ->  
                 (if validate _start then
                     let next = advance state in
                     (parse_param_data _start next)
-                    else (Error "Invalid range value")
+                    else (
+                        Error Errctx.{
+                            line; colm;
+                            sugg="parser.ein_expect_range_value";
+                            errt="Invalid range value"
+                        }
+                    )
                 )
             (* TODO: single scalar values ?? *)
             | TLeftBracket -> 
@@ -1370,12 +1888,26 @@ and parse_ein_params state =
                 | TNumeral ival -> 
                     Ok (advance state, NdArray (Itemize ([ float_of_int ival ])))
                 | _  -> 
-                    Error "minus confusion!!"
+                    Error (Errctx.{
+                        line; colm;
+                        sugg="parser.ein_negate_expect_number";
+                        errt="minus confusion!!";
+                    })
                 )
             | _ -> 
-                Error "Bad token"
+                Error (Errctx.{
+                    line; colm;
+                    sugg="parser.ein_negate_expect_ein_parameter";
+                    errt="invalid token";
+                })
         )
-    | None -> Error "badly terminated einsum expression"
+    | None -> 
+        Error (Errctx.{
+            line=(-1); colm=(-1);
+            sugg="parser.ein_negate_expect_ein_parameter";
+            errt="invalid token";
+        })
+        (*Error "badly terminated einsum expression"*)
 ;;
 
 let parse_scatter_params state = 
@@ -1407,8 +1939,8 @@ let parse_bar_params state =
 ;;
 
 let parse_plot_params state = 
-    (match (fst state).curr with 
-        | Some ({ tokn=(TAlphaNum plottype); _ }) -> 
+    (match (current state) with 
+        | Some ({ tokn=(TAlphaNum plottype); line; colm; _ }) -> 
             (match plottype with 
                 | "scatter" -> 
                     enclosed TLeftAngle TRightAngle (parse_scatter_params) (advance state)
@@ -1421,32 +1953,42 @@ let parse_plot_params state =
                 | "bar" -> 
                     enclosed TLeftAngle TRightAngle (parse_bar_params) (advance state)
                 | _ -> 
-                    Error "unrecognized plot"
+                    Error (
+                        Errctx.{
+                        line; colm;
+                        sugg="parser.plot_unrecognized";
+                        errt="unrecognized plot"
+                        }
+                    )
             )
         | _ -> 
-            Error "expected a plot type"
-    )
-;;
-
-let parse_ref_angle_var state = 
-    (match (fst state).curr with 
-        | Some  {tokn; _} ->
-            Ok (advance state, tokn)
-        | _ -> 
-            (Error "Expected angle variable!")
+            Error (
+                Errctx.{
+                    line=(-1); colm=(-1);
+                    sugg="parser.plot_unrecognized";
+                    errt="unrecognized plot"
+                }
+            )
     )
 ;;
 
 let parse_num state = 
 
     let* num = takenum state in
+    let line, colm = curspot state in
     (match num with 
         | ((TNumeral _) as tokn, after) ->
             (Ok (after, tokn))
         | ((TFloat _) as tokn, after) -> 
             (Ok (after, tokn))
         | _ ->
-                Error ("expected number")
+            Error (
+                Errctx.{
+                    line; colm;
+                    sugg="parser.parse_num_expect_number";
+                    errt="expected number"
+                }
+            )
     )
 ;;
 
@@ -1464,27 +2006,45 @@ let parse_draw_params state =
                                     Ok (advance state', Draw { handle; bounds; elmnts=[ Reset ] })
                                 else 
                                     (>>==) (parse_key_value (advance state')) (fun (after, props) -> 
+                                        let line, colm =  curspot after in 
                                         (match drw with 
                                             | "box" | "rect" -> Ok (after, Draw({
                                                 handle; bounds; elmnts=[ (Box props) ] })) 
                                             | "circle" -> Ok (after, Draw({ handle; bounds; elmnts=[ (Circle props)] }))
                                             | "line" ->   Ok (after, Draw({ handle; bounds; elmnts=[ (Line props) ] }))
                                             | "text" ->   Ok (after, Draw({ handle; bounds; elmnts=[ Text props ] }))
-                                            | _ -> Error ("unknown draw call " ^ drw)
+                                            | _ -> Error (
+                                                Errctx.{
+                                                    line; colm;
+                                                    sugg="parser.draw_params_unrecognized_draw";
+                                                    errt="unknown draw call " ^ drw
+                                                }
+                                            )
                                         )
                                     )
                             | _ -> 
-                                Error ("expected draw type (box, line, circle ...)")
+                                Error 
+                                    Errctx.{
+                                        line=(-1); colm=(-1);
+                                        sugg="parser.draw_params_expected_draw";
+                                        errt=("expected draw type (box, line, circle ...)")
+                                    }
                         )
                     )
                 ) 
             )
-    | _ -> 
-        Error "expected draw handle title"
+        | _ -> 
+            Error 
+                Errctx.{
+                    line=(-1); colm=(-1);
+                    sugg="parser.draw_params_expected_draw";
+                    errt=("expected draw type (box, line, circle ...)")
+                }
     )
 ;;
 
 let parse_collect_draw_params state = 
+    let  line, colm =  curspot state in
     (match current state with
         | Some ({ tokn=(TAlphaNum handle); _ }) -> 
             (>>==) (consume (advance state) TComma) (fun state' -> 
@@ -1492,6 +2052,7 @@ let parse_collect_draw_params state =
                     (>>==) (consume state' TComma) (fun state' ->
                         enclosed TLeftBracket TRightBracket (fun state' -> 
                             let rec collect nxt buf = 
+                                let line, colm = curspot nxt in 
                                 (match (current nxt) with 
                                     | Some { tokn=(TAlphaNum drw);_ } ->
                                         if drw = "clear" then 
@@ -1500,6 +2061,7 @@ let parse_collect_draw_params state =
                                             collect (advance nxt) (Reset :: buf) 
                                         else 
                                             let* after, props = (parse_key_value (advance nxt))  in
+                                            let line, colm = curspot after in 
                                             (match drw with 
                                                 | "box" | "rect"    -> 
                                                     collect after ((Box props) :: buf) 
@@ -1510,14 +2072,24 @@ let parse_collect_draw_params state =
                                                 | "text" -> 
                                                     collect after ((Text props) :: buf)
                                                 | _ -> 
-                                                    Error ("unknown draw call " ^ drw)
+                                                    Error (
+                                                        Errctx.{
+                                                            line; colm;
+                                                            sugg="parser.draw_collect_params_unrecognized";
+                                                            errt=("unknown draw call " ^ drw)
+                                                        }
+                                                    )
                                             )
                                     | Some { tokn=(TRightBracket);_ } ->
                                         Ok (nxt, buf)
                                     | Some { tokn=(TComma);_ } ->
                                         collect (advance nxt) buf
                                     | _ -> 
-                                        Error ("expected draw type (box, line, circle ...)")
+                                        Error Errctx.{
+                                            line; colm;
+                                            sugg="parser.draw_collect_params_unrecognized";
+                                            errt=("expected draw type (box, line, circle ...)")
+                                        }
                                 ) 
                             in 
                             (>>==) (collect state' []) (fun (after, elmnts) -> 
@@ -1528,7 +2100,13 @@ let parse_collect_draw_params state =
                 )
             )
         | _ -> 
-            Error "expected draw handle title"
+            Error (
+                Errctx.{
+                    line;colm;
+                    sugg="";
+                    errt="expected draw handle title"
+                }
+            )
     )
 ;;
 
@@ -1536,7 +2114,7 @@ let parse_ein_mask state =
     (* TODO: support arbitrary expression operations *)
     let rec masklist state lst = 
         (match (fst state).curr with 
-            | Some { tokn; _ } -> 
+            | Some { tokn; line; colm; _ } -> 
                 (>>==) (match tokn with 
                     (* maps to same shape *)
                     | TAlphaNum "zscore" -> 
@@ -1545,29 +2123,43 @@ let parse_ein_mask state =
                         let nxt = advance state in
                         if check TLeftAngle (fst nxt) then
                             let nxt' = advance nxt in 
+                            let line, colm = curspot nxt' in
                             (match (fst nxt').curr with 
-                            | Some  { tokn; _ } -> 
+                            | Some  { tokn; line; colm; _ } -> 
                                 (match tokn with 
                                     | TAlphaNum _end ->  
-                                        (>>==) (as_cell _end) (fun ecell -> 
+                                        (>>==) (as_cell _end (line,colm)) (fun ecell -> 
                                             (>>==) (consume (advance nxt') TRightAngle) (fun final -> 
                                                 Ok (final, (Write ecell))
                                             )
                                         )
                                     | _ -> 
-                                        Error "Expected range end"
+                                        Error Errctx.{
+                                            line; colm;
+                                            sugg="parser.ein_mask_write_range_expect";
+                                            errt="Expected range end"
+                                        } 
                                 ) 
                             | None -> 
-                                Error "missing cell argument"
+                                    Error Errctx.{
+                                        line; colm;
+                                        sugg="parser.ein_mask_write_range_expect";
+                                        errt="Expected range end"
+                                    } 
                             )
                         else
-                            Error "expected write cell argument in angle brackets"
+                            Error Errctx.{
+                                line; colm;
+                                sugg="parser.ein_mask_write_range_expect";
+                                errt="Expected write cell argument in angle brackets"
+                            } 
                     | TAlphaNum "minmax" ->
                         let nxt = advance state in
                         if check (TLeftAngle) (fst nxt) then
                             (>>==) (parse_num (advance nxt)) (fun (after, num1) -> 
                                 (>>==) (consume  after TComma) (fun nxt -> 
                                     (>>==) (parse_num nxt) (fun (after', num2) -> 
+                                        let line, colm = curspot after' in
                                         (match (num1, num2) with 
                                         | (TFloat vala, TFloat valb) -> 
                                             (>>==) (consume after' TRightAngle) (fun after' ->
@@ -1586,7 +2178,11 @@ let parse_ein_mask state =
                                                 Ok (after', MinMax((float_of_int vala), valb))
                                             )
                                         | _ -> 
-                                            Error "unreachable condition!!"
+                                            Error Errctx.{
+                                                line; colm;
+                                                sugg="parser.ein_mask_unreachable";
+                                                errt="unreachable condition!!"
+                                            }
                                         )
                                     )
                                 )
@@ -1595,6 +2191,7 @@ let parse_ein_mask state =
                             Ok (advance state, MinMax(-1., 1.))
                     | TAlphaNum "reshape" ->
                         let nxt = advance state in
+                        let line, colm = curspot nxt in
                         if check (TLeftAngle) (fst nxt) then
                             let nxt' = advance nxt in
                             if check TLeftBracket (fst nxt') then 
@@ -1604,14 +2201,28 @@ let parse_ein_mask state =
                                     )
                                 ) 
                             else
-                                Error "reshape value should be in shape format"
+                                Error (
+                                    Errctx.{
+                                        line; colm;
+                                        sugg="parser.ein_mask_reshape_format";
+                                        errt="reshape value should be in shape format"
+                                    }
+                                )
                         else
-                            Error "missing reshape values!"
+                            Error (
+                                    Errctx.{
+                                        line; colm;
+                                        sugg="parser.ein_mask_reshape_missing_values";
+                                        errt= "missing reshape values!"
+                                    }
+                                )
                     | TAlphaNum "slice" ->
                         let nxt = advance state in
+                        let line, colm = curspot nxt in
                         (if check TLeftAngle (fst nxt) then 
                             let nxt' = advance nxt in
-                            (match (fst nxt').curr with 
+                            let line, colm = curspot nxt' in
+                            (match (current nxt') with 
                             | Some ({ tokn=TLeftBracket; _ }) ->  
                                 (>>==) (parse_extract_slice_indices (advance nxt')) 
                                 (fun (after, slices) -> 
@@ -1620,16 +2231,27 @@ let parse_ein_mask state =
                                     )
                                 )
                             | _ -> 
-                                Error "expected slice parameters in brackets"
+                                Error Errctx.{
+                                    line; colm;
+                                    sugg="parser.ein_mask_missing_slice_params";
+                                    errt="expected slice parameters in brackets"
+                                }
                             )
-                        else Error "missing slice parameters!")
+                        else Error 
+                                Errctx.{
+                                    line; colm;
+                                    sugg="parser.ein_mask_missing_slice_params";
+                                    errt="missing slice parameters!"
+                                }
+                        )
                     | TAlphaNum "draw" -> 
                         (enclosed TLeftAngle TRightAngle (parse_draw_params) (advance state)) 
                     | TAlphaNum "drawall" -> 
                         (enclosed TLeftAngle TRightAngle (parse_collect_draw_params) (advance state)) 
                     | TAlphaNum "plot" ->
                         (enclosed TLeftAngle TRightAngle (fun nxt' -> 
-                            (match (fst nxt').curr with 
+                            let line, colm = curspot nxt' in
+                            (match (current nxt') with 
                                 | Some ({ tokn=(TAlphaNum handle); _ }) ->  
                                     let*  nxt' = consume (advance nxt') TComma in
                                     let* (proc, bounds) = (enclosed TLeftBracket TRightBracket (parse_extract_shape_override) nxt') in
@@ -1640,7 +2262,11 @@ let parse_ein_mask state =
                                         )
                                     )
                                 | _ -> 
-                                    Error "expected plot title and parameters"
+                                    Error Errctx.{
+                                        line; colm;
+                                        sugg="parser.ein_mask_plot_params_missing";
+                                        errt="expected plot title and parameters"
+                                    }
                             )
                         ) (advance state))
                     | TAlphaNum "axis" ->
@@ -1648,7 +2274,7 @@ let parse_ein_mask state =
                         if check (TLeftAngle) (fst nxt) then
                             let nxt' = advance nxt in
                             (match (fst nxt').curr with
-                                | Some { tokn; _ } -> 
+                                | Some { tokn; line; colm; _ } -> 
                                     (match tokn with
                                         | TAlphaNum "row" -> 
                                             (>>==) (consume (advance nxt') TComma) (fun nxt'' -> 
@@ -1678,13 +2304,26 @@ let parse_ein_mask state =
                                                     )
                                             )
                                         | _ -> 
-                                            Error "expected axis number first: must be a natural number >= 0"
+                                            Error Errctx.{
+                                                line; colm;
+                                                sugg="parser.ein_mask_expect_axis_id";
+                                                errt="expected axis number first: must be a natural number >= 0"
+                                            }
                                     )
                                 | _ -> 
-                                    Error "axis description missing"
+                                    Error Errctx.{
+                                        line=(-1); colm=(-1);
+                                        sugg="parser.ein_mask_missing_axis_params";
+                                        errt="expected axis number first: must be a natural number >= 0"
+                                    }
                             )
                         else
-                            Error "missing axis argument!"
+                            Error Errctx.{
+                                line=(-1); colm=(-1);
+                                sugg="parser.ein_mask_missing_axis_params";
+                                errt="expected axis arguments"
+                            }
+                            (*Error "missing axis argument!"*)
                     (* reductions to Scalar *)
                     | TAlphaNum "mean" ->
                         Ok (advance state, Mean)
@@ -1725,31 +2364,46 @@ let parse_ein_mask state =
                         Ok (advance state, Map(Float.sqrt))
                     | TAlphaNum "clip" | TAlphaNum "clamp" ->
                         (>>==) (enclosed TLeftAngle TRightAngle (fun s -> 
+                            let line, colm = curspot s in
                             (match current s with 
                             | Some { tokn=(TNumeral p); _ } ->
                                     (>>==) (consume (advance s) TComma) (fun s' -> 
+                                        let line, colm = curspot s' in
                                         (match current s' with 
                                             | Some { tokn=(TNumeral p'); _ } ->
                                                 Ok (advance s', (float_of_int p, float_of_int p'))
                                             | Some { tokn=(TFloat p'); _ } ->
                                                 Ok (advance s', (float_of_int p, p'))
                                             | _ -> 
-                                                Error "min and max number"
+                                                Error (Errctx.{
+                                                    line; colm;
+                                                    sugg="parser.ein_mask_clip_expect_number";
+                                                    errt="min and max number"
+                                                })
                                         )
                                     )
                             | Some { tokn=(TFloat p); _ } ->
                                     (>>==) (consume (advance s) TComma) (fun s' -> 
+                                        let line, colm = curspot s' in
                                         (match current s' with 
                                             | Some { tokn=(TNumeral p'); _ } ->
                                                 Ok (advance s', (p, float_of_int p'))
                                             | Some { tokn=(TFloat p'); _ } ->
                                                 Ok (advance s', (p, p'))
                                             | _ -> 
-                                                Error "min and max number"
+                                                Error (Errctx.{
+                                                    line; colm;
+                                                    sugg="parser.ein_mask_clip_expect_number";
+                                                    errt="min and max number"
+                                                })
                                         )
                                     )
                             | _ -> 
-                                Error "clamp | clip expects min and max number"
+                                Error (Errctx.{
+                                    line; colm;
+                                    sugg="parser.ein_mask_clip_expect_number";
+                                    errt="min and max number"
+                                })
                             )
                         ) (advance state))
                         (fun (state', (clampmin, clampmax)) -> 
@@ -1764,13 +2418,18 @@ let parse_ein_mask state =
                         )
                     | TAlphaNum "logsumexp" ->
                         (>>==) (enclosed TLeftAngle TRightAngle (fun s -> 
+                             let line, colm = curspot s in
                             (match current s with 
                             | Some { tokn=(TNumeral p); _ } ->
                                 Ok (advance s, float_of_int p)
                             | Some { tokn=(TFloat p); _ } ->
                                 Ok (advance s, p)
                             | _ -> 
-                                Error "logsumexp expects number"
+                                Error Errctx.{
+                                    line; colm;
+                                    sugg="parser.ein_mask_logsumexp_expect_number";
+                                    errt="logsumexp expects number"
+                                }
                             )
                         ) (advance state))
                         (fun (state', beta) -> 
@@ -1778,13 +2437,19 @@ let parse_ein_mask state =
                         )
                     | TAlphaNum "softmax" ->
                         (>>==) (enclosed TLeftAngle TRightAngle (fun s -> 
+                             let line, colm = curspot s in
                             (match current s with 
                             | Some { tokn=(TNumeral p); _ } ->
                                 Ok (advance s, float_of_int p)
                             | Some { tokn=(TFloat p); _ } ->
                                 Ok (advance s, p)
                             | _ -> 
-                                Error "softmax expects number"
+                                Error Errctx.{
+                                    line; colm;
+                                    sugg="parser.ein_mask_softmax_expect_number";
+                                    errt="softmax expects number"
+                                }
+                                (*Error "softmax expects number"*)
                             )
                         ) (advance state))
                         (fun (state', beta) -> 
@@ -1792,13 +2457,18 @@ let parse_ein_mask state =
                         )
                     | TAlphaNum "pow" ->
                         (>>==) (enclosed TLeftAngle TRightAngle (fun s -> 
+                             let line, colm = curspot s in
                             (match current s with 
                             | Some { tokn=(TNumeral p); _ } ->
                                 Ok (advance s, float_of_int p)
                             | Some { tokn=(TFloat p); _ } ->
                                 Ok (advance s, p)
                             | _ -> 
-                                Error "power expects number"
+                                Error Errctx.{
+                                    line; colm;
+                                    sugg="parser.ein_mask_power_expect_number";
+                                    errt="power expects number"
+                                }
                             )
                         ) (advance state))
                         (fun (state', num) -> 
@@ -1815,7 +2485,13 @@ let parse_ein_mask state =
                     | TAlphaNum "mode" ->
                         Ok (advance state, Mode)
                     | t -> 
-                        Error (Format.sprintf "Unknown mask function: %s" (show_ttype t))
+                        Error (
+                            Errctx.{
+                                line; colm;
+                                sugg="";
+                                errt=(Format.sprintf "Unknown mask function: %s" (show_ttype t))
+                            }
+                        )
                 ) (fun (state', mask) -> 
                         if check TPipe (fst state') then
                             (masklist (advance state') (mask :: lst))
@@ -1823,7 +2499,11 @@ let parse_ein_mask state =
                             Ok (state', List.rev (mask :: lst))
                     )
             | None -> 
-                Error "expected mask function"
+                Error Errctx.{
+                    line=(-1);colm=(-1);
+                    sugg="parser.ein_mask_suggest_masks";
+                    errt="expected mask function"
+                }
         ) in 
     masklist state []
 ;;
@@ -1831,7 +2511,7 @@ let parse_ein_mask state =
 let parse_einsum pratt = 
     let rec _parse ein state = 
         (match (fst state).curr with
-            | Some ({ tokn; _ }) -> 
+            | Some ({ tokn; line; colm; _ }) -> 
                 (match tokn with 
                     | TAlphaNum v -> 
                         (if validate v then (
@@ -1850,8 +2530,11 @@ let parse_einsum pratt =
                                 (* no params *)
                                 Ok (prt, ((reorder @@ parse_ein_inp ein v []), []), rem')
                         ) else (
-                                Error (Format.sprintf "Input indices invalid - please use at least one ascii chars at %s" 
-                                    (show_prattstate @@ fst state))
+                                Error Errctx.{
+                                    line; colm;
+                                    sugg="parser.einsum_indices_format";
+                                    errt=(Format.sprintf "Input indices invalid - please use at least one ascii chars at %s" (show_prattstate @@ fst state))
+                                }
                             )
                         )
                     | _ -> 
@@ -1860,13 +2543,18 @@ let parse_einsum pratt =
                     (*Error (Format.sprintf "Unimplemented at %s" (show_prattstate (fst state)))*)
                 )
             | _ -> 
-                Error (Format.sprintf "Unfinished einsum expression at %s" (show_prattstate (fst state)))
+                Error Errctx.{
+                    line=(-1);colm=(-1);
+                    sugg="parser.einsum_badly_terminated";
+                    errt=(Format.sprintf "Unfinished einsum expression at %s" (show_prattstate (fst state)))
+                }
         )
     in
     (>>==) (_parse einempty pratt) (fun (current, ein, lxm) -> 
         (* output of the einsum - NOT the parameters! *)
         (if check TArrow (current) then (
             let next = advance (current, lxm) in 
+            let line, colm = curspot next in
             (match (fst next).curr with 
                 | Some ({ tokn; _ }) -> 
                     (match tokn with
@@ -1889,7 +2577,11 @@ let parse_einsum pratt =
                             Ok (next, ein)
                     )
                 | _ -> 
-                    Error "Unexpected einsum result"
+                    Error Errctx.{
+                    line;colm;
+                    sugg="parser.einsum_badly_terminated";
+                    errt=(Format.sprintf "Unfinished einsum expression at %s" (show_prattstate (fst next)))
+                }
             )
         ) else (
                 (* arrow can be optional *)
@@ -2067,10 +2759,19 @@ let parse_expression state =
             | Some { tokn=(TAlphaNum _n); _ } ->
                 let* (next, (e, p)) = (parse_einsum_formulae (state')) in
                 Ok (Literal (EinSpec (e, p, None)), next)
-            | Some { tokn=t; _ } ->
-                Error (Format.sprintf "unexpected token %s !" (show_ttype t)) 
+            | Some { tokn=t; line; colm;_ } ->
+                Error Errctx.{
+                    line; colm;
+                    sugg="parser.expr_primary_unrecognized";
+                    errt=(Format.sprintf "unexpected token %s !" (show_ttype t)) 
+                } 
             | _n -> 
-                Error (Format.sprintf "unhandled null expression") 
+                let line, colm = curspot state' in
+                Error Errctx.{
+                    line; colm;
+                    sugg="parser.expr_primary_null";
+                    errt=(Format.sprintf "unhandled null expression") 
+                }
         )
 
     and _extract_group state' = 

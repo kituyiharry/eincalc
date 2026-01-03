@@ -1,7 +1,7 @@
 open OUnit;;
 open Eincalc;;
 
-let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
+let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, Errctx.parserr) result) = 
     match (fst @@ Result.get_ok res).prog with 
     | Parser.Stmt { prog=(Literal (EinSpec (_, e, _)));  _ } -> 
             List.hd @@ e 
@@ -11,7 +11,7 @@ let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) =
             failwith "Unhandled fetch"
 ;; 
 
-let fetch_form (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
+let fetch_form (res: (Parser.prattstate * Lexer.lexeme list, Errctx.parserr) result) = 
   match (fst @@ Result.get_ok res).prog with 
     | Parser.Stmt { prog=(Literal (EinSpec (f, e, _))); _ } -> 
         (f, e) 

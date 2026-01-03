@@ -1,14 +1,14 @@
 open OUnit;;
 open Eincalc;;
 
-let fetch_program (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
+let fetch_program (res: (Parser.prattstate * Lexer.lexeme list, Errctx.parserr) result) = 
    match (fst @@ Result.get_ok res).prog with 
     | Parser.Stmt { prog=(Literal (EinSpec (e, _, _))); _} -> e 
     | Parser.Stmt { prog=(Grouping(Literal (EinSpec (e,_,_)))); _} -> e
     | _ -> failwith "Invalid program"
 ;;
 
-let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, string) result) = 
+let fetch_first (res: (Parser.prattstate * Lexer.lexeme list, Errctx.parserr) result) = 
     match (fst @@ Result.get_ok res).prog with 
     | Parser.Stmt { prog=(Literal (EinSpec (e,f,_))); _ } -> (e, f)
     | Parser.Stmt { prog=(Grouping(Literal (EinSpec (e,f,_)))); _ } -> (e, f)

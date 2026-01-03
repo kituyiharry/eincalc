@@ -14,7 +14,7 @@ let list_prnt l =
 
 let res_prnt p = function 
     | Ok (o)    -> p o 
-    | Error (_l, _c, s) ->  s
+    | Error ((_l: Errctx.parserr)) -> _l.errt
 
 let tests = "Lexer unit tests" >::: [
     "empty buffer"   >:: (fun _ -> 

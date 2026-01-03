@@ -37,7 +37,7 @@ let handle_parse_exp grid src (lex: Lexer.lexeme list) =
                 handle_transform_formulae grid prog
             )
             | Error s   -> 
-                grid.onlog ((Format.sprintf "Parse Error: %s\n" s, Ndcontroller.Err))
+                grid.onlog ((Format.sprintf "Parse Error: %s\n" s.errt, Ndcontroller.Err))
         )
     )
 ;;
@@ -62,8 +62,8 @@ let simple_scan_exp grid (_exp: string) =
         |> (function 
             | Ok _res -> 
                 (simple_parse_exp grid _exp _res) 
-            | Error (l,c,s) ->  
-                Error (Format.sprintf "%d %d: %s" l c s)
+            | Error (l) ->  
+                Error (l)
         )
     )
 ;;
@@ -73,8 +73,8 @@ let handle_scan_exp grid (_exp: string) =
         Lexer.runall _exp
         |> (function 
             | Ok _res -> handle_parse_exp grid _exp _res
-            | Error (l,c,s) ->  
-                grid.onlog ((Format.sprintf "Scan Error: l:%d c:%d %s" l c s, Ndcontroller.Err))
+            | Error (l) ->  
+                grid.onlog ((Format.sprintf "Scan Error: l:%d c:%d %s" l.line l.colm l.errt, Ndcontroller.Err))
         )
     )
 ;;
@@ -104,7 +104,7 @@ let scan_and_notify sheet vstr =
                 sheet.onlog (s, Ndcontroller.Err)
         )
     | Error e -> 
-        (failwith ("ParseError: %s" ^ e))
+        (failwith ("ParseError: %s" ^ e.errt))
 ;;
 
 (* handles input -> return bool on whether to continue *)

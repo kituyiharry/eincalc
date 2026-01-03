@@ -1,19 +1,8 @@
-type lexerr = {
+type parserr = {
         line: int 
     ;   colm: int 
-    ;   errt: [
-            |   `Unrecognized of string 
-            |   `Expected of string
-        ]
-}
-[@@deriving show];;
-
-type parserr =  {
-        line: int 
-    ;   colm: int 
-    ;   errt: [
-        | `Expected of string
-    ]
+    ;   errt: string
+    ;   sugg: string (* key that can be used to show actions e.g. parser.mask will suggest a list of masks *)
 }
 [@@deriving show];;
 
@@ -30,7 +19,6 @@ type evalerr =
 [@@deriving show];;
 
 type einerr = 
-    | LexrErr of lexerr
     | ParsErr of parserr
     | GenfErr of generr
     | EmitErr of emiterr

@@ -8,15 +8,14 @@ let _OPTS = false;;
 let execute grid src = 
     match (Lexer.runall src) with
     |  Ok tokens -> 
-        (>>==) (Parser.parse tokens "") (fun tree -> 
-            (>>==) (Eval.tosource grid (fst tree).prog _OPTS) (fun comp -> 
+        (*(fun tree -> )*)
+            (>>==) (Eval.tosource grid (fst (*tree*) (Result.get_ok @@ Parser.parse tokens "") ).prog _OPTS) (fun comp -> 
                 let vm = Eval.mkvm grid true (Emitter.convert comp) in 
                 let () = Eval.eval vm in
                 Ok (vm)
-            )
-        )
-    |  Error (l, c, err) -> 
-        failwith (Format.sprintf "Error lexing program!! L: %d C: %d -> %s" l c err)
+            ) 
+    |  Error (l) -> 
+        failwith (Format.sprintf "Error lexing program!! L: %d C: %d -> %s" l.line l.colm l.errt)
 ;;
 
 let compare_kernels x y = 

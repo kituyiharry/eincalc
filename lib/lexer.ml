@@ -70,7 +70,7 @@ let scan_token (line, colm, sstr) index rest =
             |  Some (('.'), rest') ->
                 Ok ((mktok line colm TRange), (index+1), rest')
             | _ ->
-                Error (line, colm, Format.sprintf "expected range '..'")
+                Error (Errctx.{ line; colm; errt=("expected range '..'"); sugg=("lexer.range_operator") })
         )
     | '-'  -> (match Seq.uncons rest with
             | Some(('>'), rest') ->
@@ -143,7 +143,7 @@ let scan_token (line, colm, sstr) index rest =
             let alp = Buffer.contents dbuf in
             Ok ((mktok line colm (TAlphaNum alp)), (index + !drp), (fun _ -> rem))
         else
-            Error (line, colm, Format.sprintf "unexpected token %c" chr)
+            Error (Errctx.{ line; colm; errt=(Format.sprintf "unexpected token %c" chr); sugg="lexer.undefined"})
     )
 ;;
 
