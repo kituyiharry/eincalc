@@ -2,6 +2,7 @@ type startctx = {
         load: string option
     ;   run : string option 
     ;   format: string option
+    ;   exec  : string option
     ;   interactive: bool
     ;   debug: bool
     ;   opts : bool
@@ -42,11 +43,19 @@ let parse_args len =
                     args (rem) (idx+1) { ctx with debug=true; }  
                 | "-noopt" | "--noopt" -> 
                     args (rem) (idx+1) { ctx with opts=false; }  
+                | "-e" | "-exec" | "--exec" -> 
+                    if rem <= 1 then
+                        failwith "args error: missing execution string: --exec 'PROG...'"
+                    else
+                        let fname = Sys.argv.(idx + 1) in 
+                        args (rem-1) (idx+2) { ctx with exec=Some fname; }  
+
                 | n -> 
                     failwith ("unrecognized cli option: " ^ n)
             )
     in
-    args len 1 { load=None; run=None; interactive=false;format=None; debug=true; opts=true }
+    args len 1 { load=None; run=None; interactive=false;format=None; debug=true;
+        opts=true; exec=None }
 ;;
 
 let load_file controller is_csv _is_tsv file = 
@@ -100,6 +109,12 @@ let interp_args controller ctx =
     let _ = (match ctx.run with 
         | Some rfile ->  
             load_ein_file controller rfile
+        | _ -> 
+            ()
+    ) in
+    let _ = (match ctx.exec with 
+        | Some rfile ->  
+            ignore @@ Eincalc.Repl.handle_input controller (Buffer.of_seq  (String.to_seq rfile))
         | _ -> 
             ()
     ) in
