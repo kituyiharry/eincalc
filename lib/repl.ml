@@ -8,7 +8,7 @@
  *
  *)
 
-let _DEBUG = ref false ;;
+let _DEBUG = ref true ;;
 let _OPTS  = ref true ;;
 
 let handle_eval grid (t) = 

@@ -13,6 +13,21 @@ open Types;;
 let compose _lft _op _rgt = 
     _lft @ [ _op ] @ _rgt 
 ;;
+
+(*let optfetchmulttadd instr bound = *)
+    (*let rec optimize oldins newins = *)
+        (*(match oldins with *)
+        (*| VGetLoadAddr (_addr, _vars) :: rem -> *)
+            (*(match rem with *)
+            (*| IPush k :: IGetKern :: rest -> *)
+                (*optimize rest ((_addr, _vars, k) newins)*)
+            (*| _ -> failwith "opfetchmultadd optimization error";*)
+            (*)*)
+        (*| IMul*)
+        (*| [] -> newins*)
+        (*)*)
+    (*in optimize instr []*)
+(*;;*)
  
 (* for loop behaviour  *)
 let optloopblock startloc loopcounteridx bound = 
@@ -125,8 +140,17 @@ let print_kern _idx =
 ;;
 
 (* (Optimized!) load some dimension for use as an array index of sorts *)
+let opt_load_arr_addr_data _vars _vblk = 
+    let len  = List.length _vars in
+    let arr  = Array.make len 0 in
+    (*let dims = List.rev @@ List.map (fun e -> (IGetVar (Hashtbl.find _vblk e))) _vars in*)
+    let _ = List.iteri (fun i e -> (arr.(i) <- (Hashtbl.find _vblk e))) _vars in
+    (* array of var indexes and actual address array *)
+    (arr, Array.make len 0);
+;;
+
+(* (Optimized!) load some dimension for use as an array index of sorts *)
 let opt_load_arr_addr _vars _vblk = 
-    (* TODO: can we avoid this List.rev ?? *)
     let len  = List.length _vars in
     let arr  = Array.make len 0 in
     (*let dims = List.rev @@ List.map (fun e -> (IGetVar (Hashtbl.find _vblk e))) _vars in*)

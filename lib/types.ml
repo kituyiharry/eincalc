@@ -545,6 +545,20 @@ type instr =
     | VJumpFalseConst of (int (*const*) * int (* var to comp*) * int ref (* steps *))
     (* optimization of adding to a constant value *)
     | VAddSetVarConst of (int (*const*) * int (* var to increment *)) 
+    (*  *)
+    | VSweepFuseMultiplyAdd of (
+        (int array * int array * int * int list) list (* list of addresses and affected indexes and corresponding kernel and array indexes in the address of the increment *)
+        * int (* increment index in the address *) 
+        * int (* upper bound of loop *) 
+        * int (* kernel to sum and write to. Scalar in this case so no addr *)
+    )
+    | VSweepFuseMultiplyAddAddr of (
+        (int array * int array * int * int list) list (* list of addresses and affected indexes and corresponding kernel and array indexes in the address of the increment *)
+        * int (* increment index in the address *) 
+        * int (* upper bound of loop *) 
+        * (int array * int array * int * int list) (* indexes, addrs and kernel to sum and write to. Non-Scalar and updates to output kernel address *)
+    )
+    | VSweepAdd of ((int array * int * int) list (* list of addresses and affected index to increment and corresponding kernel *) * int (* upper bound of loop *) * int (* kernel to write to *))
 
 [@@deriving show];;
 

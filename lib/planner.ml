@@ -41,6 +41,121 @@ let create_plan eincomps =
     ) plan eincomps.inps 
 ;;
 
+let opt_make_einsum_body ps _mapidx mtch _outkidx _lastloop = 
+    let bound  = _lastloop.dimen in
+    (* stackindex of the increment *)
+    let incstkidx = (Hashtbl.find ps.nmdvar _lastloop.label) in 
+    (* for each parameter and input combined - this are all values to be multiplied *)
+    let i = List.mapi (fun _idx ((e: eincomp), (m: int)) ->
+        let _vars = (List.map (fun v -> v.label) e.elems) in
+        (* first index - we wait for 2nd variable *)
+        (
+            (*Funcs.load_arr_addr _vars ps.nmdvar*)
+                let _ =  ps.optcount <- ps.optcount + 1 in
+                let (vars, addr) = Funcs.opt_load_arr_addr_data _vars ps.nmdvar in
+                let incstkidxs = Array.fold_left (fun (accidx, acc) v -> 
+                    if v = incstkidx then 
+                        (accidx + 1, (accidx :: acc))
+                    else
+                        (accidx + 1, acc)
+                ) (0, []) vars in
+                (* use incstkidx to find which var to increment in the loop *)
+                (vars, addr, m, (snd incstkidxs))
+        )
+    ) _mapidx 
+    in 
+
+    (*i*)
+
+    (* are we summing only or multiply-add *)
+    match mtch with 
+    | None -> 
+        (* no output match means scalar value so no addr *)
+        (*i @ fin*)
+        [ Types.VSweepFuseMultiplyAdd (i, incstkidx, bound, _outkidx) ]
+    | Some e ->
+        let _vars = (List.map (fun v -> v.label) e) in
+        (* load the variables addressing the output kernel *)
+        let (vrs, addr)  = (
+            let _ =  ps.optcount <- ps.optcount + 1 in
+            Funcs.opt_load_arr_addr_data _vars ps.nmdvar
+        ) in
+        let incstkidxs = Array.fold_left (fun (accidx, acc) v -> 
+            if v = incstkidx then 
+                (accidx + 1, (accidx :: acc))
+            else
+                (accidx + 1, acc)
+        ) (0, []) vrs in
+        (* get the current value and add it to what was
+            already there on the stack and write it back onto
+            the kernel *)
+        [ Types.VSweepFuseMultiplyAddAddr (i, incstkidx, bound, (vrs, addr, _outkidx, (snd incstkidxs))) ]
+;;
+
+let make_einsum_body ps _mapidx mtch _outkidx = 
+    (* for each parameter and input combined *)
+    let i = List.mapi (fun _idx ((e: eincomp), m) ->
+        let _vars = (List.map (fun v -> v.label) e.elems) in
+        (* first index - we wait for 2nd variable *)
+        if _idx = 0 then        
+            (
+                (*Funcs.load_arr_addr _vars ps.nmdvar*)
+                if ps.opts then  
+                    let _ =  ps.optcount <- ps.optcount + 1 in
+                    Funcs.opt_load_arr_addr _vars ps.nmdvar
+                    |> Funcs.fetch_arr_var m
+                else
+                    Funcs.load_arr_addr _vars ps.nmdvar
+                    |> Funcs.fetch_arr_var m
+            )
+        else 
+            (
+                (
+                    (*Funcs.load_arr_addr _vars ps.nmdvar*)
+                    if ps.opts then  
+                        let _ =  ps.optcount <- ps.optcount + 1 in
+                        Funcs.opt_load_arr_addr _vars ps.nmdvar
+                        |> Funcs.fetch_arr_var m
+                    else
+                        Funcs.load_arr_addr _vars ps.nmdvar
+                        |> Funcs.fetch_arr_var m
+                ) @  [ IMul ]
+            )
+    ) _mapidx |> List.concat in 
+    (* are we summing only or multiply-add *)
+    match mtch with 
+    | None -> 
+        (* no output match means scalar value so no addr *)
+        (* since the output is a scalar, this iloadaddr will fetch the scalar value from the output matrix referenced after! *)
+        let addr = [ Types.ILoadAddr 0; ] in
+        let fin = (Funcs.compose
+            (Funcs.fetch_arr_var _outkidx addr) 
+            IAdd
+            (Funcs.write_arr_var _outkidx addr)
+        ) in 
+        i @ fin
+        (*let _ = Types.pprint_instr (Array.of_list instrs) in*)
+    | Some e ->
+        let _vars = (List.map (fun v -> v.label) e) in
+        (* load the variables addressing the output kernel *)
+        let addr = (
+            if ps.opts then
+                let _ =  ps.optcount <- ps.optcount + 1 in
+                Funcs.opt_load_arr_addr _vars ps.nmdvar
+            else
+                Funcs.load_arr_addr _vars ps.nmdvar
+        ) in
+        (* get the current value and add it to what was
+            already there on the stack and write it back onto
+            the kernel *)
+        let fin = (Funcs.compose
+            (addr |> Funcs.fetch_arr_var _outkidx) 
+            IAdd
+            (addr |> Funcs.write_arr_var _outkidx) 
+        ) in 
+        i @ fin
+;;
+
 (* prepare specifically einsum expressions *)
 let prepare_eintree sidx ps controller x = 
 
@@ -70,6 +185,8 @@ let prepare_eintree sidx ps controller x =
     (* loop vars first, sumvars last *)
     let vlist = plan.loopvars @ plan.summvars in
 
+    (*let _ = List.iter (fun e -> (Format.printf "%s\n" (show_einmatch e))) vlist in*)
+
     let vl = (
         vlist
         |> (gl 
@@ -83,65 +200,12 @@ let prepare_eintree sidx ps controller x =
             (fun _i _dcl islast _e ps -> 
                 (* all vars have been loaded, *)
                 if islast then 
-                    (* for each parameter and input combined *)
-                    let i = List.mapi (fun _idx ((e: eincomp), m) ->
-                        let _vars = (List.map (fun v -> v.label) e.elems) in
-                        (* first index - we wait for 2nd variable *)
-                        if _idx = 0 then        
-                            (
-                                (*Funcs.load_arr_addr _vars ps.nmdvar*)
-                                if ps.opts then  
-                                    let _ =  ps.optcount <- ps.optcount + 1 in
-                                    Funcs.opt_load_arr_addr _vars ps.nmdvar
-                                    |> Funcs.fetch_arr_var m
-                                else
-                                    Funcs.opt_load_arr_addr _vars ps.nmdvar
-                                    |> Funcs.fetch_arr_var m
-                            )
-                        else 
-                            (
-                                (
-                                    (*Funcs.load_arr_addr _vars ps.nmdvar*)
-                                    if ps.opts then  
-                                        let _ =  ps.optcount <- ps.optcount + 1 in
-                                        Funcs.opt_load_arr_addr _vars ps.nmdvar
-                                        |> Funcs.fetch_arr_var m
-                                    else
-                                        Funcs.load_arr_addr _vars ps.nmdvar
-                                        |> Funcs.fetch_arr_var m
-                                ) @  [ IMul ]
-                            )
-                    ) _mapidx |> List.concat in 
-                    (* are we summing only or multiply-add *)
-                    match mtch with 
-                    | None -> 
-                        (* no output match means scalar value so no addr *)
-                        let addr = [ Types.ILoadAddr 0; ] in
-                        let fin = (Funcs.compose
-                            (Funcs.fetch_arr_var _outkidx addr) 
-                            IAdd
-                            (Funcs.write_arr_var _outkidx addr)
-                        )
-                        in { ps with oprtns=ps.oprtns @ i @ fin; }
-                    | Some e ->
-                        let _vars = (List.map (fun v -> v.label) e) in
-                        (* load the variables addressing the output kernel *)
-                        let addr = (
-                            if ps.opts then
-                                let _ =  ps.optcount <- ps.optcount + 1 in
-                                Funcs.opt_load_arr_addr _vars ps.nmdvar
-                            else
-                                Funcs.load_arr_addr _vars ps.nmdvar
-                        ) in
-                        (* get the current value and add it to what was
-                               already there on the stack and write it back onto
-                               the kernel *)
-                        let fin = (Funcs.compose
-                            (addr |> Funcs.fetch_arr_var _outkidx) 
-                            IAdd
-                            (addr |> Funcs.write_arr_var _outkidx) 
-                        )
-                        in { ps with oprtns=ps.oprtns @ i @ fin; }
+                    if ps.opts then 
+                        let _lastloop = List.nth vlist (List.length vlist - 1) in
+                        let _ =  ps.optcount <- ps.optcount + 1 in
+                        { ps with oprtns=ps.oprtns @ (opt_make_einsum_body ps _mapidx mtch _outkidx _lastloop); }
+                    else 
+                        { ps with oprtns=ps.oprtns @ (make_einsum_body ps _mapidx mtch _outkidx); }
                 else ps
             )
     ) in 

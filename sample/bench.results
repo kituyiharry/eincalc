@@ -1,0 +1,401 @@
+4 args
+{ Main.load = None; run = (Some "./sample/bench.ein"); format = None;
+  interactive = false; debug = false; opts = true }
+
+(Parser.Stmt
+   { Parser.prog =
+     (Parser.Grouping
+        (Parser.Literal
+           (Parser.EinSpec
+              ({ Parser.inp =
+                 [(Parser.Shape ([('i', 0); ('j', 1)], []));
+                   (Parser.Shape ([('j', 0); ('k', 1)], []))];
+                 out = (Some (Parser.Shape ([('i', 0); ('k', 1)], []))) },
+               [(Parser.Create (Parser.Rand (100., [10; 10])));
+                 (Parser.Create (Parser.Rand (100., [10; 10])))],
+               (Some { Parser.inps =
+                       [{ Parser.shape = [10; 10];
+                          elems =
+                          [{ Parser.label = 'i'; param = 0; index = 0;
+                             dimen = 10; outlc = 0 };
+                            { Parser.label = 'j'; param = 0; index = 1;
+                              dimen = 10; outlc = -1 }
+                            ];
+                          chset = <opaque>;
+                          param =
+                          (Parser.Create (Parser.Rand (100., [10; 10])));
+                          masks = [] };
+                         { Parser.shape = [10; 10];
+                           elems =
+                           [{ Parser.label = 'j'; param = 1; index = 0;
+                              dimen = 10; outlc = -1 };
+                             { Parser.label = 'k'; param = 1; index = 1;
+                               dimen = 10; outlc = 1 }
+                             ];
+                           chset = <opaque>;
+                           param =
+                           (Parser.Create (Parser.Rand (100., [10; 10])));
+                           masks = [] }
+                         ];
+                       outs =
+                       ((Some [{ Parser.label = 'i'; param = -1; index = 0;
+                                 dimen = 10; outlc = -1 };
+                                { Parser.label = 'k'; param = -1; index = 1;
+                                  dimen = 10; outlc = -1 }
+                                ]),
+                        [10; 10], [])
+                       })))));
+     inputs = [];
+     source = "(ij,jk -> ik, @rand<100,[10,10]>,   @rand<100,[10,10]>)";
+     writes = []; stamp = 1767590069.91 })
+ 
+exec 0.000461 secs
+
+
+(Parser.Stmt
+   { Parser.prog =
+     (Parser.Grouping
+        (Parser.Literal
+           (Parser.EinSpec
+              ({ Parser.inp =
+                 [(Parser.Shape ([('i', 0); ('j', 1); ('k', 2)], []));
+                   (Parser.Shape ([('j', 0); ('k', 1); ('l', 2)], []))];
+                 out = (Some (Parser.Shape ([('i', 0); ('l', 1)], []))) },
+               [(Parser.Create (Parser.Rand (100., [10; 10; 10])));
+                 (Parser.Create (Parser.Rand (100., [10; 10; 10])))],
+               (Some { Parser.inps =
+                       [{ Parser.shape = [10; 10; 10];
+                          elems =
+                          [{ Parser.label = 'i'; param = 0; index = 0;
+                             dimen = 10; outlc = 0 };
+                            { Parser.label = 'j'; param = 0; index = 1;
+                              dimen = 10; outlc = -1 };
+                            { Parser.label = 'k'; param = 0; index = 2;
+                              dimen = 10; outlc = -1 }
+                            ];
+                          chset = <opaque>;
+                          param =
+                          (Parser.Create (Parser.Rand (100., [10; 10; 10])));
+                          masks = [] };
+                         { Parser.shape = [10; 10; 10];
+                           elems =
+                           [{ Parser.label = 'j'; param = 1; index = 0;
+                              dimen = 10; outlc = -1 };
+                             { Parser.label = 'k'; param = 1; index = 1;
+                               dimen = 10; outlc = -1 };
+                             { Parser.label = 'l'; param = 1; index = 2;
+                               dimen = 10; outlc = 1 }
+                             ];
+                           chset = <opaque>;
+                           param =
+                           (Parser.Create (Parser.Rand (100., [10; 10; 10])));
+                           masks = [] }
+                         ];
+                       outs =
+                       ((Some [{ Parser.label = 'i'; param = -1; index = 0;
+                                 dimen = 10; outlc = -1 };
+                                { Parser.label = 'l'; param = -1; index = 1;
+                                  dimen = 10; outlc = -1 }
+                                ]),
+                        [10; 10], [])
+                       })))));
+     inputs = [];
+     source =
+     "(ijk,jkl -> il, @rand<100,[10,10,10]>,   @rand<100,[10,10,10]>)";
+     writes = []; stamp = 1767590069.91 })
+ 
+exec 0.003965 secs
+
+
+(Parser.Stmt
+   { Parser.prog =
+     (Parser.Grouping
+        (Parser.Literal
+           (Parser.EinSpec
+              ({ Parser.inp =
+                 [(Parser.Shape ([('i', 0); ('j', 1)], []));
+                   (Parser.Shape ([('j', 0); ('k', 1)], []))];
+                 out = (Some (Parser.Shape ([('i', 0); ('k', 1)], []))) },
+               [(Parser.Create (Parser.Rand (100., [100; 100])));
+                 (Parser.Create (Parser.Rand (100., [100; 100])))],
+               (Some { Parser.inps =
+                       [{ Parser.shape = [100; 100];
+                          elems =
+                          [{ Parser.label = 'i'; param = 0; index = 0;
+                             dimen = 100; outlc = 0 };
+                            { Parser.label = 'j'; param = 0; index = 1;
+                              dimen = 100; outlc = -1 }
+                            ];
+                          chset = <opaque>;
+                          param =
+                          (Parser.Create (Parser.Rand (100., [100; 100])));
+                          masks = [] };
+                         { Parser.shape = [100; 100];
+                           elems =
+                           [{ Parser.label = 'j'; param = 1; index = 0;
+                              dimen = 100; outlc = -1 };
+                             { Parser.label = 'k'; param = 1; index = 1;
+                               dimen = 100; outlc = 1 }
+                             ];
+                           chset = <opaque>;
+                           param =
+                           (Parser.Create (Parser.Rand (100., [100; 100])));
+                           masks = [] }
+                         ];
+                       outs =
+                       ((Some [{ Parser.label = 'i'; param = -1; index = 0;
+                                 dimen = 100; outlc = -1 };
+                                { Parser.label = 'k'; param = -1; index = 1;
+                                  dimen = 100; outlc = -1 }
+                                ]),
+                        [100; 100], [])
+                       })))));
+     inputs = [];
+     source = "(ij,jk -> ik, @rand<100,[100,100]>, @rand<100,[100,100]>)";
+     writes = []; stamp = 1767590069.91 })
+ 
+exec 0.167520 secs
+
+
+(Parser.Stmt
+   { Parser.prog =
+     (Parser.Grouping
+        (Parser.Literal
+           (Parser.EinSpec
+              ({ Parser.inp =
+                 [(Parser.Shape ([('i', 0); ('j', 1)], []));
+                   (Parser.Shape ([('j', 0); ('k', 1)], []))];
+                 out = (Some (Parser.Shape ([('i', 0); ('k', 1)], []))) },
+               [(Parser.Create (Parser.Rand (100., [150; 150])));
+                 (Parser.Create (Parser.Rand (100., [150; 150])))],
+               (Some { Parser.inps =
+                       [{ Parser.shape = [150; 150];
+                          elems =
+                          [{ Parser.label = 'i'; param = 0; index = 0;
+                             dimen = 150; outlc = 0 };
+                            { Parser.label = 'j'; param = 0; index = 1;
+                              dimen = 150; outlc = -1 }
+                            ];
+                          chset = <opaque>;
+                          param =
+                          (Parser.Create (Parser.Rand (100., [150; 150])));
+                          masks = [] };
+                         { Parser.shape = [150; 150];
+                           elems =
+                           [{ Parser.label = 'j'; param = 1; index = 0;
+                              dimen = 150; outlc = -1 };
+                             { Parser.label = 'k'; param = 1; index = 1;
+                               dimen = 150; outlc = 1 }
+                             ];
+                           chset = <opaque>;
+                           param =
+                           (Parser.Create (Parser.Rand (100., [150; 150])));
+                           masks = [] }
+                         ];
+                       outs =
+                       ((Some [{ Parser.label = 'i'; param = -1; index = 0;
+                                 dimen = 150; outlc = -1 };
+                                { Parser.label = 'k'; param = -1; index = 1;
+                                  dimen = 150; outlc = -1 }
+                                ]),
+                        [150; 150], [])
+                       })))));
+     inputs = [];
+     source = "(ij,jk -> ik, @rand<100,[150,150]>, @rand<100,[150,150]>)";
+     writes = []; stamp = 1767590070.08 })
+ 
+exec 0.505248 secs
+
+
+(Parser.Stmt
+   { Parser.prog =
+     (Parser.Grouping
+        (Parser.Literal
+           (Parser.EinSpec
+              ({ Parser.inp =
+                 [(Parser.Shape ([('i', 0); ('j', 1)], []));
+                   (Parser.Shape ([('j', 0); ('k', 1)], []))];
+                 out = (Some (Parser.Shape ([('i', 0); ('k', 1)], []))) },
+               [(Parser.Create (Parser.Rand (100., [200; 200])));
+                 (Parser.Create (Parser.Rand (100., [200; 200])))],
+               (Some { Parser.inps =
+                       [{ Parser.shape = [200; 200];
+                          elems =
+                          [{ Parser.label = 'i'; param = 0; index = 0;
+                             dimen = 200; outlc = 0 };
+                            { Parser.label = 'j'; param = 0; index = 1;
+                              dimen = 200; outlc = -1 }
+                            ];
+                          chset = <opaque>;
+                          param =
+                          (Parser.Create (Parser.Rand (100., [200; 200])));
+                          masks = [] };
+                         { Parser.shape = [200; 200];
+                           elems =
+                           [{ Parser.label = 'j'; param = 1; index = 0;
+                              dimen = 200; outlc = -1 };
+                             { Parser.label = 'k'; param = 1; index = 1;
+                               dimen = 200; outlc = 1 }
+                             ];
+                           chset = <opaque>;
+                           param =
+                           (Parser.Create (Parser.Rand (100., [200; 200])));
+                           masks = [] }
+                         ];
+                       outs =
+                       ((Some [{ Parser.label = 'i'; param = -1; index = 0;
+                                 dimen = 200; outlc = -1 };
+                                { Parser.label = 'k'; param = -1; index = 1;
+                                  dimen = 200; outlc = -1 }
+                                ]),
+                        [200; 200], [])
+                       })))));
+     inputs = [];
+     source = "(ij,jk -> ik, @rand<100,[200,200]>, @rand<100,[200,200]>)";
+     writes = []; stamp = 1767590070.59 })
+ 
+exec 1.208370 secs
+
+
+(Parser.Stmt
+   { Parser.prog =
+     (Parser.Grouping
+        (Parser.Literal
+           (Parser.EinSpec
+              ({ Parser.inp =
+                 [(Parser.Shape ([('i', 0); ('j', 1)], []));
+                   (Parser.Shape ([('j', 0); ('k', 1)], []))];
+                 out = (Some (Parser.Shape ([('i', 0); ('k', 1)], []))) },
+               [(Parser.Create (Parser.Rand (100., [250; 250])));
+                 (Parser.Create (Parser.Rand (100., [250; 250])))],
+               (Some { Parser.inps =
+                       [{ Parser.shape = [250; 250];
+                          elems =
+                          [{ Parser.label = 'i'; param = 0; index = 0;
+                             dimen = 250; outlc = 0 };
+                            { Parser.label = 'j'; param = 0; index = 1;
+                              dimen = 250; outlc = -1 }
+                            ];
+                          chset = <opaque>;
+                          param =
+                          (Parser.Create (Parser.Rand (100., [250; 250])));
+                          masks = [] };
+                         { Parser.shape = [250; 250];
+                           elems =
+                           [{ Parser.label = 'j'; param = 1; index = 0;
+                              dimen = 250; outlc = -1 };
+                             { Parser.label = 'k'; param = 1; index = 1;
+                               dimen = 250; outlc = 1 }
+                             ];
+                           chset = <opaque>;
+                           param =
+                           (Parser.Create (Parser.Rand (100., [250; 250])));
+                           masks = [] }
+                         ];
+                       outs =
+                       ((Some [{ Parser.label = 'i'; param = -1; index = 0;
+                                 dimen = 250; outlc = -1 };
+                                { Parser.label = 'k'; param = -1; index = 1;
+                                  dimen = 250; outlc = -1 }
+                                ]),
+                        [250; 250], [])
+                       })))));
+     inputs = [];
+     source = "(ij,jk -> ik, @rand<100,[250,250]>, @rand<100,[250,250]>)";
+     writes = []; stamp = 1767590071.79 })
+ 
+exec 2.360728 secs
+
+
+(Parser.Stmt
+   { Parser.prog =
+     (Parser.Grouping
+        (Parser.Literal
+           (Parser.EinSpec
+              ({ Parser.inp =
+                 [(Parser.Shape ([('i', 0); ('j', 1)], []));
+                   (Parser.Shape ([('j', 0); ('k', 1)], []))];
+                 out = (Some (Parser.Shape ([('i', 0); ('k', 1)], []))) },
+               [(Parser.Create (Parser.Rand (100., [500; 250])));
+                 (Parser.Create (Parser.Rand (100., [250; 500])))],
+               (Some { Parser.inps =
+                       [{ Parser.shape = [500; 250];
+                          elems =
+                          [{ Parser.label = 'i'; param = 0; index = 0;
+                             dimen = 500; outlc = 0 };
+                            { Parser.label = 'j'; param = 0; index = 1;
+                              dimen = 250; outlc = -1 }
+                            ];
+                          chset = <opaque>;
+                          param =
+                          (Parser.Create (Parser.Rand (100., [500; 250])));
+                          masks = [] };
+                         { Parser.shape = [250; 500];
+                           elems =
+                           [{ Parser.label = 'j'; param = 1; index = 0;
+                              dimen = 250; outlc = -1 };
+                             { Parser.label = 'k'; param = 1; index = 1;
+                               dimen = 500; outlc = 1 }
+                             ];
+                           chset = <opaque>;
+                           param =
+                           (Parser.Create (Parser.Rand (100., [250; 500])));
+                           masks = [] }
+                         ];
+                       outs =
+                       ((Some [{ Parser.label = 'i'; param = -1; index = 0;
+                                 dimen = 500; outlc = -1 };
+                                { Parser.label = 'k'; param = -1; index = 1;
+                                  dimen = 500; outlc = -1 }
+                                ]),
+                        [500; 500], [])
+                       })))));
+     inputs = [];
+     source = "(ij,jk -> ik, @rand<100,[500,250]>, @rand<100,[250,500]>)";
+     writes = []; stamp = 1767590074.16 })
+ 
+exec 10.138491 secs
+
+
+(Parser.Stmt
+   { Parser.prog =
+     (Parser.Grouping
+        (Parser.Literal
+           (Parser.EinSpec
+              ({ Parser.inp =
+                 [(Parser.Shape ([('i', 0); ('j', 1)], []));
+                   (Parser.Shape ([('j', 0); ('k', 1)], []))];
+                 out = None },
+               [(Parser.Create (Parser.Rand (100., [500; 500])));
+                 (Parser.Create (Parser.Rand (100., [500; 500])))],
+               (Some { Parser.inps =
+                       [{ Parser.shape = [500; 500];
+                          elems =
+                          [{ Parser.label = 'i'; param = 0; index = 0;
+                             dimen = 500; outlc = -1 };
+                            { Parser.label = 'j'; param = 0; index = 1;
+                              dimen = 500; outlc = -1 }
+                            ];
+                          chset = <opaque>;
+                          param =
+                          (Parser.Create (Parser.Rand (100., [500; 500])));
+                          masks = [] };
+                         { Parser.shape = [500; 500];
+                           elems =
+                           [{ Parser.label = 'j'; param = 1; index = 0;
+                              dimen = 500; outlc = -1 };
+                             { Parser.label = 'k'; param = 1; index = 1;
+                               dimen = 500; outlc = -1 }
+                             ];
+                           chset = <opaque>;
+                           param =
+                           (Parser.Create (Parser.Rand (100., [500; 500])));
+                           masks = [] }
+                         ];
+                       outs = (None, [], []) })))));
+     inputs = [];
+     source = "(ij,jk -> , @rand<100,[500,500]>, @rand<100,[500,500]>)";
+     writes = []; stamp = 1767590084.3 })
+ 
+exec 18.356528 secs
+

@@ -151,6 +151,8 @@ let apply_masks_list pr ml =
 ;;
 
 let load_kernel_addr vm count = 
+    (* summvars usually reference a scalar so no need to array.make all the time *)
+    if count = 0 then push vm (SAddr [||]) else 
     let arr = Array.make count 0 in
     let _ = popn count vm arr in
     push vm (SAddr arr)
@@ -165,7 +167,7 @@ let opt_load_kernel_addr vm idxs arr =
                 failwith (Format.sprintf "stack_unwrap_error: %s" (show_spinval b)) 
         ) vm)
     ) idxs in
-    push vm (SAddr arr)
+    (arr)
 ;;
 
 (* TODO: standardize order *)
@@ -232,6 +234,96 @@ let load_kernel_val vm =
         failwith (Format.sprintf "Unable to load kernel using params %s and %s " (show_spinval indx) (show_spinval addr))
 ;;
 
+(* in this case outkern is a scalar value *)
+let loopfusemultaddscalar multvars istckidx upbound outkern vm =
+    let multvars = List.map (fun (vars, addr, _idx, _istcklst) -> 
+        let vaddr = opt_load_kernel_addr vm vars addr in
+        (vaddr, _idx, _istcklst)
+    ) multvars in
+    let _startidx = get_stack_unwrap istckidx (function 
+        | SIndex  i -> i 
+        | _ -> failwith "invalid index ???" 
+    ) vm in
+    let _ = for _i = _startidx to (upbound-1); do 
+        let mult = List.fold_left (fun acc (_a, _i, _istck) ->
+            (match (vm.source.kernels.(_i)) with 
+                | SNdim ((module M), _modl) as _g -> 
+                    acc *. (M.get _modl _a)
+                | _ -> 
+                    failwith "invalid kernel val!!!"
+            )
+        ) 1. multvars in 
+        (* update address index *)
+        let _ = List.iter (fun (addr, _i, _istcklist) -> 
+            List.iter (fun i -> 
+                addr.(i) <- addr.(i) + 1
+            ) (_istcklist)
+        ) multvars in
+        let _ = (match (vm.source.kernels.(outkern)) with
+            | SNdim ((module M), _modl) as _g -> 
+                M.set _modl [||] (mult +. (M.get _modl [||]))
+            | _ -> 
+                failwith "invalid kernel val!!!"
+        ) in
+        ()
+    done in
+    (set_stack istckidx (SIndex upbound) vm)
+;;
+
+(* in this case outkern is a scalar value *)
+let loopfusemultaddaddr multvars istckidx upbound (outidxs, outaddr, outkern, outup) vm =
+
+    (* load mult vars *)
+    let multvars = List.map (fun (vars, addr, _idx, _istcklst) -> 
+        let vaddr = opt_load_kernel_addr vm vars addr in
+        (vaddr, _idx, _istcklst)
+    ) multvars in
+
+    (*load the out address*)
+    let outaddr = opt_load_kernel_addr vm outidxs outaddr in
+
+    (* load the start index *)
+    let _startidx = get_stack_unwrap istckidx (function 
+        | SIndex  i -> i 
+        | _ -> failwith "invalid index ???" 
+    ) vm in
+
+    (* multiply then add the kernels while updating the changed index variable *)
+    let _ = for _i = _startidx to (upbound-1); do 
+
+        (* update kernel *)
+        let mult = List.fold_left (fun acc (_a, _i, _istck) ->
+            (match (vm.source.kernels.(_i)) with 
+                | SNdim ((module M), _modl) as _g -> 
+                    acc *. (M.get _modl _a)
+                | _ -> 
+                    failwith "invalid kernel val!!!"
+            )
+        ) 1. multvars in 
+
+        (* update address index *)
+        let _ = List.iter (fun (addr, _i, _istcklist) -> 
+            List.iter (fun i -> 
+                addr.(i) <- addr.(i) + 1
+            ) (_istcklist)
+        ) multvars in 
+
+        (* update in the output index *)
+        let _ = List.iter (fun i ->
+            outaddr.(i) <- outaddr.(i) + 1
+        ) outup in
+
+        let _ = (match (vm.source.kernels.(outkern)) with
+            | SNdim ((module M), _modl) as _g -> 
+                M.set _modl outaddr (mult +. (M.get _modl outaddr))
+            | _ -> 
+                failwith "invalid kernel val!!!"
+        ) in ()
+
+    done in
+    (set_stack istckidx (SIndex upbound) vm)
+;;
+
 let binop s f = 
     match f with 
     | IAdd -> push s @@ Types.sadd (popresolve s) (popresolve s)
@@ -256,7 +348,7 @@ let reset_vm v =
 let consume ({ Types.oprtns; _ } as s) apply = 
     let oplen = Array.length oprtns in
     while not (s.cursor >= oplen) do
-        s.cursor <- s.cursor + apply oprtns.(s.cursor)
+        s.cursor <- s.cursor + apply (Array.unsafe_get oprtns (s.cursor))
     done;
 ;;
 
@@ -274,7 +366,6 @@ let handle_op vm op =
     | IJumpFalse z  -> 
         if (Types.strue @@ Types.seql (pop vm) (SBool false)) then !z else 1
     | VJumpFalseConst (bound, loopcounteridx, jmp) -> 
-        (*let _ = Format.printf "idx is %s\n" (show_spinval @@ get_stack loopcounteridx vm) in*)
         let l = Types.sless (get_stack loopcounteridx vm) (SIndex bound) in 
         if (Types.strue @@ Types.seql l (SBool false)) then !jmp else 1 
     | IAdd          -> let _ = binop vm (IAdd) in 1 
@@ -295,8 +386,16 @@ let handle_op vm op =
     | ISetKern      -> let _ = write_kernel_val vm in 1
     | IEchoKern     -> let _ = print_kernel vm in 1
     | ILoadAddr _a  -> let _ = load_kernel_addr vm _a in 1 
-    | VGetLoadAddr (_idx, _arr) -> let _ = opt_load_kernel_addr vm _idx _arr in 1
-    | IApplyMasks   -> let _ = apply_masks vm in 1
+    | VGetLoadAddr (_idx, _arr) -> let _ = push vm (SAddr (opt_load_kernel_addr vm _idx _arr)) in 1
+    | VSweepFuseMultiplyAdd (multvars, incstkidx, bound, outkern) ->     
+        let _ = loopfusemultaddscalar multvars incstkidx bound outkern vm in
+        1
+    | VSweepFuseMultiplyAddAddr (multvars, incstkidx, bound, outkern) -> 
+        let _ = loopfusemultaddaddr multvars incstkidx bound outkern vm in
+        1
+    (* unused for now *)
+    | VSweepAdd _ ->                 1
+    | IApplyMasks   ->     let _ = apply_masks vm in 1
     | IApplyMaskList ml -> let _ = apply_masks_list vm ml in 1
     | ISaveFrame ->  let _ = 
         vm.oldframe <- (vm.frmptr :: vm.oldframe); 
