@@ -204,6 +204,7 @@ let prepare_eintree sidx ps controller x =
                         let _lastloop = List.nth vlist (List.length vlist - 1) in
                         let _ =  ps.optcount <- ps.optcount + 1 in
                         { ps with oprtns=ps.oprtns @ (opt_make_einsum_body ps _mapidx mtch _outkidx _lastloop); }
+                        (*{ ps with oprtns=ps.oprtns @ (make_einsum_body ps _mapidx mtch _outkidx); }*)
                     else 
                         { ps with oprtns=ps.oprtns @ (make_einsum_body ps _mapidx mtch _outkidx); }
                 else ps

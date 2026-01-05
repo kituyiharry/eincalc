@@ -308,17 +308,17 @@ let loopfusemultaddaddr multvars istckidx upbound (outidxs, outaddr, outkern, ou
             ) (_istcklist)
         ) multvars in 
 
-        (* update in the output index *)
-        let _ = List.iter (fun i ->
-            outaddr.(i) <- outaddr.(i) + 1
-        ) outup in
-
         let _ = (match (vm.source.kernels.(outkern)) with
             | SNdim ((module M), _modl) as _g -> 
                 M.set _modl outaddr (mult +. (M.get _modl outaddr))
             | _ -> 
                 failwith "invalid kernel val!!!"
-        ) in ()
+        ) in 
+
+        (* update in the output index *)
+        let _ = List.iter (fun i -> outaddr.(i) <- outaddr.(i) + 1 ) outup in
+        
+        ()
 
     done in
     (set_stack istckidx (SIndex upbound) vm)

@@ -8,7 +8,7 @@
  *
  *)
 
-let _DEBUG = ref true ;;
+let _DEBUG = ref false;;
 let _OPTS  = ref true ;;
 
 let handle_eval grid (t) = 
@@ -37,7 +37,7 @@ let handle_parse_exp grid src (lex: Lexer.lexeme list) =
                 handle_transform_formulae grid prog
             )
             | Error s   -> 
-                grid.onlog ((Format.sprintf "Parse Error: %s\n" s.errt, Ndcontroller.Err))
+                grid.onlog ((Format.sprintf "Parse Error (l: %d, c: %d): %s\n" s.line s.colm s.errt, Ndcontroller.Err))
         )
     )
 ;;
@@ -104,7 +104,11 @@ let scan_and_notify sheet vstr =
                 sheet.onlog (s, Ndcontroller.Err)
         )
     | Error e -> 
-        (failwith ("ParseError: %s" ^ e.errt))
+        (
+            let s = ("EvalErr: (l: " ^ (string_of_int e.line) ^", c: " ^ (string_of_int e.colm) ^ "): %s" ^ e.errt) in
+            sheet.onlog (s, Ndcontroller.Err);
+            failwith s
+        )
 ;;
 
 (* handles input -> return bool on whether to continue *)

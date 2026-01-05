@@ -38,6 +38,8 @@ let parse_args len =
                     args (rem) (idx+1) { ctx with interactive=false; }  
                 | "-nodebug" | "--nodebug" -> 
                     args (rem) (idx+1) { ctx with debug=false; }  
+                | "-debug" | "--debug" -> 
+                    args (rem) (idx+1) { ctx with debug=true; }  
                 | "-noopt" | "--noopt" -> 
                     args (rem) (idx+1) { ctx with opts=false; }  
                 | n -> 
