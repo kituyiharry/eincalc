@@ -2,7 +2,7 @@
   (name index)
   (modes byte js)
   (modules index draw)
-  (preprocess (pps js_of_ocaml-ppx ppx_deriving.show) )
+  (preprocess (pps js_of_ocaml-ppx ppx_deriving.show lwt_ppx) )
   (libraries eincalc js_of_ocaml js_of_ocaml-lwt js_of_ocaml-lwt.graphics)
   (js_of_ocaml 
     ; todo: maybe disable errors and exception. add effects to support TCO ?

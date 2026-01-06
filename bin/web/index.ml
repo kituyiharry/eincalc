@@ -2,6 +2,9 @@
 (*module Html = Js_of_ocaml.Dom_html*)
 (*module Dom  = Js_of_ocaml.Dom*)
 (*module G    = Graphics_js*)
+open Lwt.Infix
+
+module LwtJs= Js_of_ocaml_lwt.Lwt_js
 module Js   = Js_of_ocaml.Js
 module Con  = Js_of_ocaml.Console
 
@@ -205,9 +208,9 @@ let _ =
                             Float.compare x.stamp y.stamp
                         )
                         |> List.iter (fun fml -> 
-                                (!sheet).onlog ("Found affected formulae!", Eincalc.Ndcontroller.Warn);
-                                Eincalc.Repl.handle_transform_formulae !sheet fml
-                           ) 
+                            (!sheet).onlog ("Found affected formulae!", Eincalc.Ndcontroller.Warn);
+                            Eincalc.Repl.handle_transform_formulae !sheet fml
+                        ) 
                     ) in
                     let _ = Buffer.clear buf in
                     let _ = Eincalc.Ndcontroller.FormGraphSerializer.to_dot ~dir:true "Affected" dotc.global dotc.prnode dotc.predge 

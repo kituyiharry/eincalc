@@ -6,6 +6,8 @@
   import { onMount } from 'svelte';
   import { controller } from './store';
 
+  import Worker from './worker.js?worker'
+
   const is_chrome = /chrome/i.test( navigator.userAgent );
   // const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
@@ -16,13 +18,34 @@
       sheets = $controller.myLib?.available(false).splice(1);
   }
 
-
-
   // editing support via floating input 
   let editor
   let plotArea 
   let canvas
   let modal
+
+  var isexecutingcode = $state(false);
+
+  function execasync(code, callback) { 
+    isexecutingcode = true;
+    if (typeof(Worker) !== "undefined") {
+        // TODO: implement calls
+        // const worker = new Worker();
+        // worker.onmessage = (message) => {
+        //     isexecutingcode = false;
+        //     console.log("received", message);
+        // }
+        // worker.postMessage(code);
+        // worker.terminate();
+        const b = $controller.myLib?.executecode(code);
+        isexecutingcode = false;
+        callback(b)
+    } else {
+        const b = $controller.myLib?.executecode(code);
+        isexecutingcode = false;
+        callback(b)
+    }
+  }
 
   /** 
    * @type {{id: number, msg: string, level: string}[]}
@@ -645,12 +668,14 @@
             // executed code and write it back into this cell
             const cellStart = `${getColumnLabel(selectedCell.col)}${selectedCell.row+1}`;
             let code = `(${data.substring(1)}) | write<${cellStart}>`;
-            $controller.myLib?.executecode(code);
-            updateFormulaes();
-            funcText = `=${code}`.replaceAll('\n', '');
-            editValue = funcText;
-            cellData = {};
-            visibleCells.clear();
+            execasync(code, function(b){
+                updateFormulaes();
+                funcText = `=${code}`.replaceAll('\n', '');
+                editValue = funcText;
+                cellData = {};
+                visibleCells.clear();
+                refresh++;
+            });
           } else {
               $controller.myLib?.paste(selectedCell.row, selectedCell.col, data);
               if (editingCell != null) {
@@ -658,8 +683,8 @@
                   const key = `${selectedCell.row},${selectedCell.col}`;
                   editValue = cellData[key]
               }
+              refresh++;
           } 
-          refresh++;
       } else {
           console.error("missing paste location!")
       }
@@ -696,12 +721,15 @@
         let code = `(${editOut.substring(1).trim()}) | write<${cellStart}>`;
 
         // TODO: make more explicit that after running executecode we update formulaes
-        $controller.myLib?.executecode(code);
-        updateFormulaes();
+        execasync(code, function(_b) {
+            updateFormulaes();
+            funcText = `=${code}`;
+            cellData = {};
+            visibleCells.clear();
+            editingCell = null;
+            refresh++;
+        });
 
-        funcText = `=${code}`;
-        cellData = {};
-        visibleCells.clear();
       } else {
         const num = parseFloat(editOut);  
         cellData[cellKey] = editOut;
@@ -712,9 +740,9 @@
             cellData = {};
             visibleCells.clear();
         }
+        editingCell = null;
+        refresh++;
       }
-      editingCell = null;
-      refresh++;
     }
   }
 
@@ -1245,21 +1273,30 @@
                                     if (funcText.trim().startsWith('=')) {
                                         funcText.trim().substring(1).split(';').filter((v) => v.length > 0).forEach((code) => {
                                             if (!breaker) {
-                                                breaker   = !$controller.myLib?.executecode(code);
-                                                updateFormulaes();
+                                                execasync(code,
+                                                    function(b) {
+                                                        breaker = b;
+                                                        updateFormulaes();
+                                                        // NB: this forces a refetch of data from the grid model
+                                                        visibleCells.clear();
+                                                        cellData = {};
+                                                    }
+                                                );
                                             }
                                         })
                                     } else {
                                         funcText.trim().split(';').filter((v) => v.length > 0).forEach((code) => {
                                             if (!breaker) {
-                                                breaker = !$controller.myLib?.executecode(code);
-                                                updateFormulaes();
+                                                execasync(code, function(b) {
+                                                    breaker = b;
+                                                    updateFormulaes();
+                                                    // NB: this forces a refetch of data from the grid model
+                                                    visibleCells.clear();
+                                                    cellData = {};
+                                                });
                                             }
                                         })
                                     }
-                                    // NB: this forces a refetch of data from the grid model
-                                    visibleCells.clear();
-                                    cellData = {};
                                 }
                             }}
                         ></textarea>
@@ -1279,7 +1316,12 @@
                     <!-- list item -->
                     <li class="">
                         <button class="text-md is-drawer-close:tooltip is-drawer-close:tooltip-right" data-tip="Homepage">
-                            <i class="fa fa-th  text-gray-300" aria-hidden="true"></i>
+                            <!--<i class="fa fa-th  text-gray-300" aria-hidden="true"></i>-->
+                            {#if isexecutingcode}
+                                <span class="loading loading-bars loading-xs"></span>
+                            {:else}
+                                <i class="fa fa-barcode" aria-hidden="true"></i>
+                            {/if}
                             <span class="is-drawer-close:hidden">...</span>
                         </button>
                     </li>
@@ -1471,10 +1513,13 @@ ${erasorState ? "border border-red-400" : "" }`}
                                                         debugFormula ? "text-red-400 fa-eye-slash" : " fa-eye"}'></i>
                                                 </button>
                                                 <button onclick={() => {
-                                                    $controller.myLib?.executecode(frm.text);
-                                                    visibleCells.clear();
-                                                    cellData = {};
-                                                    funcText = frm.text.trim();
+                                                    execasync(frm.text,
+                                                        function(b){
+                                                            visibleCells.clear();
+                                                            cellData = {};
+                                                            funcText = frm.text.trim();
+                                                        }
+                                                    );
                                                 }} aria-label="formular" class="btn
                                                     btn-circle scale-80">
                                                     <i class="fa fa-md fa-refresh"></i>
