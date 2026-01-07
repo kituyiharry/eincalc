@@ -34,9 +34,9 @@
         // worker.onmessage = (message) => {
         //     isexecutingcode = false;
         //     console.log("received", message);
+        //     callback(message);
         // }
         // worker.postMessage(code);
-        // worker.terminate();
         const b = $controller.myLib?.executecode(code);
         isexecutingcode = false;
         callback(b)
