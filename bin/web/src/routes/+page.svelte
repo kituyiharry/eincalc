@@ -1231,7 +1231,7 @@
                     </div>
                     <div class="flex flex-row bg-transparent h-full"> 
                         <div class="flex bg-black items-center basis-4">
-                            <span class="p-4 text-center text-white">ƒ𝑥: {refresh}</span>
+                            <span class="p-4 text-center text-white">ƒ𝑥</span>
                         </div>
                         <textarea  
                             class="font-light basis-8 px-4 py-2 text-[16px] resize-none min-w-full 

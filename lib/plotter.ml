@@ -22,7 +22,7 @@ type shape =
     | Line of   { x: float; y: float; fx: float; fy: float; linewidth: float; color: color }
     | Spline of { cp1x: float; cp1y: float; cp2x: float; cp2y: float; x: float; y: float; linewidth: float; color: color; }
     | Clear     (* clears the canvas *)
-    | Reset     (* clears the shape buffer - not the canvas - useful to prevent growth *)
+    | Reset     (* clears the shape buffer - not the canvas - useful to prevent redraws that are no longer needed *)
 [@@deriving show];;
 
 type plotctx = {
