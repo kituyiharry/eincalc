@@ -22,8 +22,8 @@ type spinmodel =
 (* serialize to string *)
 let ser = function 
     | TCover  (f, c) -> Format.sprintf "c%s$%s" (Float.to_string f) c  
-    | TNumber f ->     "f"     ^ Float.to_string f 
-    | TNat    n ->     "n"     ^ Int.to_string n 
+    | TNumber f ->     "f" ^ Float.to_string f 
+    | TNat    n ->     "n" ^ Int.to_string n 
     | TValue  s ->     "v" ^ (String.escaped s)
 ;;
 
