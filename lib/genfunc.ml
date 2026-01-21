@@ -358,6 +358,8 @@ and shape_of_mask m map =
             else Ok shp
         | Write _cell -> 
             Ok map
+        | WriteTo _cell -> 
+            Ok map
         | Plot { oftype=plt; _ } -> 
             (* ideally the plot doesn't modify any data! *)
             (* for each type of plot we need to verify some dimension *)
@@ -709,6 +711,7 @@ let transform (Stmt ({ prog=stm; stamp; source; _}): formula)  =
     let collectwrts pars shp = 
         fst @@ List.fold_left (fun (acc, shp) -> function
             | Write (_) as v  -> ((v, shp) :: acc, shp)
+            | WriteTo (_) as v  -> ((v, shp) :: acc, shp)
             | m -> 
                 match shape_of_mask m shp with 
                 | Ok shp' -> 

@@ -144,6 +144,8 @@ and mask =
     | Reshape of int list
     (* write<A100> *)
     | Write   of cell             (* executes an effect to the grid *)           
+    (* writeto<0,A100> *)
+    | WriteTo of (int * cell)     (* executes an effect to the given sheet *)           
     (* axis<'j', mean | ...> *)
     | Axis    of int * mask list  (* apply mask along an axis *)
     (* TODO: Logits?? *)
@@ -2138,6 +2140,51 @@ let parse_ein_mask state =
                                             line; colm;
                                             sugg="parser.ein_mask_write_range_expect";
                                             errt="Expected range end"
+                                        } 
+                                ) 
+                            | None -> 
+                                    Error Errctx.{
+                                        line; colm;
+                                        sugg="parser.ein_mask_write_range_expect";
+                                        errt="Expected range end"
+                                    } 
+                            )
+                        else
+                            Error Errctx.{
+                                line; colm;
+                                sugg="parser.ein_mask_write_range_expect";
+                                errt="Expected write cell argument in angle brackets"
+                            } 
+                    | TAlphaNum "writeto" -> 
+                        let nxt = advance state in
+                        if check TLeftAngle (fst nxt) then
+                            let nxt' = advance nxt in 
+                            let line, colm = curspot nxt' in
+                            (match (current nxt') with 
+                            | Some  { tokn; line; colm; _ } -> 
+                                (match tokn with 
+                                    | TNumeral f  ->  
+                                        (
+                                            (>>==) (consume (advance nxt') TComma) (fun final -> 
+                                                match (current final) with 
+                                                | Some ({ tokn=TAlphaNum _end; _}) ->  
+                                                    (>>==) (as_cell _end (line,colm)) (fun ecell -> 
+                                                        (>>==) (consume (advance final) TRightAngle) (fun final -> 
+                                                            Ok (final, (WriteTo (f, ecell)))
+                                                        )
+                                                    )
+                                                | _ -> 
+                                                    Error Errctx.{
+                                                        line; colm;
+                                                        sugg="parser.ein_mask_write_range_expect";
+                                                        errt="Expected range end"
+                                                    })
+                                        )
+                                    | _ -> 
+                                        Error Errctx.{
+                                            line; colm;
+                                            sugg="parser.ein_mask_write_range_expect";
+                                            errt="Expected index and range "
                                         } 
                                 ) 
                             | None -> 

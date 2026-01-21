@@ -22,11 +22,65 @@ let handle_eval grid (t) =
    in ()
 ;;
 
-let handle_transform_formulae grid form = 
-    (match Eval.tosource grid form !_OPTS with 
-    | Ok    t -> handle_eval grid t
-    | Error e -> grid.onlog (Format.sprintf "Error: %s\n" e, Ndcontroller.Err)
-    )
+let rec handle_transform_formulae grid (form) = 
+    let rec rununiquestamp grid (Parser.Stmt ctx as form) stamps  =
+
+        (* Skip re-execution - simple case *)
+        if List.exists (
+            (fun (act', stamp') -> 
+                Float.equal ctx.stamp stamp' 
+                &&
+                String.equal act' !(grid.Ndcontroller.active)
+            )
+        ) stamps then stamps else
+
+        (match Eval.tosource grid form !_OPTS with 
+        | Ok    t ->
+                let _ = handle_eval grid t in 
+                let oldactive = !(grid.active) in
+                let stamps =  (!(grid.active),ctx.stamp) :: stamps in
+                let stamps = List.fold_left (fun stamps -> function 
+                    (* WARN: handle cross sheet writes! -> can cause an infinite loop if not carefull - added stamp list but not properly tested !! *)
+                    (* TODO: use stamps to ensure idempotent runts here! *)
+                    | ((Parser.WriteTo (indx, _) as msk), shp)-> 
+                        (
+                            Ndcontroller.notify grid msk shp
+                            |> List.map (
+                                fun (index,y) ->
+                                    let act = Ndcontroller.IndexToSheet.find grid.indexed index in
+                                    let _ = (grid.active := act) in
+                                    List.map (fun x -> (act, x)) (Ndcontroller.affected grid (Ndcontroller.plaindctx ()) y)
+                            )
+                            |> List.concat
+                            |> List.sort_uniq (fun (_, (Parser.Stmt x)) (_, (Parser.Stmt y)) -> Float.compare x.stamp y.stamp)
+                            |> List.fold_left (fun stamps (act, ((Parser.Stmt c) as y)) ->
+                                (* Skip re-execution - simple case *)
+                                let _ = List.iter (fun (x,y) -> 
+                                    Format.printf "%s-%f" x y
+                                ) stamps in
+                                let _ = Format.print_newline ( ) in
+                                if List.exists (
+                                    (fun (act', stamp') -> 
+                                        Float.equal c.stamp stamp' 
+                                        &&
+                                        String.equal act' act
+                                    )
+                                ) stamps then (stamps) else
+                                let _ = (grid.active := act) in
+                                let stamps = rununiquestamp grid y ((act, ctx.stamp) :: stamps)
+                                in stamps
+                            ) stamps
+                        ) 
+                    | _ -> 
+                        (stamps)
+                ) stamps (ctx.writes) in 
+                let _ = grid.active := oldactive in 
+                stamps
+        | Error e -> 
+                let _ = grid.onlog (Format.sprintf "Error: %s\n" e, Ndcontroller.Err)
+                in stamps
+        )
+    in ignore @@ rununiquestamp grid form []
 ;;
 
 let handle_parse_exp grid src (lex: Lexer.lexeme list) = 
@@ -90,16 +144,26 @@ let scan_and_notify sheet vstr =
             | Ok ({ ast=(Parser.Stmt s); _ } as cell) ->
                 let _ = Ndcontroller.dependants sheet cell.ast in
                 let _ = handle_eval sheet cell in
+                let oldactive = !(sheet.active) in
                 (* see if we wrote over other formulaes *)
                 let _ = (
                     List.iter (fun (msk, shp) ->
                         Ndcontroller.notify sheet msk shp
-                        |> List.map (Ndcontroller.affected sheet (Ndcontroller.plaindctx ()))
+                        |> List.map (
+                            fun (index,y) ->
+                                let act = Ndcontroller.IndexToSheet.find sheet.indexed index in
+                                let _ = (sheet.active := act) in
+                                List.map (fun x -> (index, x)) (Ndcontroller.affected sheet (Ndcontroller.plaindctx ()) y)
+                        )
                         |> List.concat
-                        |> List.sort_uniq (fun (Parser.Stmt x) (Parser.Stmt y) -> Float.compare x.stamp y.stamp)
-                        |> List.iter (handle_transform_formulae sheet)
+                        |> List.sort_uniq (fun (_, (Parser.Stmt x)) (_, (Parser.Stmt y)) -> Float.compare x.stamp y.stamp)
+                        |> List.iter (fun (index, y) ->
+                            let act = Ndcontroller.IndexToSheet.find sheet.indexed index in
+                            let _ = (sheet.active := act) in
+                            handle_transform_formulae sheet y
+                        )
                     ) s.writes
-                ) in ()
+                ) in (sheet.active := oldactive)
             | Error s -> 
                 sheet.onlog (s, Ndcontroller.Err)
         )

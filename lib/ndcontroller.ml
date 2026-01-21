@@ -78,8 +78,13 @@ type loglevel =
     | Err 
 ;;
 
+(* The index of a sheet to the name for lookup *)
+module IndexToSheet = Hashtbl.Make (Int)
+
 type gridcontroller = { 
         sheets:  gridmodel GridTable.t (* Grids and their order and labels *)
+    ;   indexed: string IndexToSheet.t
+    (* TODO: add stampset to avoid recursive reruns *)
     ;   active:  string ref
     ;   plotcb:  ((string * int list * Plotter.shape list) -> unit) 
     ;   onlog:   ((string * loglevel) -> unit)
@@ -87,14 +92,16 @@ type gridcontroller = {
 
 let create_controller () = 
     { 
-        sheets = GridTable.create 4 
-    ;   active = ref ""
-    ;   plotcb = ignore
-    ;   onlog  = (fun (b, _) -> Format.printf " %s\n" b)
+        sheets  = GridTable.create 4 
+    ;   indexed = IndexToSheet.create 4
+    ;   active  = ref ""
+    ;   plotcb  = ignore
+    ;   onlog   = (fun (b, _) -> Format.printf " %s\n" b)
     }
 ;;
 
 let new_sheet controller label = 
+    let _ = IndexToSheet.add controller.indexed (GridTable.length controller.sheets) label in
     let _ = GridTable.add controller.sheets label 
         {
             index = (GridTable.length controller.sheets)
@@ -167,6 +174,14 @@ let available_sheets controller =
     |> List.map (fun (x, _)  -> x)
 ;;
 
+
+let available_sheets_index controller = 
+    GridTable.to_seq controller.sheets 
+    |> Seq.map (fun (k, v) ->  (k, v.index))
+    |> List.of_seq 
+    |> List.sort (fun (_, x) (_, y) -> Int.compare x y)
+;;
+
 let add_plot_cb controller cb = 
     { controller with plotcb=cb }
 ;;
@@ -174,6 +189,7 @@ let add_plot_cb controller cb =
 let create_default_controller label cb logger  = 
     new_sheet ({ 
             sheets=GridTable.create 16
+        ;   indexed = IndexToSheet.create 4
         ;   active=label; plotcb=cb; onlog=logger 
     }) !label
 ;;
@@ -264,6 +280,45 @@ let overlaps wrt shp reg = match (wrt, reg)  with
         (* /rectangle-intersection/ *)
         ((wsc <= rendc) && (wec >= rsc) && wsr <= rer && wer >= rsr)
 
+   |  WriteTo (_, w), Parser.Range (startc, endc) ->
+        let (rsp,   csp, _) = span_of_shape shp in
+        (* write top and bottom rows and columns *)
+
+        let (wsr,   wsc) = key_of_ref w in 
+        let (wer,   wec) = (wsr + rsp, wsc + csp) in 
+
+        (* read top row and column - check if this section has been modified *)
+        let (rsr,   rsc) = key_of_ref startc in
+        let (rer, rendc) = key_of_ref endc in
+
+        (* /rectangle-intersection/ *)
+        ((wsc <= rendc) && (wec >= rsc) && wsr <= rer && wer >= rsr)
+
+    |  WriteTo (_, w), Parser.Span (startc, shc) ->
+        let (rsp,   csp, _) = span_of_shape shp in
+        let (rs',   cs', _) = span_of_shape shc in
+
+        let (wsr,   wsc) = key_of_ref w in (* top left *)
+        let (wer,   wec) = (wsr + rsp, wsc + csp) in 
+
+        let (rsr,   rsc) = key_of_ref startc in
+        let (rer, rendc) = (rsr + rs', rsc + cs') in (* bottom right *)
+
+        (* /rectangle-intersection/ *)
+        ((wsc <= rendc) && (wec >= rsc) && wsr <= rer && wer >= rsr)
+
+    |  WriteTo (_, w), Parser.Scalar (startc) ->
+        let (rsp,   csp, _) = span_of_shape shp in
+
+        let (wsr,   wsc) = key_of_ref w in (* top left *)
+        let (wer,   wec) = (wsr + rsp, wsc + csp) in 
+
+        let (rsr,   rsc) = key_of_ref startc in
+        let (rer, rendc) = (rsr, rsc) in (* bottom right *)
+
+        (* /rectangle-intersection/ *)
+        ((wsc <= rendc) && (wec >= rsc) && wsr <= rer && wer >= rsr)
+
     | _ -> 
         false
 ;;
@@ -275,6 +330,8 @@ let add_link controller fromnode tonode =
 (* build graph on addition of a new function line ast *)
 (* WARN: we take care to avoid cycles by making new programs only be referenced
    by existing program. This should ideally make the graph acyclic *)
+(* INFO: This function does not capture cross-sheet dependencies!!!
+*)
 let dependants contr (Parser.Stmt ast as prog) = 
     let controller = GridTable.find contr.sheets !(contr.active) in
     (* check for similar source *)
@@ -300,8 +357,7 @@ let dependants contr (Parser.Stmt ast as prog) =
                     | Range _ | Span  _ | Scalar _ as s -> 
                         List.iter (fun (Parser.Stmt v' as prog') -> 
                             (* check if it writes over our input region *)
-                            if 
-                            List.exists (fun (msk, shp) -> overlaps msk shp s) v'.writes 
+                            if List.exists (fun (msk, shp) -> overlaps msk shp s) v'.writes 
                             then 
                                 (*let _ = contr.onlog ("connected", Warn) in*)
                                 (* we call this when our input region has been affected *)
@@ -324,6 +380,8 @@ let plaindctx () =
     }
 ;;
 
+(* find affected formulae via edge connections to changed region so that they
+   can be re-executed *)
 let affected contr dctx start = 
 
     let controller = GridTable.find contr.sheets !(contr.active) in
@@ -348,7 +406,7 @@ let affected contr dctx start =
                     let le = FormGraphSerializer.StyleTbl.create 1 in
                     let _ = FormGraphSerializer.StyleTbl.add le "color" "green" in
                     let pstr = FormSer.string_of_elt prevprog in
-                    (* in fungi graph - this represents an edge with attributes *)
+                    (* in fungi graph library - this represents an edge with attributes *)
                     let ekey = pstr ^ "-" ^ ckey in 
                     FormGraphSerializer.AttrbTbl.add dctx.predge ekey le
                 | _ -> 
@@ -369,10 +427,23 @@ let affected contr dctx start =
     List.rev aff
 ;;
 
+let fetch_grid_label controller label = 
+    GridTable.find_opt controller.sheets label 
+;;
+
+let fetch_active_grid controller = 
+    GridTable.find controller.sheets !(controller.active)
+;;
+
+let fetch_grid_index controller index = 
+   GridTable.find controller.sheets @@ IndexToSheet.find controller.indexed index
+;;
+
 (* notify when a region is accessed. we just changed a functions input so we
    check whos input has changed and notify it *)
 let notify contr (region: mask) (shp: int list) = 
     let controller = GridTable.find contr.sheets !(contr.active) in
+    let mainindex  = controller.index in
     match region with
     | Write _c ->
         List.fold_left (fun acc' (Parser.Stmt v' as prog') -> 
@@ -381,10 +452,21 @@ let notify contr (region: mask) (shp: int list) =
             if List.exists (overlaps region shp) v'.inputs then 
                 (*let _ = controller.onlog ("Found overlap with fx!", Info) in*)
                 (*(* we call this when our input region has been affected *)*)
-                prog' :: acc'
+                (mainindex, prog') :: acc'
             else 
                 acc'
         ) [] (List.rev !(controller.frmlst))
+    | WriteTo (index,_c) ->
+        let cc = fetch_grid_index contr index in
+        let _ = Format.printf "found %d formulae\n" (List.length !(cc.frmlst)) in
+        List.fold_left (fun acc' (Parser.Stmt v' as prog') -> 
+            if List.exists (overlaps region shp) v'.inputs then 
+                let _ = Format.printf "connected!!\n" in
+                (index, prog') :: acc'
+            else 
+                let _ = Format.printf "NOT connected!!\n" in
+                acc'
+        ) [] (List.rev !(cc.frmlst))
     | _ -> []
 ;;
 
@@ -420,6 +502,7 @@ let formulaes controller sheet =
                                 let (s,  e)  = key_of_ref w in
                                 let (cs, ce, _) = span_of_shape shp in
                                 ((s, e), (s+cs, e+ce))
+                            (* TODO: writeto?? *)
                             | _ -> 
                                ((0, 0), (0, 0))
                         ) |> Array.of_list
@@ -431,14 +514,6 @@ let formulaes controller sheet =
     | None -> 
         Stdlib.Error "Fatal!: Missing grid")
 
-;;
-
-let fetch_grid_label controller label = 
-    GridTable.find_opt controller.sheets label 
-;;
-
-let fetch_active_grid controller = 
-    GridTable.find controller.sheets !(controller.active)
 ;;
 
 let fetch_as_string controller label (r, c) = 

@@ -10,10 +10,13 @@
   // const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
   // @
+  // TODO: redundant!! sheets references should be updated 
   let sheets   = $state([])
+  let isheets  = $state([])
   function updateSheets() {
       // ocaml arrays have a tag 
       sheets = $controller.myLib?.available(false).splice(1);
+      isheets = $controller.myLib?.availableindexed(false).splice(1);
   }
 
 
@@ -779,25 +782,28 @@
         <div class="pl-0">
             <div role="tablist" class="pl-14 tabs "> 
 
-                {#each sheets as sh (sh)}
-                    <div role="tab" class='{!(is_chrome) ? "pr-8" : ""} menu outline-black row-auto space-x-2 px-2 tab tab-active border-x border-x-black {$controller.active == sh ? "bg-green-200" : ""}'>
-                        <button aria-label={sh} onclick={() => {
-                            if($controller.myLib?.activate(sh)) {
+                {#each isheets as sh (sh.index)}
+                    <div role="tab" data-tip={`index ${sh.index}`}
+                        class='{!(is_chrome) ? "pr-8" : ""} tooltip
+                        tooltip-bottom menu outline-black row-auto space-x-2
+                        px-2 tab tab-active border-x border-x-black {$controller.active == sh.name ? "bg-green-200" : ""}'>
+                        <button aria-label={sh.name} onclick={() => {
+                            if($controller.myLib?.activate(sh.name)) {
                                 controller.update(function(c){
-                                    c.active = sh;
+                                    c.active = sh.name;
                                     c.refresh += 1;
                                     return c
                                 });
                             };
                         }} class="cursor-pointer badge text-sm
                             badge-neutral bg-white badge-outline">
-                            <i class={$controller.active == sh ? "fa fa-circle text-green-200" : "fa fa-circle text-gray-200"}> </i>
-                            {sh}
+                            <i class={$controller.active == sh.name ? "fa fa-circle text-green-200" : "fa fa-circle text-gray-200"}> </i>
+                            {sh.name}
                         </button>
 
                         <div class="dropdown dropdown-bottom dropdown-center">
                             <button tabindex="0" aria-label="edit"
-                                class='text-md badge border-black {$controller.active == sh ? "bg-green-200" : ""} hover:bg-gray-200 cursor-pointer'>
+                                class='text-md badge border-black {$controller.active == sh.name ? "bg-green-200" : ""} hover:bg-gray-200 cursor-pointer'>
                                 <i class="fa fa-xs fa-ellipsis-v"></i>
                             </button>
                             <div tabindex="-1" class="dropdown-content menu bg-base-100 shadow-xl transition-shadow duration-150 ">
@@ -805,7 +811,7 @@
                                     <li class="py-1">
                                         <button 
                                             onclick={() => {
-                                                const newname = prompt(`Rename ${sh}`, `New Sheet: ${new Date().toLocaleString()}`);
+                                                const newname = prompt(`Rename ${sh.name}`, `New Sheet: ${new Date().toLocaleString()}`);
                                                 if(newname && $controller.myLib?.rename($controller.active, newname)) {
                                                     controller.update(function(c){
                                                         updateSheets();
@@ -842,7 +848,7 @@
                                             disabled={sheets.length == 1}
                                             aria-label="close"
                                             onclick={() => {
-                                                const nsh = $controller.myLib?.delete(sh);
+                                                const nsh = $controller.myLib?.delete(sh.name);
                                                 updateSheets();
                                                 controller.update(function(c){
                                                     c.myLib?.activate(nsh);

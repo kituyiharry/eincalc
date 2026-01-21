@@ -432,6 +432,10 @@ let handle_masks (type data) _grid axis masks acc (module M: Ndarray.NDarray wit
                     | _ -> 
                         failwith "minmax axis collapse failure"
                 )
+            | Parser.WriteTo (index, _cell) -> 
+                let start = key_of_ref _cell in
+                let _ = Masks.writeaxis axis (module M) start data (Ndcontroller.fetch_grid_index _grid index).grid in
+                acc
             | Parser.Write _cell -> 
                 let start = key_of_ref _cell in
                 let _ = Masks.writeaxis axis (module M) start data (Ndcontroller.fetch_active_grid _grid).grid in
@@ -629,6 +633,11 @@ and masked_to_ndarray _grid _masks range =
                         let start = key_of_ref _cell in
                         let _ = Masks.write (module M) start data (Ndcontroller.fetch_active_grid _grid).grid in
                         acc
+                    | Parser.WriteTo (index,_cell) -> 
+                        (* execute an effect back to the grid *)
+                        let start = key_of_ref _cell in
+                        let _ = Masks.write (module M) start data (Ndcontroller.fetch_grid_index _grid index).grid in
+                        acc
                     | Parser.Cumsum -> 
                         let _ = Masks.cumsum (module M) data in
                         acc
@@ -710,6 +719,11 @@ and transform_mask _grid ndarr masks =
                         (* execute an effect back to the grid *)
                         let start = key_of_ref _cell in
                         let _ = Masks.write (module M) start data (Ndcontroller.fetch_active_grid _grid).grid in
+                        acc
+                    | Parser.WriteTo (index,_cell) -> 
+                        (* execute an effect back to the grid *)
+                        let start = key_of_ref _cell in
+                        let _ = Masks.write (module M) start data (Ndcontroller.fetch_grid_index _grid index).grid in
                         acc
                     | Parser.Slice sl -> 
                         let curdim = M.shape data in

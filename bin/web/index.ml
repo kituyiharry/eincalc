@@ -131,6 +131,17 @@ let _ =
             |> Array.of_list
         )
 
+        method availableindexed (_)  = (
+            Eincalc.Ndcontroller.available_sheets_index !sheet
+            |> List.map (fun (x,y) -> 
+                (object%js 
+                    val name  = x 
+                    val index = y
+                end)
+            )
+            |> Array.of_list
+        )
+
         method formulaes (_)  = (
             match Eincalc.Ndcontroller.formulaes !sheet !((!sheet).active) with
             | Ok frms -> 
@@ -197,18 +208,27 @@ let _ =
                     let cell = (Eincalc.Parser.Write (Eincalc.Ndcontroller.ref_of_key (row, col))) in 
                     let dotc = Eincalc.Ndcontroller.plaindctx () in 
                     let _ = Eincalc.Ndmodel.Grid.add _g (row, col) (TNumber vstr) in 
+                    let oldactive = !(!sheet.active) in
                     let _ = (
                         Eincalc.Ndcontroller.notify !sheet cell []
-                        |> List.map (Eincalc.Ndcontroller.affected !sheet dotc)
+                        |> List.map (
+                            fun (index, y) ->
+                                let act = Eincalc.Ndcontroller.IndexToSheet.find !sheet.indexed index in
+                                let _ = (!sheet.active := act) in
+                                List.map (fun x -> (act, x))
+                                (Eincalc.Ndcontroller.affected !sheet dotc y)
+                        )
                         |> List.concat
-                        |> List.sort_uniq (fun (Eincalc.Parser.Stmt x) (Eincalc.Parser.Stmt y) ->
+                        |> List.sort_uniq (fun (_, (Eincalc.Parser.Stmt x)) (_,(Eincalc.Parser.Stmt y)) ->
                             Float.compare x.stamp y.stamp
                         )
-                        |> List.iter (fun fml -> 
+                        |> List.iter (fun (act, fml) -> 
                                 (!sheet).onlog ("Found affected formulae!", Eincalc.Ndcontroller.Warn);
+                                !sheet.active := act;
                                 Eincalc.Repl.handle_transform_formulae !sheet fml
                            ) 
                     ) in
+                    let _ = !sheet.active := oldactive in
                     let _ = Buffer.clear buf in
                     let _ = Eincalc.Ndcontroller.FormGraphSerializer.to_dot ~dir:true "Affected" dotc.global dotc.prnode dotc.predge 
                         !(act.frmgrph) |> Seq.concat |> Seq.iter (fun s -> 
@@ -253,25 +273,30 @@ let _ =
                         let _ = Eincalc.Ndcontroller.dependants !sheet cell.ast in
                         let _ = Eincalc.Repl.handle_eval !sheet cell in
                         let dotc = Eincalc.Ndcontroller.plaindctx () in 
+                        let oldactive = !((!sheet).active) in
                         (* see if we wrote over other formulaes *)
                         let _ = (
                             List.iter (fun (msk, shp) ->
                                 Eincalc.Ndcontroller.notify !sheet msk shp
-                                |> List.map (Eincalc.Ndcontroller.affected !sheet dotc)
+                                |> List.map (fun (index,y) ->
+                                    let act = Eincalc.Ndcontroller.IndexToSheet.find !sheet.indexed index in
+                                    let _ = (!sheet.active := act) in
+                                    List.map (fun (x) -> (act, x)) (Eincalc.Ndcontroller.affected !sheet dotc y)
+                                )
                                 |> List.concat
-                                |> List.sort_uniq (fun (Eincalc.Parser.Stmt x) (Eincalc.Parser.Stmt y) ->
+                                |> List.sort_uniq (fun (_,(Eincalc.Parser.Stmt x)) (_,(Eincalc.Parser.Stmt y)) ->
                                     Float.compare x.stamp y.stamp
                                 )
-                                |> List.iter (fun fml -> 
-                                    let _ =
-                                        Eincalc.Repl.handle_transform_formulae !sheet fml in
+                                |> List.iter (fun (act, fml) -> 
+                                    let _ = (!sheet.active := act) in
+                                    let _ = Eincalc.Repl.handle_transform_formulae !sheet fml in
                                     (!sheet).onlog ("Found affected formulae!", Eincalc.Ndcontroller.Warn);
                                 )
                             ) s.writes
                         ) in
+                        let _ = !sheet.active := oldactive in
                         let _ = Buffer.clear buf in
-                        let _ = Eincalc.Ndcontroller.FormGraphSerializer.to_dot 
-                            ~dir:true "Affected" dotc.global dotc.prnode dotc.predge 
+                        let _ = Eincalc.Ndcontroller.FormGraphSerializer.to_dot ~dir:true "Affected" dotc.global dotc.prnode dotc.predge 
                             !(act.frmgrph) |> Seq.concat |> Seq.iter (fun s -> 
                                 Buffer.add_string buf (s ())
                             ) in 
@@ -295,18 +320,29 @@ let _ =
             let sep = if String.contains vstr '\t' then '\t' else if (not @@ String.contains vstr ',') then ' ' else ',' in
             (match Eincalc.Ndcontroller.paste_values !sheet !(!sheet.active) sep (row, col) vstr with 
                 | Ok    (r,c) -> 
+                    (* mock a write event *)
                     let cell = (Eincalc.Parser.Write (Eincalc.Ndcontroller.ref_of_key (row, col))) in 
                     let dotc = Eincalc.Ndcontroller.plaindctx () in 
+                    let oldactive = !((!sheet).active) in
+                    (* notify we gave written to a region on the sheet *)
                     Eincalc.Ndcontroller.notify !sheet cell [r;c]
-                    |> List.map (Eincalc.Ndcontroller.affected !sheet dotc)
+                    |> List.map (
+                        (* notify we gave written to a region on the sheet *)
+                        fun (index,y) ->
+                            let act = Eincalc.Ndcontroller.IndexToSheet.find !sheet.indexed index in
+                            let _ = (!sheet.active := act) in
+                            List.map (fun y -> (act, y)) (Eincalc.Ndcontroller.affected !sheet dotc y)
+                    )
                     |> List.concat
-                    |> List.sort_uniq (fun (Eincalc.Parser.Stmt x) (Eincalc.Parser.Stmt y) ->
+                    |> List.sort_uniq (fun (_, Eincalc.Parser.Stmt x) (_, Eincalc.Parser.Stmt y) ->
                         Float.compare x.stamp y.stamp
                     )
-                    |> List.iter (fun fml -> 
+                    |> List.iter (fun (act, fml) -> 
+                        let _ = (!sheet.active := act) in
                         let _ = Eincalc.Repl.handle_transform_formulae !sheet fml in
                         !(sheet).onlog ("Found affected formulae!", Eincalc.Ndcontroller.Warn);
                     );
+                    let _ = !sheet.active := oldactive in
                     let _ = Buffer.clear buf in
                     let _ = Eincalc.Ndcontroller.FormGraphSerializer.to_dot ~dir:true "Affected" dotc.global dotc.prnode dotc.predge 
                         !(act.frmgrph) |> Seq.concat |> Seq.iter (fun s -> 
