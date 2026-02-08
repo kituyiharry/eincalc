@@ -317,10 +317,10 @@ let loopfusemultaddaddr multvars istckidx upbound (outidxs, outaddr, outkern, ou
 
         (* update in the output index *)
         let _ = List.iter (fun i -> outaddr.(i) <- outaddr.(i) + 1 ) outup in
-        
         ()
 
     done in
+    (* update the upperbound so that the loop  iterations are skipped *)
     (set_stack istckidx (SIndex upbound) vm)
 ;;
 
@@ -394,7 +394,7 @@ let handle_op vm op =
         let _ = loopfusemultaddaddr multvars incstkidx bound outkern vm in
         1
     (* unused for now *)
-    | VSweepAdd _ ->                 1
+    | VSweepAdd _ -> 1
     | IApplyMasks   ->     let _ = apply_masks vm in 1
     | IApplyMaskList ml -> let _ = apply_masks_list vm ml in 1
     | ISaveFrame ->  let _ = 

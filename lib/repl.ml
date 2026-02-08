@@ -22,7 +22,7 @@ let handle_eval grid (t) =
    in ()
 ;;
 
-let rec handle_transform_formulae grid (form) = 
+let handle_transform_formulae grid (form) = 
     let rec rununiquestamp grid (Parser.Stmt ctx as form) stamps  =
 
         (* Skip re-execution - simple case *)
@@ -42,7 +42,7 @@ let rec handle_transform_formulae grid (form) =
                 let stamps = List.fold_left (fun stamps -> function 
                     (* WARN: handle cross sheet writes! -> can cause an infinite loop if not carefull - added stamp list but not properly tested !! *)
                     (* TODO: use stamps to ensure idempotent runts here! *)
-                    | ((Parser.WriteTo (indx, _) as msk), shp)-> 
+                    | ((Parser.WriteTo (_indx, _) as msk), shp)-> 
                         (
                             Ndcontroller.notify grid msk shp
                             |> List.map (
