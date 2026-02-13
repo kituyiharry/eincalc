@@ -1421,76 +1421,71 @@ let parse_enum_reference state =
                     (>>==) (takenum (advance next)) (fun (tok, next')-> 
                         match tok with 
                         | TFloat fval -> 
-                            (>>==) (consume next' TComma) (fun after -> 
-                                (>>==) (takenum (after)) (fun (tok, next')-> 
-                                    let line, colm = curspot next' in
-                                    (match tok with
-                                        |TFloat incv ->  
-                                            (>>==) (consume next' TComma) (fun after -> 
-                                                (match (current after) with
-                                                    | Some { tokn; line; colm; _ } -> 
-                                                        (match tokn with 
-                                                            | TLeftBracket -> 
-                                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                                    (>>==) (consume after' TRightAngle) (fun final -> 
-                                                                        Ok (final, Create (Enum (fval, incv, shp)))
-                                                                    )
-                                                                )
-                                                            | _ -> 
-                                                                Error (
-                                                                    Errctx.{
-                                                                        line; colm; sugg="parser.enum_ref_expect_shape";
-                                                                        errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn))
-                                                                    }
-                                                                )
-                                                        )
-                                                    | _ ->
-                                                        Error (Errctx.{
-                                                            line=(-1); colm=(-1); sugg="parser.enum_ref_expect_shape";
-                                                            errt="Expected shape filling spec"
-                                                        })
-                                                )
-                                            ) 
-                                        |TNumeral incn -> 
-                                            (>>==) (consume next' TComma) (fun after -> 
-                                                (match (fst after).curr with
-                                                    | Some { tokn; line; colm; _ } -> 
-                                                        (match tokn with 
-                                                            | TLeftBracket -> 
-                                                                (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
-                                                                    (>>==) (consume after' TRightAngle) (fun final -> 
-                                                                        Ok (final, Create (Enum (fval, (float_of_int incn) ,shp)))
-                                                                    )
-                                                                )
-                                                            | _ -> 
-                                                                Error (
-                                                                    Errctx.{
-                                                                        line; colm; 
-                                                                        sugg="parser.enum_ref_expect_shape";
-                                                                        errt=Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)
-                                                                    }
-                                                                )
-                                                        )
-                                                    | _ ->
+                            let* after = (consume next' TComma) in
+                            let* (tok, next') = (takenum (after)) in
+                            let line, colm = curspot next' in
+                            (match tok with
+                                |TFloat incv ->  
+                                    let* after = (consume next' TComma) in
+                                        (match (current after) with
+                                            | Some { tokn; line; colm; _ } -> 
+                                                (match tokn with 
+                                                    | TLeftBracket -> 
+                                                        let*  (after', shp) = (parse_extract_shape (advance after)) in
+                                                            (>>==) (consume after' TRightAngle) (fun final -> 
+                                                                Ok (final, Create (Enum (fval, incv, shp)))
+                                                            )
+                                                    | _ -> 
                                                         Error (
                                                             Errctx.{
-                                                                line=(-1); colm=(-1); 
-                                                                sugg="parser.enum_ref_expect_shape";
-                                                                errt="Expected shape filling spec"
+                                                                line; colm; sugg="parser.enum_ref_expect_shape";
+                                                                errt=(Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn))
                                                             }
                                                         )
                                                 )
-                                            ) 
-                                        | s ->
-                                            Error (
-                                                Errctx.{
-                                                    line; colm;
-                                                    sugg="parser.enum_expect_number";
-                                                    errt=(Format.sprintf "Expected numeral value, found %s" (show_ttype s))
-                                                }
-                                            )
+                                            | _ ->
+                                                Error (Errctx.{
+                                                    line=(-1); colm=(-1); sugg="parser.enum_ref_expect_shape";
+                                                    errt="Expected shape filling spec"
+                                                })
+                                        )
+                                |TNumeral incn -> 
+                                    let* after = (consume next' TComma) in
+                                        (match (fst after).curr with
+                                            | Some { tokn; line; colm; _ } -> 
+                                                (match tokn with 
+                                                    | TLeftBracket -> 
+                                                        (>>==) (parse_extract_shape (advance after)) (fun (after', shp) -> 
+                                                            (>>==) (consume after' TRightAngle) (fun final -> 
+                                                                Ok (final, Create (Enum (fval, (float_of_int incn) ,shp)))
+                                                            )
+                                                        )
+                                                    | _ -> 
+                                                        Error (
+                                                            Errctx.{
+                                                                line; colm; 
+                                                                sugg="parser.enum_ref_expect_shape";
+                                                                errt=Format.sprintf "Expected shape spec, found: %s" (show_ttype tokn)
+                                                            }
+                                                        )
+                                                )
+                                            | _ ->
+                                                Error (
+                                                    Errctx.{
+                                                        line=(-1); colm=(-1); 
+                                                        sugg="parser.enum_ref_expect_shape";
+                                                        errt="Expected shape filling spec"
+                                                    }
+                                                )
+                                        )
+                                | s ->
+                                    Error (
+                                        Errctx.{
+                                            line; colm;
+                                            sugg="parser.enum_expect_number";
+                                            errt=(Format.sprintf "Expected numeral value, found %s" (show_ttype s))
+                                        }
                                     )
-                                )
                             )
                         | TNumeral ival -> 
                             (>>==) (consume next' TComma) (fun after -> 

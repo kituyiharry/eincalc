@@ -56,7 +56,7 @@ let optloopblock startloc loopcounteridx bound =
 ;;
 
 let optloop jmp startloc hdblck slot = 
-    (* WARNING -> MODIFYING THIS LIST AFFECTS VM OUTPUT SINCE JUMPS ARE HARD CODED!!!! *)
+    (* WARNING: MODIFYING THIS LIST AFFECTS VM OUTPUT SINCE JUMPS ARE HARD CODED!!!! *)
     let _ = jmp := (!jmp + (List.length slot)) in
     hdblck @ slot @ 
     [  
@@ -101,7 +101,7 @@ let loopblock startloc loopcounteridx bound =
 ;;
 
 let loop jmp startloc hdblck slot = 
-    (* WARNING -> MODIFYING THIS LIST AFFECTS VM OUTPUT SINCE JUMPS ARE HARD CODED!!!! *)
+    (* WARNING: MODIFYING THIS LIST AFFECTS VM OUTPUT SINCE JUMPS ARE HARD CODED!!!! *)
     let _ = jmp := (!jmp + (List.length slot)) in
     hdblck @ slot @ 
     [  
